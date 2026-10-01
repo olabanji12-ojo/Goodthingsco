@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GatewayNav, GatewayFooter } from '../components/gateway';
+import { GatewayNav } from '../components/gateway';
 import {
   EditHero,
   EditFeaturedStory,
@@ -12,18 +12,19 @@ import {
   getArticlesByCategory,
   EDIT_CATEGORIES,
 } from '../data/editArticlesData';
+import { Footer } from '../components/homepage/footer/Footer';
 
 /**
  * EditPage — The Edit (Editorial Journal of Good Things Co.)
  *
  * Page Structure:
- * 1. GatewayNav (Active: edit)
+ * 1. GatewayNav
  * 2. EditHero (Title: THE EDIT, concise supporting idea)
  * 3. EditFeaturedStory (One prominent magazine-style feature)
  * 4. EditCategoryNav (Clean entry points for 7 categories + category meaning)
  * 5. EditArticleGrid (Curated article grid)
  * 6. EditNewsletterNote (Discreet quarterly dispatch)
- * 7. GatewayFooter (Minimal footer)
+ * 7. Normal Full-Width Footer
  */
 export const EditPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -48,9 +49,9 @@ export const EditPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       {/* Container wrapper for consistent editorial margins */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between pb-10 sm:pb-16">
         {/* ── 1. Minimal Header Navigation ── */}
-        <GatewayNav activePath="edit" />
+        <GatewayNav />
 
         {/* ── 2. The Edit Content Area ── */}
         <main className="w-full py-4 sm:py-6 md:py-8 flex flex-col items-center">
@@ -77,10 +78,10 @@ export const EditPage: React.FC = () => {
           {/* Section 5: Editorial Dispatch Note */}
           <EditNewsletterNote />
         </main>
-
-        {/* ── 6. Minimal Low-Profile Footer ── */}
-        <GatewayFooter />
       </div>
+
+      {/* ── 6. Normal Full-Width Footer ── */}
+      <Footer />
     </div>
   );
 };

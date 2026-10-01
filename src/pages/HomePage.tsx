@@ -16,14 +16,14 @@ import { Footer } from '../components/homepage/footer/Footer';
  * 4. NORMAL FULL-WIDTH FOOTER
  */
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<GatewayTabId>('shop');
+  const [activeTab, setActiveTab] = useState<GatewayTabId | null>(null);
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       {/* Container wrapper for consistent editorial margins */}
       <div className="w-full max-w-7xl mx-auto px-5 sm:px-8 md:px-12 lg:px-16 flex flex-col flex-1 justify-between pb-10 sm:pb-16">
         {/* ── 1. Minimal Editorial Header & Navigation ── */}
-        <GatewayNav activePath={activeTab} onSelectTab={setActiveTab} />
+        <GatewayNav activePath={activeTab ?? undefined} onSelectTab={setActiveTab} />
 
         {/* ── 2. Hero & Brand Positioning Statement ── */}
         <main className="w-full py-4 sm:py-6 md:py-8 flex flex-col items-center justify-center text-center">

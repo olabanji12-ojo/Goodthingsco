@@ -19,14 +19,14 @@ export const HeroNav: React.FC<HeroNavProps> = ({ className = '', activeItem }) 
     { label: 'Shop', href: '/shop' },
     { label: 'Corporate', href: '/corporate' },
     { label: 'Create', href: '/create' },
-    { label: 'About', href: '/#about' },
+    { label: 'About', href: '/about' },
   ];
 
   const shopCategories = [
     { name: 'Shop Gifts', href: '/shop' },
     { name: 'Corporate Gifting', href: '/corporate' },
     { name: 'Custom Atelier', href: '/create' },
-    { name: 'Our Story', href: '/#about' },
+    { name: 'Our Story', href: '/about' },
   ];
 
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {

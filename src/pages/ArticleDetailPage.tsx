@@ -1,8 +1,9 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { GatewayNav, GatewayFooter } from '../components/gateway';
+import { GatewayNav } from '../components/gateway';
 import { getArticleBySlug, getRelatedArticles } from '../data/editArticlesData';
 import { EditArticleCard } from '../components/theEdit/EditArticleCard';
+import { Footer } from '../components/homepage/footer/Footer';
 
 /**
  * ArticleDetailPage — Reusable Editorial Article Reading View
@@ -26,8 +27,8 @@ export const ArticleDetailPage: React.FC = () => {
   if (!article) {
     return (
       <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between">
-          <GatewayNav activePath="edit" />
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between pb-10 sm:pb-16">
+          <GatewayNav />
           <main className="w-full py-24 text-center">
             <h1 className="font-serif text-3xl sm:text-4xl text-brand-dark mb-4">
               Article Not Found
@@ -42,8 +43,8 @@ export const ArticleDetailPage: React.FC = () => {
               ← Back to The Edit
             </Link>
           </main>
-          <GatewayFooter />
         </div>
+        <Footer />
       </div>
     );
   }
@@ -53,9 +54,9 @@ export const ArticleDetailPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       {/* Container wrapper for consistent editorial margins */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between pb-10 sm:pb-16">
         {/* ── 1. Minimal Header Navigation ── */}
-        <GatewayNav activePath="edit" />
+        <GatewayNav />
 
         {/* ── 2. Editorial Reading Section ── */}
         <main className="w-full py-6 sm:py-10 flex flex-col items-center">
@@ -266,10 +267,10 @@ export const ArticleDetailPage: React.FC = () => {
             </div>
           </section>
         </main>
-
-        {/* ── 4. Minimal Low-Profile Footer ── */}
-        <GatewayFooter />
       </div>
+
+      {/* ── 4. Normal Full-Width Footer ── */}
+      <Footer />
     </div>
   );
 };

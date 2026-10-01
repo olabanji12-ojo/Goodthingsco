@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 interface GatewayNavProps {
-  activePath?: 'shop' | 'corporate' | 'create' | 'edit' | 'about';
+  activePath?: 'shop' | 'corporate' | 'create' | 'about';
   onSelectTab?: (tab: 'shop' | 'corporate' | 'create' | 'about') => void;
   className?: string;
 }
@@ -14,17 +14,16 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navLinks: { id: 'shop' | 'corporate' | 'create' | 'edit' | 'about'; label: string; href: string }[] = [
+  const navLinks: { id: 'shop' | 'corporate' | 'create' | 'about'; label: string; href: string }[] = [
     { id: 'shop', label: 'Shop', href: '/shop' },
     { id: 'corporate', label: 'Corporate', href: '/corporate' },
     { id: 'create', label: 'Create', href: '/create' },
-    { id: 'edit', label: 'The Edit', href: '/edit' },
     { id: 'about', label: 'About', href: '/about' },
   ];
 
-  const handleNavClick = (id: 'shop' | 'corporate' | 'create' | 'edit' | 'about') => {
-    if (onSelectTab && id !== 'edit' && id !== 'about') {
-      onSelectTab(id as 'shop' | 'corporate' | 'create');
+  const handleNavClick = (id: 'shop' | 'corporate' | 'create' | 'about') => {
+    if (onSelectTab && id !== 'about') {
+      onSelectTab(id);
     }
     setMobileMenuOpen(false);
   };
@@ -53,7 +52,7 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
               <li key={link.id}>
                 <Link
                   to={link.href}
-                  onMouseEnter={() => onSelectTab && link.id !== 'edit' && link.id !== 'about' && onSelectTab(link.id as 'shop' | 'corporate' | 'create')}
+                  onMouseEnter={() => onSelectTab && link.id !== 'about' && onSelectTab(link.id)}
                   onClick={() => handleNavClick(link.id)}
                   className={`font-sans text-xs lg:text-[13px] font-semibold tracking-[0.2em] uppercase transition-all duration-300 relative py-2 ${
                     isActive

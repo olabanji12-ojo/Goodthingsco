@@ -11,7 +11,7 @@ import { gsap, prefersReducedMotion } from '../../../lib/gsap';
  * - Clean, functional 4-column responsive layout on desktop
  * - Restrained typography, subtle hover states, and smooth entrance animation
  */
-export const Footer: React.FC = () => {
+export const Footer: React.FC<{ className?: string }> = ({ className = '' }) => {
   const currentYear = new Date().getFullYear();
   const footerRef = useRef<HTMLElement>(null);
 
@@ -75,7 +75,7 @@ export const Footer: React.FC = () => {
       ref={footerRef}
       id="site-footer"
       data-section="footer"
-      className="bg-[#3F4634] text-[#F5F0E8] pt-20 pb-12 md:pt-24 md:pb-16 border-t border-brand-dark/10 overflow-hidden select-none"
+      className={`bg-[#3F4634] text-[#F5F0E8] pt-20 pb-12 md:pt-24 md:pb-16 border-t border-brand-dark/10 overflow-hidden select-none w-full ${className}`}
       aria-label="Site Footer"
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-10 md:px-16 lg:px-20">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { GatewayNav, GatewayFooter } from '../components/gateway';
+import { GatewayNav } from '../components/gateway';
 import {
   AboutHero,
   AboutStory,
@@ -8,6 +8,7 @@ import {
   AboutOfferings,
   AboutFinalCta,
 } from '../components/about';
+import { Footer } from '../components/homepage/footer/Footer';
 
 /**
  * AboutPage — Good Things Co.
@@ -27,8 +28,8 @@ export const AboutPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       {/* Container wrapper for consistent editorial margins */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between">
-        {/* ── 1. Minimal Header Navigation (Shop | Corporate | Create | The Edit | About) ── */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between pb-10 sm:pb-16">
+        {/* ── 1. Minimal Header Navigation (Shop | Corporate | Create | About) ── */}
         <GatewayNav activePath="about" />
 
         {/* ── 2. About Main Content ── */}
@@ -51,10 +52,10 @@ export const AboutPage: React.FC = () => {
           {/* Section 6: Final CTA */}
           <AboutFinalCta />
         </main>
-
-        {/* ── 3. Minimal Low-Profile Footer ── */}
-        <GatewayFooter />
       </div>
+
+      {/* ── 3. Normal Full-Width Footer ── */}
+      <Footer />
     </div>
   );
 };

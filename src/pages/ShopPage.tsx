@@ -1,6 +1,7 @@
 import React from 'react';
-import { GatewayNav, GatewayFooter } from '../components/gateway';
+import { GatewayNav } from '../components/gateway';
 import { ShopFlowContainer } from '../components/shopJourney';
+import { Footer } from '../components/homepage/footer/Footer';
 
 /**
  * ShopPage — Good Things Co.
@@ -23,7 +24,7 @@ export const ShopPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       {/* Container wrapper for consistent margins */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between pb-10 sm:pb-16">
         {/* ── 1. Minimal Header Navigation ── */}
         <GatewayNav activePath="shop" />
 
@@ -50,10 +51,10 @@ export const ShopPage: React.FC = () => {
             <ShopFlowContainer />
           </div>
         </main>
-
-        {/* ── 4. Minimal Low-Profile Footer ── */}
-        <GatewayFooter />
       </div>
+
+      {/* ── 4. Normal Full-Width Footer ── */}
+      <Footer />
     </div>
   );
 };
