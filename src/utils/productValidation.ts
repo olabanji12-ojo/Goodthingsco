@@ -99,8 +99,25 @@ export function validateCreateProduct(input: Partial<CreateProductInput>): Valid
   }
 
   // 11. Images (optional array)
-  if (input.images !== undefined && !Array.isArray(input.images)) {
-    errors.push('Images must be an array of image URL strings.');
+  if (input.images !== undefined) {
+    if (!Array.isArray(input.images)) {
+      errors.push('Images must be an array of image URLs or ProductImage objects.');
+    } else {
+      for (const img of input.images) {
+        if (typeof img === 'string') {
+          if (!img.trim()) errors.push('Image URL cannot be an empty string.');
+        } else if (typeof img === 'object' && img !== null) {
+          if (!img.url || typeof img.url !== 'string') {
+            errors.push('Every product image object must have a valid url.');
+          }
+          if (!img.publicId || typeof img.publicId !== 'string') {
+            errors.push('Every product image object must have a valid publicId.');
+          }
+        } else {
+          errors.push('Image items must be valid strings or ProductImage objects.');
+        }
+      }
+    }
   }
 
   // 12. Variants (optional)
@@ -172,6 +189,27 @@ export function validateUpdateProduct(updates: UpdateProductInput): ValidationRe
 
   if (updates.recipients !== undefined && !Array.isArray(updates.recipients)) {
     errors.push('Recipients must be an array of strings.');
+  }
+
+  if (updates.images !== undefined) {
+    if (!Array.isArray(updates.images)) {
+      errors.push('Images must be an array of image URLs or ProductImage objects.');
+    } else {
+      for (const img of updates.images) {
+        if (typeof img === 'string') {
+          if (!img.trim()) errors.push('Image URL cannot be an empty string.');
+        } else if (typeof img === 'object' && img !== null) {
+          if (!img.url || typeof img.url !== 'string') {
+            errors.push('Every product image object must have a valid url.');
+          }
+          if (!img.publicId || typeof img.publicId !== 'string') {
+            errors.push('Every product image object must have a valid publicId.');
+          }
+        } else {
+          errors.push('Image items must be valid strings or ProductImage objects.');
+        }
+      }
+    }
   }
 
   return {

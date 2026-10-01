@@ -25,6 +25,22 @@ export interface ProductPersonalisation {
   maxTextLength?: number;
 }
 
+/**
+ * Cloudinary-backed Product Image object
+ * Preserves secure URL, publicId for asset lifecycle management, and dimensional metadata.
+ */
+export interface ProductImage {
+  url: string;
+  publicId: string;
+  width?: number;
+  height?: number;
+  format?: string;
+  bytes?: number;
+  alt?: string;
+}
+
+export type ProductImageItem = ProductImage | string;
+
 export interface Product {
   id?: string;
   name: string;
@@ -32,7 +48,7 @@ export interface Product {
   description: string;
   price: number;
   compareAtPrice?: number;
-  images: string[];
+  images: (ProductImage | string)[];
   category: string;
   occasions: string[]; // Array to allow matching multiple occasions (e.g. ['birthday', 'thank-you'])
   recipients: string[]; // Array to allow matching multiple recipients (e.g. ['her', 'mum', 'family'])
@@ -59,7 +75,7 @@ export interface CreateProductInput {
   description: string;
   price: number;
   compareAtPrice?: number;
-  images?: string[];
+  images?: (ProductImage | string)[];
   category: string;
   occasions: string[];
   recipients: string[];
