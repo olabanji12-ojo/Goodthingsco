@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import logoImg from '../../assets/branding/logo.png';
 
 interface GatewayNavProps {
   activePath?: 'shop' | 'corporate' | 'create' | 'about';
@@ -37,7 +38,7 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
         aria-label="Good Things Co. — Home"
       >
         <img
-          src="/images/branding/logo.png"
+          src={logoImg}
           alt="Good Things Co."
           className="h-6 sm:h-7 md:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-85"
         />

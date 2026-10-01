@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logoImg from '../../assets/branding/logo.png';
 
 interface HeroNavProps {
   className?: string;
@@ -80,9 +81,9 @@ export const HeroNav: React.FC<HeroNavProps> = ({ className = '', activeItem }) 
           data-hero-element="logo"
         >
           <img
-            src="/images/branding/logo.png"
+            src={logoImg}
             alt="Good Things Co."
-            className="h-9 sm:h-10 md:h-12 w-auto object-contain"
+            className="h-7 sm:h-8 md:h-9 w-auto object-contain"
             loading="eager"
             draggable={false}
           />

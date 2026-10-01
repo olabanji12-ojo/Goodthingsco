@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { gsap, prefersReducedMotion } from '../../../lib/gsap';
+import logoWhiteImg from '../../../assets/branding/logo-white.png';
 
 /**
  * Footer — Good Things Co.
@@ -71,10 +72,10 @@ export const Footer: React.FC<{ className?: string }> = ({ className = '' }) => 
               aria-label="Good Things Co. Home"
             >
               <img
-                src="/images/branding/logo-white.png"
+                src={logoWhiteImg}
                 alt="Good Things Co."
                 className="h-8 sm:h-9 md:h-10 w-auto object-contain opacity-95"
-                loading="lazy"
+                loading="eager"
                 draggable={false}
               />
             </Link>
