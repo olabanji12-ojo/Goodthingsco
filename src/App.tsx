@@ -16,6 +16,7 @@ import CreatePage from './pages/CreatePage';
 import EditPage from './pages/EditPage';
 import ArticleDetailPage from './pages/ArticleDetailPage';
 import AboutPage from './pages/AboutPage';
+import DevTestPage from './pages/DevTestPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -44,6 +45,7 @@ function AppRoutes() {
         <Route path="/lookbook" element={<LookbookPage />} />
         <Route path="/horizontal" element={<LookbookPage />} />
         <Route path="/shop" element={<ShopPage />} />
+        <Route path="/dev-test" element={<DevTestPage />} />
         {/* Fallback route */}
         <Route path="*" element={<HomePage />} />
       </Routes>
