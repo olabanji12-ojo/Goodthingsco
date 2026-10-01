@@ -39,7 +39,7 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
         <img
           src="/images/branding/logo.png"
           alt="Good Things Co."
-          className="h-8 sm:h-9 md:h-10 w-auto object-contain transition-opacity duration-300 group-hover:opacity-85"
+          className="h-6 sm:h-7 md:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-85"
         />
       </Link>
 

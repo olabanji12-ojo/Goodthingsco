@@ -71,9 +71,9 @@ export const Footer: React.FC<{ className?: string }> = ({ className = '' }) => 
               aria-label="Good Things Co. Home"
             >
               <img
-                src="/images/branding/logo.png"
+                src="/images/branding/logo-white.png"
                 alt="Good Things Co."
-                className="h-8 sm:h-9 md:h-10 w-auto object-contain brightness-0 invert opacity-95"
+                className="h-8 sm:h-9 md:h-10 w-auto object-contain opacity-95"
                 loading="lazy"
                 draggable={false}
               />
