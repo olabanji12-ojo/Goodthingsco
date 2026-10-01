@@ -52,9 +52,26 @@ declare module 'firebase/firestore' {
 }
 
 declare module 'firebase/auth' {
+  export interface User {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL?: string | null;
+  }
+  export interface UserCredential {
+    user: User;
+  }
   export interface Auth {
     app: any;
-    currentUser: any;
+    currentUser: User | null;
   }
   export function getAuth(app?: any): Auth;
+  export function signInWithEmailAndPassword(auth: Auth, email: string, password: string): Promise<UserCredential>;
+  export function signOut(auth: Auth): Promise<void>;
+  export function onAuthStateChanged(
+    auth: Auth,
+    nextOrObserver: (user: User | null) => void,
+    error?: (error: any) => void,
+    completed?: () => void
+  ): () => void;
 }
