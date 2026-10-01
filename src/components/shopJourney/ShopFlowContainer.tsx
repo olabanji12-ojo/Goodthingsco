@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
-  GIFTS_CATALOG,
   OCCASIONS,
   RECIPIENTS,
   BUDGET_TIERS,
@@ -11,11 +10,40 @@ import {
   OccasionId,
   RecipientGroupId,
 } from '../../data/giftsData';
+import {
+  getFilteredProducts,
+  getActiveProducts,
+} from '../../services/productService';
+import { adaptProductToGiftItem } from '../../utils/productAdapter';
+import { Product } from '../../types/product';
+import {
+  Sparkles,
+  ExternalLink,
+  RotateCcw,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
 
 export interface ShopFlowContainerProps {
   className?: string;
   onComplete?: (orderRef: string) => void;
 }
+
+const DEFAULT_FALLBACK_GIFT: GiftItem = {
+  id: 'atelier-curation',
+  title: 'Atelier Signature Curation',
+  subtitle: 'Artisanal Gift Box',
+  price: 35000,
+  formattedPrice: '₦35,000',
+  image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80',
+  alt: 'Atelier Signature Curation',
+  occasions: ['birthday'],
+  primaryRecipient: 'her',
+  subRecipients: ['mum'],
+  budgetTier: '25k-50k',
+  description: 'Handcrafted curation prepared with personal care and artisanal attention.',
+  included: ['Signature Gift Box', 'Handwritten Card', 'Artisanal Keepsake'],
+};
 
 export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   className = '',
@@ -66,8 +94,62 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     'under-25k' | '25k-50k' | '50k-100k' | 'premium'
   >('25k-50k');
 
+  // ── Firestore Live Products State ──
+  const [exactMatches, setExactMatches] = useState<Product[]>([]);
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
+  const [productFetchError, setProductFetchError] = useState<string | null>(null);
+  const [showAllGifts, setShowAllGifts] = useState<boolean>(false);
+
   // ── Step 5 & 6: Selected Product ──
-  const [selectedProduct, setSelectedProduct] = useState<GiftItem>(GIFTS_CATALOG[0]);
+  const [selectedProduct, setSelectedProduct] = useState<GiftItem>(DEFAULT_FALLBACK_GIFT);
+
+  // ── Fetch Live Products from Firestore ──
+  const fetchProducts = useCallback(async () => {
+    setIsLoadingProducts(true);
+    setProductFetchError(null);
+    try {
+      const [filterResult, activeList] = await Promise.all([
+        getFilteredProducts({
+          occasion: selectedOccasion,
+          recipient: selectedRecipientGroup,
+          specificRecipient,
+          budgetRange: selectedBudget,
+        }),
+        getActiveProducts(true),
+      ]);
+
+      setExactMatches(filterResult.exactMatches);
+      setSuggestions(filterResult.suggestions);
+      setAllProducts(activeList);
+
+      // Pre-select first appropriate product if none selected yet or previously selected product is not in list
+      const candidateList =
+        filterResult.exactMatches.length > 0
+          ? filterResult.exactMatches
+          : filterResult.suggestions.length > 0
+          ? filterResult.suggestions
+          : activeList;
+
+      if (candidateList.length > 0) {
+        setSelectedProduct((prev) => {
+          const currentId = prev.rawProduct?.id || prev.id;
+          const stillExists = candidateList.some((c) => (c.id || c.slug) === currentId);
+          return stillExists ? prev : adaptProductToGiftItem(candidateList[0]);
+        });
+      }
+    } catch (err: any) {
+      console.error('[ShopFlowContainer] Error fetching Firestore products:', err);
+      setProductFetchError('Unable to load gifts from our database. Please check your connection.');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, [selectedOccasion, selectedRecipientGroup, specificRecipient, selectedBudget]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   // ── Step 7: Personalisation ──
   const [selectedPackaging, setSelectedPackaging] = useState(PACKAGING_OPTIONS[0]);
@@ -115,38 +197,17 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     return OCCASIONS;
   }, [occasionFilter]);
 
-  // ── Step 5 Filtered Gifts Logic ──
-  const filteredGifts = useMemo(() => {
-    const list = GIFTS_CATALOG.filter((gift) => {
-      const matchOccasion = gift.occasions.includes(selectedOccasion);
-      const matchRecipientGroup =
-        gift.primaryRecipient === selectedRecipientGroup ||
-        (selectedRecipientGroup === 'self' && gift.subRecipients?.includes('self'));
-      const matchSub =
-        selectedRecipientGroup === 'self'
-          ? true
-          : Boolean(
-              gift.subRecipients &&
-              specificRecipient &&
-              gift.subRecipients.includes(specificRecipient)
-            );
-      const matchBudget = gift.budgetTier === selectedBudget;
+  // ── Displayed Gifts derived from Firestore ──
+  const displayedGifts = useMemo(() => {
+    if (showAllGifts) {
+      return allProducts.map(adaptProductToGiftItem);
+    }
+    return exactMatches.map(adaptProductToGiftItem);
+  }, [showAllGifts, allProducts, exactMatches]);
 
-      return (matchRecipientGroup || matchSub) && (matchOccasion || matchBudget);
-    });
-
-    if (list.length > 0) return list;
-
-    // Fallback: Gifts in same budget or recipient group or occasion so user is never empty
-    const fallbackList = GIFTS_CATALOG.filter(
-      (gift) =>
-        gift.primaryRecipient === selectedRecipientGroup ||
-        gift.occasions.includes(selectedOccasion) ||
-        (selectedRecipientGroup === 'self' && gift.subRecipients?.includes('self')) ||
-        gift.budgetTier === selectedBudget
-    );
-    return fallbackList.length > 0 ? fallbackList : GIFTS_CATALOG.slice(0, 6);
-  }, [selectedOccasion, selectedRecipientGroup, specificRecipient, selectedBudget]);
+  const displayedSuggestions = useMemo(() => {
+    return suggestions.map(adaptProductToGiftItem);
+  }, [suggestions]);
 
   // Pricing calculations
   const packagingPrice = selectedPackaging.price;
@@ -186,6 +247,145 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
   // Find recipient group definition
   const currentRecipientGroupDef = RECIPIENTS.find((r) => r.id === selectedRecipientGroup);
+
+  // Helper to render high-finish product card
+  const renderProductCard = (gift: GiftItem, isSuggested = false) => {
+    const isSelected = (selectedProduct.slug || selectedProduct.id) === (gift.slug || gift.id);
+    const raw = gift.rawProduct as Product | undefined;
+    const isOutOfStock = raw?.stock !== undefined && raw.stock <= 0;
+    const isLowStock = raw?.stock !== undefined && raw.stock > 0 && raw.stock <= 3;
+
+    return (
+      <div
+        key={gift.id || gift.slug}
+        className={`group rounded-2xl overflow-hidden border flex flex-col justify-between transition-all duration-300 ${
+          isSelected
+            ? 'bg-white border-brand-dark ring-2 ring-brand-dark shadow-md'
+            : 'bg-[#FAF8F5] border-brand-dark/10 hover:border-brand-dark/30 hover:bg-white'
+        }`}
+      >
+        <div
+          onClick={() => {
+            if (!isOutOfStock) {
+              setSelectedProduct(gift);
+              goToStep(6);
+            }
+          }}
+          className={`relative aspect-[4/3] overflow-hidden bg-brand-cream/80 ${
+            isOutOfStock ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+          }`}
+        >
+          <img
+            src={gift.image}
+            alt={gift.alt}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src =
+                'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80';
+            }}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+          />
+
+          {/* Badges */}
+          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+            {isSuggested && (
+              <span className="px-2.5 py-0.5 rounded-full bg-gold-600 text-white text-[9px] font-sans font-bold uppercase tracking-wider shadow-xs">
+                Suggested Match
+              </span>
+            )}
+            {!isSuggested && gift.badge && (
+              <span className="px-2.5 py-0.5 rounded-full bg-brand-dark text-white text-[9px] font-sans font-bold uppercase tracking-wider">
+                {gift.badge}
+              </span>
+            )}
+            {isLowStock && (
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-600 text-white text-[9px] font-sans font-semibold uppercase tracking-wider">
+                Only {raw?.stock} left
+              </span>
+            )}
+            {isOutOfStock && (
+              <span className="px-2.5 py-0.5 rounded-full bg-stone-700 text-white text-[9px] font-sans font-bold uppercase tracking-wider">
+                Out of Stock
+              </span>
+            )}
+          </div>
+
+          {isSelected && (
+            <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-gold-600 text-white text-[10px] font-sans font-bold shadow-xs">
+              ✓ Selected
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-1 mb-0.5">
+              <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-gold-600 truncate">
+                {gift.subtitle}
+              </span>
+              {gift.slug && (
+                <Link
+                  to={`/shop/product/${gift.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[10px] font-sans text-brand-medium/70 hover:text-brand-dark inline-flex items-center gap-0.5 underline shrink-0"
+                  title="Open full product page in new tab"
+                >
+                  Details <ExternalLink size={10} />
+                </Link>
+              )}
+            </div>
+
+            <h4
+              onClick={() => {
+                if (!isOutOfStock) {
+                  setSelectedProduct(gift);
+                  goToStep(6);
+                }
+              }}
+              className="font-serif text-base font-medium text-brand-dark mb-1 line-clamp-1 cursor-pointer hover:text-gold-700 transition-colors"
+            >
+              {gift.title}
+            </h4>
+            <p className="font-sans text-xs text-brand-medium leading-relaxed mb-3 line-clamp-2">
+              {gift.description}
+            </p>
+          </div>
+
+          <div className="pt-3 border-t border-brand-dark/10 flex items-center justify-between gap-2">
+            <div className="flex flex-col">
+              <span className="font-serif text-base font-bold text-brand-dark">
+                {gift.formattedPrice}
+              </span>
+              {raw?.compareAtPrice && (
+                <span className="font-sans text-[11px] text-brand-light line-through">
+                  ₦{raw.compareAtPrice.toLocaleString()}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              disabled={isOutOfStock}
+              onClick={() => {
+                if (!isOutOfStock) {
+                  setSelectedProduct(gift);
+                  goToStep(6);
+                }
+              }}
+              className={`px-3 py-1.5 rounded-lg font-sans text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
+                isOutOfStock
+                  ? 'bg-brand-dark/20 text-brand-medium cursor-not-allowed'
+                  : 'bg-brand-dark text-white hover:bg-gold-600'
+              }`}
+            >
+              {isOutOfStock ? 'Sold Out' : 'Select Gift →'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -546,17 +746,26 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   Active Filters:
                 </span>
                 <span className="px-2.5 py-1 rounded-md bg-white border border-brand-dark/10 font-sans text-xs text-brand-dark capitalize">
-                  Occasion: {selectedOccasion}
+                  Occasion: {selectedOccasion.replace(/-/g, ' ')}
                 </span>
                 <span className="px-2.5 py-1 rounded-md bg-white border border-brand-dark/10 font-sans text-xs text-brand-dark capitalize">
-                  Recipient: {specificRecipient || selectedRecipientGroup}
+                  Recipient: {selectedRecipientGroup === 'self' ? 'Shopping for Self' : (specificRecipient || selectedRecipientGroup)}
                 </span>
                 <span className="px-2.5 py-1 rounded-md bg-white border border-brand-dark/10 font-sans text-xs text-brand-dark">
                   Budget: {BUDGET_TIERS.find((b) => b.id === selectedBudget)?.label}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                {showAllGifts && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllGifts(false)}
+                    className="text-xs font-sans text-brand-medium hover:text-brand-dark cursor-pointer flex items-center gap-1"
+                  >
+                    <RotateCcw size={12} /> Reset to Filters
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => goToStep(2)}
@@ -567,72 +776,135 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
               </div>
             </div>
 
-            {/* Controlled Internal Scroll Grid */}
-            <div className="max-h-[480px] overflow-y-auto pr-1 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredGifts.map((gift) => {
-                  const isSelected = selectedProduct.id === gift.id;
-                  return (
-                    <div
-                      key={gift.id}
-                      onClick={() => {
-                        setSelectedProduct(gift);
-                        goToStep(6);
-                      }}
-                      className={`group rounded-2xl overflow-hidden cursor-pointer transition-all border flex flex-col justify-between ${
-                        isSelected
-                          ? 'bg-white border-brand-dark ring-2 ring-brand-dark shadow-md'
-                          : 'bg-[#FAF8F5] border-brand-dark/10 hover:border-brand-dark/30 hover:bg-white'
-                      }`}
-                    >
-                      <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream/80">
-                        <img
-                          src={gift.image}
-                          alt={gift.alt}
-                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                        />
-                        {gift.badge && (
-                          <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-brand-dark text-white text-[9px] font-sans font-bold uppercase tracking-wider">
-                            {gift.badge}
-                          </span>
-                        )}
-                        {isSelected && (
-                          <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-gold-600 text-white text-[10px] font-sans font-bold shadow-xs">
-                            ✓ Selected
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="p-4 flex-1 flex flex-col justify-between">
-                        <div>
-                          <span className="text-[10px] font-sans font-semibold uppercase text-gold-600 block mb-0.5">
-                            {gift.subtitle}
-                          </span>
-                          <h4 className="font-serif text-base font-medium text-brand-dark mb-1 line-clamp-1">
-                            {gift.title}
-                          </h4>
-                          <p className="font-sans text-xs text-brand-medium leading-relaxed mb-3 line-clamp-2">
-                            {gift.description}
-                          </p>
-                        </div>
-
-                        <div className="pt-3 border-t border-brand-dark/10 flex items-center justify-between">
-                          <span className="font-serif text-base font-bold text-brand-dark">
-                            {gift.formattedPrice}
-                          </span>
-                          <button
-                            type="button"
-                            className="px-3 py-1.5 rounded-lg bg-brand-dark text-white font-sans text-xs font-semibold uppercase tracking-wider hover:bg-gold-600 transition-colors"
-                          >
-                            Select Gift →
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Notification if showing all gifts */}
+            {showAllGifts && (
+              <div className="p-3.5 px-4 rounded-xl bg-gold-50/80 border border-gold-200/80 flex items-center justify-between gap-3 text-xs font-sans text-brand-dark animate-fade-in">
+                <span>Displaying all {allProducts.length} curations from our live atelier collection.</span>
+                <button
+                  type="button"
+                  onClick={() => setShowAllGifts(false)}
+                  className="text-gold-800 underline font-semibold cursor-pointer"
+                >
+                  Return to Filtered
+                </button>
               </div>
-            </div>
+            )}
+
+            {/* Loading State */}
+            {isLoadingProducts && (
+              <div className="py-20 flex flex-col items-center justify-center space-y-4 text-center">
+                <Loader2 size={32} className="animate-spin text-gold-600" />
+                <p className="font-serif text-lg text-brand-dark">Curating your selections...</p>
+                <p className="font-sans text-xs text-brand-medium/75">
+                  Reading live curations from our Firestore database
+                </p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {!isLoadingProducts && productFetchError && (
+              <div className="p-6 rounded-2xl bg-rose-50/80 border border-rose-200 text-center space-y-3">
+                <AlertCircle size={32} className="text-rose-600 mx-auto" />
+                <p className="font-serif text-lg text-brand-dark">Unable to load curations</p>
+                <p className="font-sans text-xs text-brand-medium">{productFetchError}</p>
+                <button
+                  type="button"
+                  onClick={fetchProducts}
+                  className="px-4 py-2 rounded-xl bg-brand-dark text-white font-sans text-xs font-semibold hover:bg-gold-600 transition-colors cursor-pointer"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+
+            {/* Main Product Browsing Grid: Exactly matching products */}
+            {!isLoadingProducts && !productFetchError && displayedGifts.length > 0 && (
+              <div className="max-h-[520px] overflow-y-auto pr-1 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {displayedGifts.map((gift) => renderProductCard(gift))}
+                </div>
+              </div>
+            )}
+
+            {/* No Results State */}
+            {!isLoadingProducts && !productFetchError && displayedGifts.length === 0 && (
+              <div className="space-y-6">
+                <div className="p-8 sm:p-10 rounded-3xl bg-[#FAF8F5] border border-brand-dark/10 text-center space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-gold-100 text-gold-700 flex items-center justify-center mx-auto text-xl font-serif">
+                    ✦
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-xl sm:text-2xl text-brand-dark font-medium mb-1">
+                      We couldn't find an exact match.
+                    </h3>
+                    <p className="font-sans text-xs sm:text-sm text-brand-medium/85 max-w-md mx-auto leading-relaxed">
+                      We couldn't find a live curation tailored for{' '}
+                      <strong className="text-brand-dark capitalize">
+                        {selectedOccasion.replace(/-/g, ' ')}
+                      </strong>
+                      , recipient{' '}
+                      <strong className="text-brand-dark capitalize">
+                        {selectedRecipientGroup === 'self'
+                          ? 'Shopping for Self'
+                          : specificRecipient || selectedRecipientGroup}
+                      </strong>{' '}
+                      within your selected budget.
+                    </p>
+                  </div>
+
+                  {/* Filter Modification Options */}
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => goToStep(2)}
+                      className="px-3.5 py-2 rounded-xl bg-white border border-brand-dark/15 text-brand-dark font-sans text-xs font-medium hover:border-brand-dark transition-colors cursor-pointer"
+                    >
+                      Change Occasion
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToStep(3)}
+                      className="px-3.5 py-2 rounded-xl bg-white border border-brand-dark/15 text-brand-dark font-sans text-xs font-medium hover:border-brand-dark transition-colors cursor-pointer"
+                    >
+                      Change Recipient
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToStep(4)}
+                      className="px-3.5 py-2 rounded-xl bg-white border border-brand-dark/15 text-brand-dark font-sans text-xs font-medium hover:border-brand-dark transition-colors cursor-pointer"
+                    >
+                      Change Budget
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAllGifts(true)}
+                      className="px-3.5 py-2 rounded-xl bg-brand-dark text-white font-sans text-xs font-semibold hover:bg-gold-600 transition-colors cursor-pointer"
+                    >
+                      View All Atelier Gifts ({allProducts.length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Broader Suggested Alternatives */}
+                {displayedSuggestions.length > 0 && (
+                  <div className="pt-2 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-gold-600" />
+                      <h4 className="font-serif text-lg text-brand-dark font-medium">
+                        You might also consider these curations:
+                      </h4>
+                    </div>
+                    <p className="font-sans text-xs text-brand-medium/75 -mt-2">
+                      Broadened recommendations based on your preferences
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {displayedSuggestions.map((gift) => renderProductCard(gift, true))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -643,12 +915,21 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
           <div key="step-6" className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
               {/* Product Image (5 cols) */}
-              <div className="md:col-span-5 rounded-2xl overflow-hidden border border-brand-dark/10 bg-[#FAF8F5] aspect-[4/3] sm:aspect-square">
+              <div className="md:col-span-5 rounded-2xl overflow-hidden border border-brand-dark/10 bg-[#FAF8F5] aspect-[4/3] sm:aspect-square relative">
                 <img
                   src={selectedProduct.image}
                   alt={selectedProduct.alt}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src =
+                      'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80';
+                  }}
                   className="w-full h-full object-cover object-center"
                 />
+                {selectedProduct.badge && (
+                  <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-brand-dark text-white text-[9px] font-sans font-bold uppercase tracking-wider">
+                    {selectedProduct.badge}
+                  </span>
+                )}
               </div>
 
               {/* Product Editorial Details (7 cols) */}
@@ -670,8 +951,20 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   {selectedProduct.title}
                 </h3>
 
-                <div className="font-serif text-2xl text-brand-dark font-bold">
-                  {selectedProduct.formattedPrice}
+                <div className="flex items-baseline gap-3">
+                  <span className="font-serif text-2xl text-brand-dark font-bold">
+                    {selectedProduct.formattedPrice}
+                  </span>
+                  {selectedProduct.rawProduct?.compareAtPrice && (
+                    <span className="font-sans text-sm text-brand-light line-through">
+                      ₦{selectedProduct.rawProduct.compareAtPrice.toLocaleString()}
+                    </span>
+                  )}
+                  {selectedProduct.rawProduct?.stock !== undefined && (
+                    <span className="text-xs font-sans font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      In Stock ({selectedProduct.rawProduct.stock} available)
+                    </span>
+                  )}
                 </div>
 
                 <p className="font-sans text-xs sm:text-sm text-brand-medium/90 leading-relaxed">
@@ -681,7 +974,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                 {/* What's Included */}
                 <div className="pt-2">
                   <span className="font-sans text-xs font-bold uppercase tracking-wider text-brand-dark block mb-2">
-                    Included in this gift:
+                    Included in this curation:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedProduct.included.map((item, idx) => (
@@ -695,11 +988,52 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   </div>
                 </div>
 
+                {/* Personalisation Badge Notice */}
+                {selectedProduct.rawProduct?.personalisation?.enabled && (
+                  <div className="p-3 rounded-xl bg-gold-50/70 border border-gold-200/60 text-xs font-sans text-brand-dark flex items-center gap-2">
+                    <Sparkles size={14} className="text-gold-600 shrink-0" />
+                    <span>Personalisation available: Custom presentation box, satin ribbon & handwritten wax-sealed card.</span>
+                  </div>
+                )}
+
+                {/* Dedicated Product Detail Route Link */}
+                {selectedProduct.slug && (
+                  <div className="pt-1">
+                    <Link
+                      to={`/shop/product/${selectedProduct.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-sans font-semibold text-gold-700 hover:text-gold-900 underline"
+                    >
+                      View Full Atelier Product Page <ExternalLink size={12} />
+                    </Link>
+                  </div>
+                )}
+
                 {/* Preserved Criteria Summary */}
                 <div className="pt-4 border-t border-brand-dark/10 flex flex-wrap gap-2 text-[11px] font-sans text-brand-medium">
-                  <span>Occasion: <strong className="text-brand-dark">{OCCASIONS.find(o => o.id === selectedOccasion)?.label || selectedOccasion}</strong></span>
+                  <span>
+                    Occasion:{' '}
+                    <strong className="text-brand-dark">
+                      {OCCASIONS.find((o) => o.id === selectedOccasion)?.label || selectedOccasion}
+                    </strong>
+                  </span>
                   <span>·</span>
-                  <span>Recipient: <strong className="text-brand-dark">{selectedRecipientGroup === 'self' ? 'Shopping for Self' : (specificRecipient || selectedRecipientGroup)}</strong></span>
+                  <span>
+                    Recipient:{' '}
+                    <strong className="text-brand-dark">
+                      {selectedRecipientGroup === 'self'
+                        ? 'Shopping for Self'
+                        : specificRecipient || selectedRecipientGroup}
+                    </strong>
+                  </span>
+                  <span>·</span>
+                  <span>
+                    Budget:{' '}
+                    <strong className="text-brand-dark">
+                      {BUDGET_TIERS.find((b) => b.id === selectedBudget)?.label}
+                    </strong>
+                  </span>
                 </div>
               </div>
             </div>

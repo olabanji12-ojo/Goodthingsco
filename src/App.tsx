@@ -15,6 +15,7 @@ import AdminLayout from './components/admin/AdminLayout';
 // Public Pages
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
 import LookbookPage from './pages/LookbookPage';
 import CorporatePage from './pages/CorporatePage';
 import CreatePage from './pages/CreatePage';
@@ -59,6 +60,8 @@ function AppRoutes() {
         <Route path="/lookbook" element={<LookbookPage />} />
         <Route path="/horizontal" element={<LookbookPage />} />
         <Route path="/shop" element={<ShopPage />} />
+        <Route path="/shop/product/:slug" element={<ProductDetailPage />} />
+        <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/dev-test" element={<DevTestPage />} />
 
         {/* Admin Authentication */}

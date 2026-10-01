@@ -57,6 +57,8 @@ export interface GiftItem {
   description: string;
   included: string[];
   badge?: string;
+  slug?: string;
+  rawProduct?: any;
 }
 
 export interface OccasionOption {

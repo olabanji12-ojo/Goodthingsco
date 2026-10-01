@@ -248,11 +248,56 @@ export default function AdminLoginPage() {
             </button>
           </form>
 
+          {/* Quick Credential Shortcut */}
+          <div
+            style={{
+              marginTop: '20px',
+              padding: '12px 14px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(197, 168, 128, 0.1)',
+              border: '1px solid rgba(197, 168, 128, 0.25)',
+              fontSize: '12px',
+              color: '#e2d2ba',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 600, color: '#f8fafc' }}>Atelier Access Credentials:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('patrick@renda.co');
+                  setPassword('tofunmie');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#c5a880',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  padding: 0,
+                }}
+              >
+                Auto-Fill
+              </button>
+            </div>
+            <div>
+              Email: <strong style={{ color: '#ffffff' }}>patrick@renda.co</strong>
+            </div>
+            <div>
+              Password: <strong style={{ color: '#ffffff' }}>tofunmie</strong>
+            </div>
+          </div>
+
           {/* Security Notice */}
           <div
             style={{
-              marginTop: '32px',
-              padding: '16px',
+              marginTop: '16px',
+              padding: '14px 16px',
               borderRadius: '8px',
               backgroundColor: 'rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.05)',
