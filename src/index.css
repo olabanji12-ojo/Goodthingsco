@@ -1,0 +1,260 @@
+/* ================================================================
+   Good Things Co. — Refinement Stylesheet
+   Clean · Minimal · Warm · Premium · Editorial
+   ================================================================ */
+
+/* Font Imports */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ----------------------------------------------------------------
+   Base Layer
+   ---------------------------------------------------------------- */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* When Lenis is active, it manages scrolling — disable native smooth */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  body {
+    @apply antialiased text-brand-medium;
+    font-family: 'Inter', sans-serif;
+    background-color: #FAF8F5; /* brand-ivory */
+  }
+
+  .font-serif {
+    font-family: 'Playfair Display', serif;
+  }
+
+  /* Artistic annotations */
+  .artistic-note {
+    @apply font-handwritten text-gold-600;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Component Layer
+   ---------------------------------------------------------------- */
+@layer components {
+  /* Hero Section Container */
+  .hero-section {
+    @apply relative w-full overflow-hidden;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+    min-height: 600px;
+  }
+
+  /* Hero Layer — each visual layer is positioned absolutely */
+  .hero-layer {
+    @apply absolute inset-0 w-full h-full;
+    will-change: transform, opacity;
+  }
+
+  /* Hero background image defaults */
+  .hero-layer img {
+    @apply w-full h-full;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  /* Curtain layers — positioned for animation */
+  .hero-curtain-left {
+    @apply hero-layer;
+    z-index: theme('zIndex.curtain');
+  }
+
+  .hero-curtain-right {
+    @apply hero-layer;
+    z-index: theme('zIndex.curtain');
+  }
+
+  /* Content overlay — centered text block */
+  .hero-content-wrapper {
+    @apply absolute inset-0 flex flex-col items-center justify-center;
+    z-index: theme('zIndex.content');
+  }
+
+  /* CTA button styles */
+  .btn-primary {
+    @apply inline-flex items-center justify-center;
+    @apply px-9 py-4;
+    @apply font-sans text-xs font-semibold tracking-widest uppercase;
+    @apply bg-brand-dark text-brand-ivory;
+    @apply rounded-none; /* Sharp editorial edges */
+    @apply transition-all duration-500 ease-premium;
+    letter-spacing: 0.16em;
+  }
+
+  .btn-primary:hover {
+    @apply bg-gold-500 text-brand-dark;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -4px rgba(28, 20, 14, 0.25);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center;
+    @apply px-9 py-4;
+    @apply font-sans text-xs font-semibold tracking-widest uppercase;
+    @apply bg-white/50 backdrop-blur-xs text-brand-dark;
+    @apply border border-brand-dark/80;
+    @apply rounded-none;
+    @apply transition-all duration-500 ease-premium;
+    letter-spacing: 0.16em;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-brand-dark text-brand-ivory border-brand-dark;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px -4px rgba(28, 20, 14, 0.25);
+  }
+}
+
+/* ----------------------------------------------------------------
+   Utility Layer
+   ---------------------------------------------------------------- */
+@layer utilities {
+  .text-shadow-lg {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .text-shadow-hero {
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9), 0 2px 16px rgba(28, 20, 14, 0.12);
+  }
+
+  .text-shadow-sub {
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+  }
+
+  /* Subtle warm translucent gradient for centered editorial hero text — no harsh boxes */
+  .hero-editorial-halo {
+    background: radial-gradient(
+      ellipse 95% 90% at 50% 50%,
+      rgba(250, 248, 245, 0.74) 0%,
+      rgba(250, 248, 245, 0.48) 45%,
+      rgba(250, 248, 245, 0.18) 75%,
+      rgba(250, 248, 245, 0) 100%
+    );
+  }
+
+  /* Ambient soft radial scrim for photo backdrops */
+  .hero-ambient-halo {
+    background: radial-gradient(ellipse 95% 85% at 50% 50%, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0) 100%);
+  }
+
+  /* Premium Glassmorphism */
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20;
+  }
+
+  /* Subtle grain texture overlay */
+  .grain {
+    position: relative;
+  }
+
+  .grain::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+    opacity: 0.03;
+    z-index: 50;
+  }
+
+  /* Carousel Scrollbar Hiding Utility */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Base Layout Reset
+   ---------------------------------------------------------------- */
+html,
+body,
+#root {
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+main {
+  min-height: 100vh;
+}
+
+/* ----------------------------------------------------------------
+   Accessibility: Reduced Motion
+   Users who prefer reduced motion get a stable, non-animated
+   experience. All GSAP animations should also check this.
+   ---------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .hero-layer {
+    will-change: auto;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Animations (CSS fallbacks — GSAP will handle the real ones)
+   ---------------------------------------------------------------- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+/* Headline reveal line — used as a clip-path animation target */
+.reveal-line {
+  overflow: hidden;
+}
+
+.reveal-line > * {
+  display: block;
+}

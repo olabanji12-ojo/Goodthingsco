@@ -1,0 +1,297 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+
+// High-resolution image assets from existing repository
+import shopImg from '../../assets/gift-hero.png';
+import corporateImg from '../../assets/section4/coperate.png';
+import createImg from '../../assets/section5/after.png';
+import aboutImg from '../../assets/section6/section6.png';
+
+export type GatewayTabId = 'shop' | 'corporate' | 'create' | 'about';
+
+interface PrimaryEntryGatewayProps {
+  activeTab?: GatewayTabId;
+  onSelectTab?: (tab: GatewayTabId) => void;
+  className?: string;
+}
+
+export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
+  activeTab: controlledTab,
+  onSelectTab,
+  className = '',
+}) => {
+  const [internalTab, setInternalTab] = useState<GatewayTabId>('shop');
+  const activeTab = controlledTab ?? internalTab;
+
+  // Mobile expanded accordion state
+  const [mobileExpandedTab, setMobileExpandedTab] = useState<GatewayTabId | null>('shop');
+
+  const handleTabChange = (tab: GatewayTabId) => {
+    setInternalTab(tab);
+    if (onSelectTab) {
+      onSelectTab(tab);
+    }
+  };
+
+  // Content configurations for each state
+  const content = {
+    shop: {
+      id: 'shop' as GatewayTabId,
+      label: 'Shop',
+      targetAudience: 'For individuals',
+      headline: 'Find a gift.',
+      description:
+        'Curated collections for life’s meaningful moments, delivered with hand-tied satin ribbons, keepsake packaging, and handwritten card messages.',
+      journeySteps: ['Occasion', 'Recipient', 'Gift', 'Checkout'],
+      ctaText: 'Enter Shop',
+      ctaHref: '/shop',
+      image: shopImg,
+      imageAlt: 'Curated gift hamper and luxury keepsake',
+      caption: 'Curated with intention · For individuals',
+    },
+    corporate: {
+      id: 'corporate' as GatewayTabId,
+      label: 'Corporate',
+      targetAudience: 'For organisations',
+      headline: 'Gift at scale.',
+      description:
+        'Executive hampers, client appreciation suites, and team celebration gifts finished with metallic foil debossing of your corporate mark.',
+      journeySteps: [
+        'Build campaign',
+        'Customise',
+        'Upload recipients',
+        'Approve',
+        'Pay',
+        'Track',
+      ],
+      ctaText: 'Explore Corporate',
+      ctaHref: '/corporate',
+      image: corporateImg,
+      imageAlt: 'Corporate leather folio and debossed packaging',
+      caption: 'Debossed with your mark · For organisations',
+    },
+    create: {
+      id: 'create' as GatewayTabId,
+      label: 'Create',
+      targetAudience: 'For custom & bespoke gifting',
+      headline: 'Create something unique.',
+      description:
+        'Collaborate directly with our atelier to commission bespoke packaging, custom keepsake engravings, and tailored gift concepts for your event.',
+      journeySteps: ['Ideate & Consult', 'Material Selection', 'Handcrafted Delivery'],
+      ctaText: 'Start Custom Order',
+      ctaHref: '/create',
+      image: createImg,
+      imageAlt: 'Custom unboxing design and bespoke packaging',
+      caption: 'Bespoke Atelier · Tailored creations',
+    },
+    about: {
+      id: 'about' as GatewayTabId,
+      label: 'About',
+      targetAudience: 'Our philosophy',
+      headline: 'The art of thoughtful living.',
+      description:
+        'Good Things Co. exists to elevate everyday rituals into memorable moments through discerning craftsmanship, generous details, and sincere care.',
+      journeySteps: ['Curated Intentionality', 'Artisanal Packaging', 'Lasting Memory'],
+      ctaText: 'Discover Our Story',
+      ctaHref: '/lookbook',
+      image: aboutImg,
+      imageAlt: 'The art of thoughtful living lifestyle editorial',
+      caption: 'Thoughtful gifts for inspired living',
+    },
+  };
+
+  const activeContent = content[activeTab];
+
+  return (
+    <div
+      className={`w-full max-w-5xl mx-auto bg-white rounded-3xl border border-brand-dark/10 shadow-[0_12px_40px_rgba(28,20,14,0.06)] overflow-hidden transition-all duration-300 ${className}`}
+    >
+      {/* =========================================================
+          DESKTOP VIEW: ONE CONTAINER, MULTIPLE STATES
+          ========================================================= */}
+      <div className="hidden md:grid md:grid-cols-12 min-h-[460px]">
+        {/* ── Left Column: Interactive Navigation & Active Content (7 cols) ── */}
+        <div className="md:col-span-7 p-8 lg:p-10 flex flex-col justify-between border-r border-brand-dark/5 bg-white">
+          <div>
+            {/* Top Gateway Selector Tabs */}
+            <div className="inline-flex p-1.5 rounded-2xl bg-[#FAF8F5] border border-brand-dark/10 mb-8">
+              {(['shop', 'corporate', 'create', 'about'] as GatewayTabId[]).map((tabKey) => {
+                const isActive = activeTab === tabKey;
+                const item = content[tabKey];
+                return (
+                  <button
+                    key={tabKey}
+                    type="button"
+                    onMouseEnter={() => handleTabChange(tabKey)}
+                    onFocus={() => handleTabChange(tabKey)}
+                    onClick={() => handleTabChange(tabKey)}
+                    className={`px-4 lg:px-5 py-2 rounded-xl font-sans text-xs font-semibold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
+                      isActive
+                        ? 'bg-brand-dark text-brand-ivory shadow-xs font-bold'
+                        : 'text-brand-dark/70 hover:text-brand-dark hover:bg-black/5'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active State Details with smooth fade */}
+            <div key={activeTab} className="space-y-5 animate-fade-in">
+              <div>
+                <span className="font-sans text-[11px] font-semibold tracking-[0.2em] uppercase text-gold-600 block mb-1">
+                  {activeContent.targetAudience}
+                </span>
+                <h3 className="font-serif text-3xl lg:text-4xl text-brand-dark font-normal tracking-tight">
+                  {activeContent.headline}
+                </h3>
+              </div>
+
+              <p className="font-sans text-xs lg:text-sm text-brand-medium/85 leading-relaxed max-w-md">
+                {activeContent.description}
+              </p>
+
+              {/* Journey Steps Preview (Exact business logic) */}
+              <div className="pt-2">
+                <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-brand-light block mb-2.5">
+                  {activeTab === 'shop' || activeTab === 'corporate'
+                    ? 'Guided Journey Preview'
+                    : 'Process & Pillars'}
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5 lg:gap-2">
+                  {activeContent.journeySteps.map((step, idx) => (
+                    <React.Fragment key={step}>
+                      <span className="px-2.5 py-1 rounded-md bg-[#FAF8F5] border border-brand-dark/10 text-brand-dark text-[11px] font-sans font-medium whitespace-nowrap">
+                        {step}
+                      </span>
+                      {idx < activeContent.journeySteps.length - 1 && (
+                        <span className="text-brand-dark/30 text-xs font-sans">→</span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Primary Action CTA */}
+          <div className="pt-8 mt-6 border-t border-brand-dark/5 flex items-center justify-between">
+            <Link
+              to={activeContent.ctaHref}
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-none bg-brand-dark text-brand-ivory hover:bg-gold-600 font-sans text-xs font-semibold tracking-[0.18em] uppercase transition-all duration-300 shadow-sm cursor-pointer group"
+            >
+              <span>{activeContent.ctaText}</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+            </Link>
+
+            <span className="font-serif italic text-xs text-brand-light">
+              Thoughtful gifts for inspired living.
+            </span>
+          </div>
+        </div>
+
+        {/* ── Right Column: Dynamic Photographic Canvas (5 cols) ── */}
+        <div className="md:col-span-5 relative overflow-hidden bg-[#FAF8F5] flex flex-col justify-between">
+          <div className="relative w-full h-full min-h-[360px] overflow-hidden">
+            {/* Smooth cross-fade image transition */}
+            <img
+              key={activeContent.id}
+              src={activeContent.image}
+              alt={activeContent.imageAlt}
+              className="w-full h-full object-cover object-center animate-fade-in transition-transform duration-700 hover:scale-105"
+            />
+            {/* Subtle luxury vignette */}
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/50 via-transparent to-transparent pointer-events-none" />
+
+            {/* Bottom Photo Caption */}
+            <div className="absolute bottom-4 left-4 right-4 p-3 rounded-xl bg-white/90 backdrop-blur-md border border-white/40 shadow-xs">
+              <span className="font-sans text-[10px] font-semibold uppercase tracking-wider text-gold-700 block">
+                {activeContent.caption}
+              </span>
+              <span className="font-serif text-xs text-brand-dark font-medium">
+                Good Things Co. Editorial Atelier
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================
+          MOBILE VIEW: COMPACT TAP ROWS / CARDS
+          ========================================================= */}
+      <div className="md:hidden divide-y divide-brand-dark/10">
+        {(['shop', 'corporate', 'create', 'about'] as GatewayTabId[]).map((tabKey) => {
+          const item = content[tabKey];
+          const isExpanded = mobileExpandedTab === tabKey;
+
+          return (
+            <div key={tabKey} className="transition-colors">
+              {/* Compact Tap Header */}
+              <button
+                type="button"
+                onClick={() => setMobileExpandedTab(isExpanded ? null : tabKey)}
+                className="w-full p-5 flex items-center justify-between text-left cursor-pointer hover:bg-black/2 transition-colors"
+                aria-expanded={isExpanded}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-serif text-lg font-medium text-brand-dark">
+                      {item.label}
+                    </span>
+                    {(tabKey === 'shop' || tabKey === 'corporate') && (
+                      <span className="px-2 py-0.5 rounded-full bg-gold-50 text-gold-700 text-[9px] font-sans font-bold uppercase tracking-wider">
+                        Primary
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-sans text-xs text-brand-medium/80 block mt-0.5">
+                    {item.headline}
+                  </span>
+                </div>
+                <span className="w-8 h-8 rounded-full border border-brand-dark/15 flex items-center justify-center text-xs text-brand-dark font-sans shrink-0">
+                  {isExpanded ? '▲' : '→'}
+                </span>
+              </button>
+
+              {/* Mobile Expanded Drawer inside same container */}
+              {isExpanded && (
+                <div className="px-5 pb-6 pt-1 space-y-4 bg-[#FAF8F5]/60 animate-fade-in">
+                  <p className="font-sans text-xs text-brand-medium/90 leading-relaxed">
+                    {item.description}
+                  </p>
+
+                  {/* Mobile Journey preview */}
+                  <div>
+                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-light block mb-2">
+                      Journey:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.journeySteps.map((step) => (
+                        <span
+                          key={step}
+                          className="px-2 py-0.5 rounded bg-white border border-brand-dark/10 text-brand-dark text-[10px] font-sans"
+                        >
+                          {step}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Link
+                    to={item.ctaHref}
+                    className="w-full inline-flex items-center justify-center py-3 px-6 bg-brand-dark text-brand-ivory hover:bg-gold-600 font-sans text-xs font-semibold tracking-wider uppercase transition-colors"
+                  >
+                    <span>{item.ctaText} →</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default PrimaryEntryGateway;
