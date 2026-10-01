@@ -32,12 +32,6 @@ export const ShopPage: React.FC = () => {
         <main className="w-full py-4 sm:py-6 md:py-8 flex flex-col items-center justify-center">
           {/* Small Shop Eyebrow & Intro */}
           <div className="text-center max-w-2xl mx-auto mb-6 sm:mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-50/80 border border-gold-200/50 mb-2.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold-600 animate-pulse" />
-              <span className="font-sans text-[10px] sm:text-[11px] font-semibold tracking-[0.24em] uppercase text-gold-700">
-                Personal Gifting Atelier
-              </span>
-            </div>
             <h1 className="font-serif text-3xl sm:text-4xl text-brand-dark font-normal tracking-tight mb-2">
               Find a Thoughtful Gift
             </h1>

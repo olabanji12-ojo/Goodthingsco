@@ -53,6 +53,10 @@ export const GiftFinderStage1: React.FC<GiftFinderStage1Props> = ({
         matchesRecipient = true;
       } else if (gift.primaryRecipient === selectedRecipient) {
         matchesRecipient = true;
+      } else if (selectedRecipient === 'self') {
+        matchesRecipient =
+          gift.primaryRecipient === 'self' ||
+          Boolean(gift.subRecipients && gift.subRecipients.includes('self'));
       } else if (
         selectedSubRecipient &&
         gift.subRecipients.includes(selectedSubRecipient)
@@ -77,9 +81,13 @@ export const GiftFinderStage1: React.FC<GiftFinderStage1Props> = ({
     if (filteredGifts.length > 0) return filteredGifts;
     // Show gifts matching budget or occasion
     return GIFTS_CATALOG.filter(
-      (g) => g.budgetTier === selectedBudget || g.primaryRecipient === selectedRecipient
+      (g) =>
+        g.budgetTier === selectedBudget ||
+        g.primaryRecipient === selectedRecipient ||
+        (selectedRecipient === 'self' && g.subRecipients?.includes('self')) ||
+        (selectedOccasion && g.occasions.includes(selectedOccasion as any))
     ).slice(0, 4);
-  }, [filteredGifts, selectedBudget, selectedRecipient]);
+  }, [filteredGifts, selectedBudget, selectedRecipient, selectedOccasion]);
 
   const handleShowMeGifts = () => {
     setHasSearched(true);
@@ -125,7 +133,7 @@ export const GiftFinderStage1: React.FC<GiftFinderStage1Props> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
               {OCCASIONS.map((occ) => {
                 const isSelected = selectedOccasion === occ.id;
                 return (
@@ -163,7 +171,7 @@ export const GiftFinderStage1: React.FC<GiftFinderStage1Props> = ({
             </div>
 
             {/* Top-Level Recipient Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 mb-3">
               {RECIPIENTS.map((rec) => {
                 const isSelected = selectedRecipient === rec.id;
                 return (

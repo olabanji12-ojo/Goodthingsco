@@ -22,13 +22,6 @@ export const CorporatePage: React.FC = () => {
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10">
           {/* 1. Small Corporate Hero / Introduction */}
           <section className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-50 border border-gold-200/60 mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold-600 animate-pulse" />
-              <span className="font-sans text-[10px] sm:text-[11px] font-semibold tracking-[0.2em] uppercase text-gold-700">
-                Good Things Co. · Corporate Atelier
-              </span>
-            </div>
-
             <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-brand-dark font-normal tracking-tight mb-3">
               Corporate Gifting Concierge
             </h1>

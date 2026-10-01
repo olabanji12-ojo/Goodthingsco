@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   GIFTS_CATALOG,
   OCCASIONS,
@@ -7,6 +8,8 @@ import {
   PACKAGING_OPTIONS,
   RIBBON_COLORS,
   GiftItem,
+  OccasionId,
+  RecipientGroupId,
 } from '../../data/giftsData';
 
 export interface ShopFlowContainerProps {
@@ -18,19 +21,45 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   className = '',
   onComplete,
 }) => {
-  // Current active step (1 to 10 strictly in order)
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [searchParams] = useSearchParams();
+  const initialOccasion = searchParams.get('occasion') as OccasionId | null;
+  const initialRecipient = searchParams.get('recipient') as RecipientGroupId | null;
+
+  // Current active step (1 to 10 strictly in order — deep-link to step 2 if occasion in URL)
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    if (initialOccasion) return 2;
+    if (initialRecipient) return 3;
+    return 1;
+  });
 
   // ── Step 2: Occasion ──
-  const [selectedOccasion, setSelectedOccasion] = useState<
-    'birthday' | 'thank-you' | 'congratulations' | 'just-because'
-  >('birthday');
+  const [selectedOccasion, setSelectedOccasion] = useState<OccasionId>(() => {
+    if (initialOccasion && OCCASIONS.some((o) => o.id === initialOccasion)) {
+      return initialOccasion;
+    }
+    return 'birthday';
+  });
+  const [occasionFilter, setOccasionFilter] = useState<'all' | 'seasonal' | 'everyday'>(() => {
+    if (initialOccasion) {
+      const match = OCCASIONS.find((o) => o.id === initialOccasion);
+      if (match?.category) return match.category;
+    }
+    return 'all';
+  });
 
   // ── Step 3: Recipient ──
-  const [selectedRecipientGroup, setSelectedRecipientGroup] = useState<
-    'him' | 'her' | 'family' | 'friend' | 'business'
-  >('her');
-  const [specificRecipient, setSpecificRecipient] = useState<string>('mum');
+  const [selectedRecipientGroup, setSelectedRecipientGroup] = useState<RecipientGroupId>(() => {
+    if (initialRecipient && RECIPIENTS.some((r) => r.id === initialRecipient)) {
+      return initialRecipient;
+    }
+    return 'her';
+  });
+  const [specificRecipient, setSpecificRecipient] = useState<string>(() => {
+    if (initialRecipient === 'self') return 'self';
+    if (initialRecipient === 'family') return 'mum';
+    if (initialRecipient === 'business') return 'colleague';
+    return 'mum';
+  });
 
   // ── Step 4: Budget ──
   const [selectedBudget, setSelectedBudget] = useState<
@@ -75,15 +104,32 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     }
   };
 
+  // Filter occasions by tab category
+  const displayedOccasions = useMemo(() => {
+    if (occasionFilter === 'seasonal') {
+      return OCCASIONS.filter((occ) => occ.category === 'seasonal');
+    }
+    if (occasionFilter === 'everyday') {
+      return OCCASIONS.filter((occ) => occ.category === 'everyday');
+    }
+    return OCCASIONS;
+  }, [occasionFilter]);
+
   // ── Step 5 Filtered Gifts Logic ──
   const filteredGifts = useMemo(() => {
     const list = GIFTS_CATALOG.filter((gift) => {
       const matchOccasion = gift.occasions.includes(selectedOccasion);
-      const matchRecipientGroup = gift.primaryRecipient === selectedRecipientGroup;
+      const matchRecipientGroup =
+        gift.primaryRecipient === selectedRecipientGroup ||
+        (selectedRecipientGroup === 'self' && gift.subRecipients?.includes('self'));
       const matchSub =
-        gift.subRecipients &&
-        specificRecipient &&
-        gift.subRecipients.includes(specificRecipient);
+        selectedRecipientGroup === 'self'
+          ? true
+          : Boolean(
+              gift.subRecipients &&
+              specificRecipient &&
+              gift.subRecipients.includes(specificRecipient)
+            );
       const matchBudget = gift.budgetTier === selectedBudget;
 
       return (matchRecipientGroup || matchSub) && (matchOccasion || matchBudget);
@@ -91,10 +137,12 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
     if (list.length > 0) return list;
 
-    // Fallback: Gifts in same budget or recipient group so user is never empty
+    // Fallback: Gifts in same budget or recipient group or occasion so user is never empty
     const fallbackList = GIFTS_CATALOG.filter(
       (gift) =>
         gift.primaryRecipient === selectedRecipientGroup ||
+        gift.occasions.includes(selectedOccasion) ||
+        (selectedRecipientGroup === 'self' && gift.subRecipients?.includes('self')) ||
         gift.budgetTier === selectedBudget
     );
     return fallbackList.length > 0 ? fallbackList : GIFTS_CATALOG.slice(0, 6);
@@ -122,13 +170,16 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   // Step Meta Titles
   const stepMeta: Record<number, { title: string; subtitle: string }> = {
     1: { title: 'Find a Thoughtful Gift', subtitle: 'Curated gifting concierge for your special occasions' },
-    2: { title: 'What’s the occasion?', subtitle: 'Select an occasion to reveal fitting gift curations' },
-    3: { title: 'Who is the gift for?', subtitle: 'Select a recipient to find a gift tailored to them' },
+    2: { title: 'What’s the occasion?', subtitle: 'Select an everyday milestone or seasonal celebration' },
+    3: { title: 'Who is the gift for?', subtitle: 'Select a recipient or choose shopping for yourself' },
     4: { title: 'What’s your budget?', subtitle: 'Select the anticipated investment for this gift' },
     5: { title: 'Browse Curated Gifts', subtitle: 'Gifts selected based on your occasion, recipient, and budget' },
     6: { title: 'Selected Gift Details', subtitle: 'Review the details of your chosen curation' },
     7: { title: 'Personalise Your Gift', subtitle: 'Choose presentation packaging, ribbon finish, and card message' },
-    8: { title: 'Add Recipient & Delivery Details', subtitle: 'Specify where and when this gift should be delivered' },
+    8: {
+      title: selectedRecipientGroup === 'self' ? 'Your Delivery Details' : 'Add Recipient & Delivery Details',
+      subtitle: selectedRecipientGroup === 'self' ? 'Specify where and when your self-care gift should be delivered' : 'Specify where and when this gift should be delivered',
+    },
     9: { title: 'Review & Checkout', subtitle: 'Review your complete gift summary before placing your order' },
     10: { title: 'Order Confirmed', subtitle: 'Your thoughtful gift is registered and being handcrafted' },
   };
@@ -245,8 +296,45 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
             ========================================================= */}
         {currentStep === 2 && (
           <div key="step-2" className="space-y-6 animate-fade-in">
+            {/* Occasion Category Filter Switcher */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pb-1">
+              <button
+                type="button"
+                onClick={() => setOccasionFilter('all')}
+                className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer ${
+                  occasionFilter === 'all'
+                    ? 'bg-brand-dark text-white font-semibold shadow-xs'
+                    : 'bg-[#FAF8F5] text-brand-dark/75 hover:text-brand-dark border border-brand-dark/10'
+                }`}
+              >
+                All Occasions ({OCCASIONS.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOccasionFilter('seasonal')}
+                className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${
+                  occasionFilter === 'seasonal'
+                    ? 'bg-gold-600 text-white font-semibold shadow-xs'
+                    : 'bg-gold-50/80 text-gold-800 hover:bg-gold-100 border border-gold-200/60'
+                }`}
+              >
+                <span>✦ Seasonal Celebrations (6)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setOccasionFilter('everyday')}
+                className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer ${
+                  occasionFilter === 'everyday'
+                    ? 'bg-brand-dark text-white font-semibold shadow-xs'
+                    : 'bg-[#FAF8F5] text-brand-dark/75 hover:text-brand-dark border border-brand-dark/10'
+                }`}
+              >
+                Everyday & Milestones (4)
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {OCCASIONS.map((occ) => {
+              {displayedOccasions.map((occ) => {
                 const isSelected = selectedOccasion === occ.id;
                 return (
                   <button
@@ -260,7 +348,20 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                     }`}
                   >
                     <div>
-                      <h3 className="font-serif text-lg font-medium mb-1">{occ.label}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-serif text-lg font-medium">{occ.label}</h3>
+                        {occ.category === 'seasonal' && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-sans font-semibold tracking-wider uppercase ${
+                              isSelected
+                                ? 'bg-gold-500/25 text-gold-200'
+                                : 'bg-gold-100 text-gold-700'
+                            }`}
+                          >
+                            Seasonal
+                          </span>
+                        )}
+                      </div>
                       <p
                         className={`font-sans text-xs ${
                           isSelected ? 'text-brand-ivory/80' : 'text-brand-medium/70'
@@ -296,7 +397,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
               <label className="font-sans text-xs font-bold uppercase tracking-wider text-brand-dark block mb-3">
                 Recipient Category
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {RECIPIENTS.map((rec) => {
                   const isSelected = selectedRecipientGroup === rec.id;
                   return (
@@ -307,7 +408,16 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                         setSelectedRecipientGroup(rec.id);
                         if (rec.id === 'family') setSpecificRecipient('mum');
                         else if (rec.id === 'business') setSpecificRecipient('colleague');
-                        else setSpecificRecipient(rec.id);
+                        else if (rec.id === 'self') {
+                          setSpecificRecipient('self');
+                          if (giftMessage.startsWith('Wishing you')) {
+                            setGiftMessage(
+                              'A thoughtful treat for myself — celebrating this moment with intention and care.'
+                            );
+                          }
+                        } else {
+                          setSpecificRecipient(rec.id);
+                        }
                       }}
                       className={`py-3.5 px-3 rounded-2xl text-center border font-sans text-xs transition-all cursor-pointer ${
                         isSelected
@@ -321,6 +431,23 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                 })}
               </div>
             </div>
+
+            {/* Shopping for Self Highlight Banner */}
+            {selectedRecipientGroup === 'self' && (
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-gold-50/80 via-white to-gold-50/60 border border-gold-200/70 animate-fade-in flex items-start sm:items-center gap-3.5 text-left">
+                <span className="w-8 h-8 rounded-full bg-gold-500/15 text-gold-700 flex items-center justify-center text-sm font-serif font-bold shrink-0 mt-0.5 sm:mt-0">
+                  ✦
+                </span>
+                <div>
+                  <h4 className="font-sans text-xs font-bold text-brand-dark">
+                    Curated Treat for Yourself
+                  </h4>
+                  <p className="font-sans text-xs text-brand-medium/90 mt-0.5">
+                    Every order is hand-packaged with our full signature presentation box, satin ribbon, and personalized card to celebrate your moments.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Progressive Disclosure Sub-options */}
             {currentRecipientGroupDef?.hasSuboptions && currentRecipientGroupDef.suboptions && (
@@ -570,9 +697,9 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
                 {/* Preserved Criteria Summary */}
                 <div className="pt-4 border-t border-brand-dark/10 flex flex-wrap gap-2 text-[11px] font-sans text-brand-medium">
-                  <span>Occasion: <strong className="text-brand-dark capitalize">{selectedOccasion}</strong></span>
+                  <span>Occasion: <strong className="text-brand-dark">{OCCASIONS.find(o => o.id === selectedOccasion)?.label || selectedOccasion}</strong></span>
                   <span>·</span>
-                  <span>Recipient: <strong className="text-brand-dark capitalize">{specificRecipient || selectedRecipientGroup}</strong></span>
+                  <span>Recipient: <strong className="text-brand-dark">{selectedRecipientGroup === 'self' ? 'Shopping for Self' : (specificRecipient || selectedRecipientGroup)}</strong></span>
                 </div>
               </div>
             </div>
@@ -796,28 +923,37 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
         {currentStep === 8 && (
           <div key="step-8" className="space-y-6 animate-fade-in text-left">
             <div className="p-6 rounded-2xl bg-[#FAF8F5] border border-brand-dark/10 space-y-4">
-              <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-brand-dark block">
-                Direct Recipient & Delivery Information
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-brand-dark block">
+                  {selectedRecipientGroup === 'self'
+                    ? 'Your Details & Delivery Information'
+                    : 'Direct Recipient & Delivery Information'}
+                </span>
+                {selectedRecipientGroup === 'self' && (
+                  <span className="text-[10px] font-sans font-semibold text-gold-700 bg-gold-100/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Shopping for Self
+                  </span>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[11px] font-sans font-bold uppercase tracking-wider text-brand-dark block mb-1">
-                    Recipient Full Name
+                    {selectedRecipientGroup === 'self' ? 'Your Full Name' : 'Recipient Full Name'}
                   </label>
                   <input
                     type="text"
                     required
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
-                    placeholder="e.g. Amara Adeyemi"
+                    placeholder={selectedRecipientGroup === 'self' ? 'Your name' : 'e.g. Amara Adeyemi'}
                     className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-brand-dark/15 text-xs font-sans focus:outline-none focus:border-brand-dark"
                   />
                 </div>
 
                 <div>
                   <label className="text-[11px] font-sans font-bold uppercase tracking-wider text-brand-dark block mb-1">
-                    Phone Number
+                    {selectedRecipientGroup === 'self' ? 'Your Phone Number' : 'Phone Number'}
                   </label>
                   <input
                     type="tel"
@@ -917,8 +1053,10 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span>Recipient:</span>
-                    <strong className="text-brand-dark">{recipientName}</strong>
+                    <span>{selectedRecipientGroup === 'self' ? 'Customer / Recipient:' : 'Recipient:'}</span>
+                    <strong className="text-brand-dark">
+                      {recipientName} {selectedRecipientGroup === 'self' ? '(Self)' : ''}
+                    </strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Delivery Date:</span>
@@ -1016,7 +1154,11 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   Order Reference: #{orderRefNumber}
                 </h3>
                 <p className="font-sans text-xs text-brand-medium mt-1">
-                  Thank you! Your gift for <strong className="text-brand-dark">{recipientName}</strong> is registered.
+                  {selectedRecipientGroup === 'self' ? (
+                    <>Thank you! Your personal treat for <strong className="text-brand-dark">{recipientName}</strong> is registered.</>
+                  ) : (
+                    <>Thank you! Your gift for <strong className="text-brand-dark">{recipientName}</strong> is registered.</>
+                  )}
                 </p>
               </div>
 

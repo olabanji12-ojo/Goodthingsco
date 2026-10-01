@@ -28,6 +28,20 @@ import frame5Img from '../assets/section2/Frame 5 (1).png';
 import frame6Img from '../assets/section2/Frame 6.png';
 import frame9Img from '../assets/section2/Frame 9.png';
 
+export type OccasionId =
+  | 'birthday'
+  | 'thank-you'
+  | 'congratulations'
+  | 'just-because'
+  | 'christmas'
+  | 'valentines'
+  | 'easter'
+  | 'mothers-day'
+  | 'fathers-day'
+  | 'new-year';
+
+export type RecipientGroupId = 'her' | 'him' | 'family' | 'friend' | 'business' | 'self';
+
 export interface GiftItem {
   id: string;
   title: string;
@@ -36,8 +50,8 @@ export interface GiftItem {
   formattedPrice: string;
   image: string;
   alt: string;
-  occasions: Array<'birthday' | 'thank-you' | 'congratulations' | 'just-because'>;
-  primaryRecipient: 'him' | 'her' | 'family' | 'friend' | 'business';
+  occasions: OccasionId[];
+  primaryRecipient: RecipientGroupId;
   subRecipients: string[];
   budgetTier: 'under-25k' | '25k-50k' | '50k-100k' | 'premium';
   description: string;
@@ -46,13 +60,14 @@ export interface GiftItem {
 }
 
 export interface OccasionOption {
-  id: 'birthday' | 'thank-you' | 'congratulations' | 'just-because';
+  id: OccasionId;
   label: string;
   tagline: string;
+  category?: 'everyday' | 'seasonal';
 }
 
 export interface RecipientGroup {
-  id: 'him' | 'her' | 'family' | 'friend' | 'business';
+  id: RecipientGroupId;
   label: string;
   hasSuboptions: boolean;
   suboptions?: { id: string; label: string }[];
@@ -81,10 +96,19 @@ export interface RibbonColorOption {
 
 // ── 1. Occasions ──
 export const OCCASIONS: OccasionOption[] = [
-  { id: 'birthday', label: 'Birthday', tagline: 'Celebratory keepsakes & joyful sets' },
-  { id: 'thank-you', label: 'Thank You', tagline: 'Heartfelt gestures of genuine gratitude' },
-  { id: 'congratulations', label: 'Congratulations', tagline: 'Honoring proud achievements & milestones' },
-  { id: 'just-because', label: 'Just Because', tagline: 'Spontaneous tokens of care & love' },
+  // Everyday Milestones
+  { id: 'birthday', label: 'Birthday', tagline: 'Celebratory keepsakes & joyful sets', category: 'everyday' },
+  { id: 'thank-you', label: 'Thank You', tagline: 'Heartfelt gestures of genuine gratitude', category: 'everyday' },
+  { id: 'congratulations', label: 'Congratulations', tagline: 'Honoring proud achievements & milestones', category: 'everyday' },
+  { id: 'just-because', label: 'Just Because', tagline: 'Spontaneous tokens of care & love', category: 'everyday' },
+
+  // Seasonal Celebrations (Client Specification)
+  { id: 'christmas', label: 'Christmas', tagline: 'Festive hampers, seasonal botanicals & holiday warmth', category: 'seasonal' },
+  { id: 'valentines', label: "Valentine's", tagline: 'Romantic keepsakes & tokens of timeless affection', category: 'seasonal' },
+  { id: 'easter', label: 'Easter', tagline: 'Springtime confections, renewal & joyful gathering', category: 'seasonal' },
+  { id: 'mothers-day', label: "Mother's Day", tagline: 'Heartfelt gratitude & bespoke pampering for mums', category: 'seasonal' },
+  { id: 'fathers-day', label: "Father's Day", tagline: 'Refined accessories & thoughtful tokens for dads', category: 'seasonal' },
+  { id: 'new-year', label: 'New Year', tagline: 'Fresh starts, celebratory toasts & inspiring horizons', category: 'seasonal' },
 ];
 
 // ── 2. Recipients with Progressive Disclosure ──
@@ -124,6 +148,7 @@ export const RECIPIENTS: RecipientGroup[] = [
       { id: 'team', label: 'Team' },
     ],
   },
+  { id: 'self', label: 'Shopping for Self', hasSuboptions: false },
 ];
 
 // ── 3. Budget Tiers ──
@@ -183,9 +208,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦22,500',
     image: frame1Img,
     alt: 'Handcrafted ceramic tea cup and artisanal herbal blend',
-    occasions: ['birthday', 'thank-you', 'just-because'],
+    occasions: ['birthday', 'thank-you', 'just-because', 'mothers-day', 'christmas', 'easter'],
     primaryRecipient: 'her',
-    subRecipients: ['mum', 'sister', 'wife', 'aunt', 'friend'],
+    subRecipients: ['mum', 'sister', 'wife', 'aunt', 'friend', 'self'],
     budgetTier: 'under-25k',
     description: 'A comforting morning ritual set featuring a stoneware tea cup, matching saucer, and wild mountain herbal tea.',
     included: ['Stoneware Cup & Saucer', 'Loose Leaf Tea Tin (80g)', 'Brass Tea Spoon', 'Botanical Note'],
@@ -199,9 +224,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦24,000',
     image: penImg,
     alt: 'Linen covered notebook and solid brass pen',
-    occasions: ['congratulations', 'thank-you', 'birthday'],
+    occasions: ['congratulations', 'thank-you', 'birthday', 'fathers-day', 'new-year'],
     primaryRecipient: 'him',
-    subRecipients: ['dad', 'brother', 'husband', 'colleague', 'boss'],
+    subRecipients: ['dad', 'brother', 'husband', 'colleague', 'boss', 'self'],
     budgetTier: 'under-25k',
     description: 'Fine Smyth-sewn archival notebook bound in raw linen, paired with a weighted brass rollerball pen.',
     included: ['A5 Linen Journal', 'Solid Brass Rollerball Pen', 'Leather Bookmark Tag', 'Ink Cartridge Refills'],
@@ -214,9 +239,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦18,500',
     image: frame4Img,
     alt: 'Pair of artisanal travel candles with amber jars',
-    occasions: ['thank-you', 'just-because', 'birthday'],
+    occasions: ['thank-you', 'just-because', 'birthday', 'christmas', 'valentines', 'new-year'],
     primaryRecipient: 'friend',
-    subRecipients: ['sister', 'colleague', 'mum', 'cousin'],
+    subRecipients: ['sister', 'colleague', 'mum', 'cousin', 'self'],
     budgetTier: 'under-25k',
     description: 'Two pure soy wax travel candles fragranced with cedarwood, amber smoke, and sweet bergamot.',
     included: ['120g Amber Cedar Candle', '120g Bergamot Fig Candle', 'Matchbox in Linen Pouch'],
@@ -229,9 +254,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦38,000',
     image: frame2Img,
     alt: 'Paired ceramic mugs and serving tray',
-    occasions: ['congratulations', 'birthday', 'thank-you'],
+    occasions: ['congratulations', 'birthday', 'thank-you', 'easter', 'mothers-day', 'new-year'],
     primaryRecipient: 'family',
-    subRecipients: ['mum', 'dad', 'wife', 'husband', 'daughter', 'son'],
+    subRecipients: ['mum', 'dad', 'wife', 'husband', 'daughter', 'son', 'self'],
     budgetTier: '25k-50k',
     description: 'Hand-thrown stoneware breakfast mugs with speckled clay glaze, accompanied by an organic linen tray cloth.',
     included: ['2 Stoneware Coffee Mugs', 'Organic Belgian Linen Runner', 'Artisan Espresso Bean Tin'],
@@ -245,9 +270,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦45,000',
     image: herImg,
     alt: 'Silk scarf with delicate perfume bottle',
-    occasions: ['birthday', 'thank-you', 'congratulations'],
+    occasions: ['birthday', 'thank-you', 'congratulations', 'valentines', 'mothers-day'],
     primaryRecipient: 'her',
-    subRecipients: ['wife', 'mum', 'sister', 'daughter', 'friend'],
+    subRecipients: ['wife', 'mum', 'sister', 'daughter', 'friend', 'self'],
     budgetTier: '25k-50k',
     description: 'A 100% pure Mulberry silk square scarf featuring an original botanical watercolor print and French blossom fragrance.',
     included: ['Mulberry Silk Scarf (70x70cm)', '50ml Eau de Parfum Bottle', 'Embossed Keepsake Box'],
@@ -260,9 +285,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦48,000',
     image: coperateImg,
     alt: 'Full grain leather document folio with brass snap',
-    occasions: ['congratulations', 'thank-you', 'birthday'],
+    occasions: ['congratulations', 'thank-you', 'birthday', 'fathers-day', 'new-year'],
     primaryRecipient: 'business',
-    subRecipients: ['client', 'boss', 'colleague', 'partner', 'employee'],
+    subRecipients: ['client', 'boss', 'colleague', 'partner', 'employee', 'self'],
     budgetTier: '25k-50k',
     description: 'Full-grain pull-up leather portfolio designed to carry an iPad, stationery pad, and business cards.',
     included: ['A4 Leather Document Folio', 'Brass Pen Holder', 'Refillable Note Pad', 'Personalized Tag'],
@@ -275,9 +300,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦72,000',
     image: necklaceImg,
     alt: 'Delicate solid sterling silver necklace pendant',
-    occasions: ['birthday', 'congratulations', 'just-because'],
+    occasions: ['birthday', 'congratulations', 'just-because', 'valentines', 'mothers-day'],
     primaryRecipient: 'her',
-    subRecipients: ['wife', 'daughter', 'sister', 'mum'],
+    subRecipients: ['wife', 'daughter', 'sister', 'mum', 'self'],
     budgetTier: '50k-100k',
     description: 'Recycled 925 sterling silver chain with a hammered medallion pendant that can be custom engraved.',
     included: ['925 Sterling Silver Necklace', 'Velvet Storage Pouch', 'Jewelry Polishing Cloth', 'Certificate'],
@@ -291,9 +316,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦85,000',
     image: watchImg,
     alt: 'Minimalist dress watch with genuine leather strap',
-    occasions: ['birthday', 'congratulations'],
+    occasions: ['birthday', 'congratulations', 'fathers-day', 'valentines', 'new-year'],
     primaryRecipient: 'him',
-    subRecipients: ['husband', 'dad', 'brother', 'son', 'partner', 'boss'],
+    subRecipients: ['husband', 'dad', 'brother', 'son', 'partner', 'boss', 'self'],
     budgetTier: '50k-100k',
     description: 'Ultra-slim stainless steel case with sapphire crystal glass and interchangeable vegetable-tanned Italian leather strap.',
     included: ['Precision Quartz Watch', 'Genuine Leather Strap', 'Hardwood Case', '2-Year Warranty Card'],
@@ -306,7 +331,7 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦68,000',
     image: frame5Img,
     alt: 'Stacked gift hamper with fine artisan gourmet foods',
-    occasions: ['congratulations', 'birthday', 'thank-you'],
+    occasions: ['congratulations', 'birthday', 'thank-you', 'christmas', 'easter', 'new-year'],
     primaryRecipient: 'family',
     subRecipients: ['mum', 'dad', 'grandparent', 'team', 'client', 'partner'],
     budgetTier: '50k-100k',
@@ -321,9 +346,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦145,000',
     image: celebrationImg,
     alt: 'Luxury wooden trunk filled with premium gifts',
-    occasions: ['congratulations', 'birthday', 'thank-you'],
+    occasions: ['congratulations', 'birthday', 'thank-you', 'christmas', 'new-year'],
     primaryRecipient: 'business',
-    subRecipients: ['client', 'boss', 'partner', 'team', 'husband', 'wife'],
+    subRecipients: ['client', 'boss', 'partner', 'team', 'husband', 'wife', 'self'],
     budgetTier: 'premium',
     description: 'A commanding handcrafted wooden trunk filled with top-tier leather pieces, fine tableware, and a celebration bottle.',
     included: ['Custom Stamped Wooden Trunk', 'Full-Grain Leather Pouch', 'Two Hand-Blown Crystal Glasses', 'Artisan Chocolate Box', 'Bespoke Monogram'],
@@ -337,9 +362,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦115,000',
     image: bagImg,
     alt: 'Structured luxury leather shoulder bag',
-    occasions: ['birthday', 'congratulations'],
+    occasions: ['birthday', 'congratulations', 'mothers-day', 'valentines'],
     primaryRecipient: 'her',
-    subRecipients: ['wife', 'mum', 'daughter', 'sister'],
+    subRecipients: ['wife', 'mum', 'daughter', 'sister', 'self'],
     budgetTier: 'premium',
     description: 'Spacious everyday tote handcrafted from supple vegetable-tanned leather that develops a rich, unique patina over time.',
     included: ['Leather Carry Tote', 'Matching Zipper Pouch', 'Dust Bag', 'Leather Care Balm'],
@@ -352,9 +377,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦135,000',
     image: himImg,
     alt: 'Timepiece, leather cardholder and brass accessories',
-    occasions: ['birthday', 'congratulations'],
+    occasions: ['birthday', 'congratulations', 'fathers-day', 'new-year'],
     primaryRecipient: 'him',
-    subRecipients: ['husband', 'dad', 'boss', 'partner'],
+    subRecipients: ['husband', 'dad', 'boss', 'partner', 'self'],
     budgetTier: 'premium',
     description: 'An executive suite including a timepiece, card case, fountain pen, and full-grain leather desk blotter.',
     included: ['Sapphire Glass Watch', 'Leather Cardholder', 'German Nib Fountain Pen', 'Handcrafted Cedar Box'],
@@ -367,11 +392,11 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦32,000',
     image: birthdayImg,
     alt: 'Birthday celebration gift box with fine treats',
-    occasions: ['birthday'],
+    occasions: ['birthday', 'easter', 'christmas'],
     primaryRecipient: 'friend',
-    subRecipients: ['sister', 'brother', 'daughter', 'son', 'mum', 'dad', 'friend'],
+    subRecipients: ['sister', 'brother', 'daughter', 'son', 'mum', 'dad', 'friend', 'self'],
     budgetTier: '25k-50k',
-    description: 'A cheerful birthday package brimming with single-origin chocolates, scented votive, and celebration confetti.',
+    description: 'A cheerful celebration package brimming with single-origin chocolates, scented votive, and celebration confetti.',
     included: ['Artisan Chocolate Box', 'Celebration Sparkler', 'Gold Foil Birthday Card', 'Scented Candle'],
     badge: 'Celebration',
   },
@@ -383,7 +408,7 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦28,000',
     image: appreciationImg,
     alt: 'Thank you gift box with botanical tea and ceramic dish',
-    occasions: ['thank-you', 'just-because'],
+    occasions: ['thank-you', 'just-because', 'mothers-day', 'easter'],
     primaryRecipient: 'business',
     subRecipients: ['colleague', 'client', 'employee', 'team', 'boss', 'friend'],
     budgetTier: '25k-50k',
@@ -398,9 +423,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦36,000',
     image: bottleImg,
     alt: 'Luxury botanical fragrance and bath oil bottle',
-    occasions: ['just-because', 'birthday', 'thank-you'],
+    occasions: ['just-because', 'birthday', 'thank-you', 'mothers-day', 'valentines'],
     primaryRecipient: 'her',
-    subRecipients: ['wife', 'mum', 'sister', 'daughter'],
+    subRecipients: ['wife', 'mum', 'sister', 'daughter', 'self'],
     budgetTier: '25k-50k',
     description: 'An indulgent bath and body ritual with botanical bath salts, cold-pressed almond oil, and cedarwood mist.',
     included: ['100ml Botanical Body Oil', 'Dead Sea Mineral Bath Salts', 'Linen Washcloth', 'Glass Dropper'],
@@ -413,9 +438,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦58,000',
     image: ringImg,
     alt: 'Sterling silver band in velvet presentation box',
-    occasions: ['birthday', 'congratulations'],
+    occasions: ['birthday', 'congratulations', 'valentines', 'mothers-day'],
     primaryRecipient: 'her',
-    subRecipients: ['wife', 'sister', 'daughter', 'mum'],
+    subRecipients: ['wife', 'sister', 'daughter', 'mum', 'self'],
     budgetTier: '50k-100k',
     description: 'Subtle textured sterling silver ring crafted by hand, presented in a debossed velvet jewelry box.',
     included: ['925 Sterling Silver Ring', 'Velvet Ring Box', 'Polishing Cloth', 'Sizing Card'],
@@ -428,9 +453,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦64,000',
     image: frame3Img,
     alt: 'Textured woven wool throw blanket',
-    occasions: ['congratulations', 'birthday', 'thank-you'],
+    occasions: ['congratulations', 'birthday', 'thank-you', 'christmas', 'new-year'],
     primaryRecipient: 'family',
-    subRecipients: ['mum', 'dad', 'grandparent', 'sister', 'brother'],
+    subRecipients: ['mum', 'dad', 'grandparent', 'sister', 'brother', 'self'],
     budgetTier: '50k-100k',
     description: 'Heavyweight merino wool throw blanket in natural cream and oat tones, finished with fringed edges.',
     included: ['Merino Wool Throw (130x180cm)', 'Cedar Moth Wardrobe Block', 'Storage Linen Bag'],
@@ -443,9 +468,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦42,000',
     image: frame6Img,
     alt: 'Ceramic vase with everlasting dried floral bouquet',
-    occasions: ['congratulations', 'thank-you', 'birthday'],
+    occasions: ['congratulations', 'thank-you', 'birthday', 'easter', 'mothers-day'],
     primaryRecipient: 'friend',
-    subRecipients: ['colleague', 'mum', 'sister', 'wife'],
+    subRecipients: ['colleague', 'mum', 'sister', 'wife', 'self'],
     budgetTier: '25k-50k',
     description: 'Everlasting dried wild floral bouquet hand-tied and arranged in a rustic sculptural stoneware vase.',
     included: ['Everlasting Botanical Bouquet', 'Hand-Crafted Clay Vase', 'Floral Care Card'],
@@ -458,9 +483,9 @@ export const GIFTS_CATALOG: GiftItem[] = [
     formattedPrice: '₦125,000',
     image: frame9Img,
     alt: 'Celebration gift box with mouth-blown flutes and accessories',
-    occasions: ['congratulations', 'birthday'],
+    occasions: ['congratulations', 'birthday', 'valentines', 'new-year', 'christmas'],
     primaryRecipient: 'family',
-    subRecipients: ['wife', 'husband', 'partner', 'client', 'boss'],
+    subRecipients: ['wife', 'husband', 'partner', 'client', 'boss', 'self'],
     budgetTier: 'premium',
     description: 'Two mouth-blown crystal champagne flutes paired with artisan truffles and gold-plated bottle stopper in a presentation box.',
     included: ['2 Crystal Flutes', 'Gold Plated Stopper', 'Artisan Dark Truffle Box', 'Custom Keepsake Packaging'],

@@ -9,8 +9,72 @@ import congratsImg from '../../../assets/section2/Frame 6.png';
 import newBabyImg from '../../../assets/section2/Frame 3 (1).png';
 import corporateImg from '../../../assets/section4/coperate.png';
 import justBecauseImg from '../../../assets/section2/Frame 4.png';
+import herImg from '../../../assets/section4/her.png';
+import himImg from '../../../assets/section4/him.png';
+import frame5Img from '../../../assets/section2/Frame 5 (1).png';
+import frame1Img from '../../../assets/section2/Frame 1.png';
 
 export const occasionCategories: OccasionCategory[] = [
+  {
+    id: 'christmas',
+    title: 'Christmas',
+    tagline: 'Festive Hampers & Holiday Cheer',
+    description: 'Sumptuous holiday hampers, warming botanicals, and handcrafted celebratory gifts.',
+    image: frame5Img,
+    alt: 'Christmas holiday luxury gift hampers and festive packages',
+    tag: 'Christmas',
+    href: '/shop?occasion=christmas',
+  },
+  {
+    id: 'valentines',
+    title: "Valentine's",
+    tagline: 'Romantic Keepsakes & Timeless Affection',
+    description: 'Precious jewelry, pairing ceramics, and silk-wrapped expressions of deep romance.',
+    image: celebrationImg,
+    alt: "Valentine's day romantic keepsakes and luxury couples gifts",
+    tag: "Valentine's",
+    href: '/shop?occasion=valentines',
+  },
+  {
+    id: 'mothers-day',
+    title: "Mother's Day",
+    tagline: 'Bespoke Pampering & Gratitude for Mums',
+    description: 'Mulberry silk scarves, relaxing bath sanctuaries, and heirloom keepsakes for mother.',
+    image: herImg,
+    alt: "Mother's Day luxury pampering gifts and botanical sets",
+    tag: "Mother's Day",
+    href: '/shop?occasion=mothers-day',
+  },
+  {
+    id: 'fathers-day',
+    title: "Father's Day",
+    tagline: 'Distinguished Leather & Watch Suites',
+    description: 'Precision timepieces, leather portfolios, and weighted brass pens honoring dads.',
+    image: himImg,
+    alt: "Father's Day leather and executive accessories for fathers",
+    tag: "Father's Day",
+    href: '/shop?occasion=fathers-day',
+  },
+  {
+    id: 'easter',
+    title: 'Easter',
+    tagline: 'Spring Renewal & Confection Hampers',
+    description: 'Artisanal sweet confections, fresh tea sets, and bright springtime family packages.',
+    image: frame1Img,
+    alt: 'Easter spring confectionery gift baskets and celebration sets',
+    tag: 'Easter',
+    href: '/shop?occasion=easter',
+  },
+  {
+    id: 'new-year',
+    title: 'New Year',
+    tagline: 'Fresh Horizons & Celebratory Toasts',
+    description: 'Crystal champagne flutes, executive journals, and inspiring gifts for a fresh start.',
+    image: congratsImg,
+    alt: 'New Year celebration gifts and champagne keepsakes',
+    tag: 'New Year',
+    href: '/shop?occasion=new-year',
+  },
   {
     id: 'birthday',
     title: 'Birthday',
