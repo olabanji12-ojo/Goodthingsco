@@ -39,7 +39,7 @@ export const HeroObject: React.FC<HeroObjectProps> = ({
           alt="Curated Good Things Co. signature gift box with golden silk ribbon and botanical accents"
           loading="eager"
           decoding="async"
-          className={`w-full h-auto object-contain object-center drop-shadow-[0_20px_35px_rgba(28,20,14,0.08)] pointer-events-none transition-transform duration-700 hover:scale-[1.02] ${
+          className={`w-full h-auto object-contain object-center drop-shadow-[0_20px_35px_rgba(28,20,14,0.08)] pointer-events-none ${
             imgClassName || 'max-h-[480px] sm:max-h-[540px] md:max-h-[620px] lg:max-h-[680px]'
           }`}
           draggable={false}

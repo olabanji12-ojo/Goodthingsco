@@ -52,13 +52,12 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
               <li key={link.id}>
                 <Link
                   to={link.href}
-                  onMouseEnter={() => onSelectTab && link.id !== 'about' && onSelectTab(link.id)}
                   onClick={() => handleNavClick(link.id)}
-                  className={`font-sans text-xs lg:text-[13px] font-semibold tracking-[0.2em] uppercase transition-all duration-300 relative py-2 ${
+                  className={`font-sans text-xs lg:text-[13px] font-semibold tracking-[0.2em] uppercase transition-colors duration-300 relative py-2 ${
                     isActive
                       ? 'text-brand-dark after:w-full'
                       : 'text-brand-dark/70 hover:text-brand-dark after:w-0 hover:after:w-full'
-                  } after:content-[''] after:absolute after:bottom-0 after:left-0 after:h-[1.5px] after:bg-brand-dark after:transition-all after:duration-300`}
+                  } after:content-[''] after:absolute after:bottom-0 after:left-0 after:h-[1.5px] after:bg-brand-dark after:transition-all after:duration-300 after:ease-out`}
                 >
                   {link.label}
                 </Link>

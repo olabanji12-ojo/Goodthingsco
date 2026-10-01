@@ -121,7 +121,7 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
             <button
               type="button"
               onClick={() => handleTabChange(null)}
-              className={`px-3.5 lg:px-4 py-1.5 rounded-xl font-sans text-xs font-semibold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
+              className={`px-3.5 lg:px-4 py-1.5 rounded-xl font-sans text-xs font-semibold tracking-wider uppercase transition-colors duration-300 ease-out cursor-pointer ${
                 activeTab === null
                   ? 'bg-brand-dark text-brand-ivory shadow-xs font-bold'
                   : 'text-brand-dark/70 hover:text-brand-dark hover:bg-black/5'
@@ -137,10 +137,8 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
                 <button
                   key={tabKey}
                   type="button"
-                  onMouseEnter={() => handleTabChange(tabKey)}
-                  onFocus={() => handleTabChange(tabKey)}
                   onClick={() => handleTabChange(tabKey)}
-                  className={`px-3.5 lg:px-4 py-1.5 rounded-xl font-sans text-xs font-semibold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
+                  className={`px-3.5 lg:px-4 py-1.5 rounded-xl font-sans text-xs font-semibold tracking-wider uppercase transition-colors duration-300 ease-out cursor-pointer ${
                     isActive
                       ? 'bg-brand-dark text-brand-ivory shadow-xs font-bold'
                       : 'text-brand-dark/70 hover:text-brand-dark hover:bg-black/5'
@@ -178,10 +176,10 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
               return (
                 <div
                   key={tabKey}
-                  className="group rounded-2xl border border-brand-dark/10 p-5 bg-[#FAF8F5]/40 hover:bg-white hover:border-brand-dark/30 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+                  className="group rounded-2xl border border-brand-dark/10 p-5 bg-[#FAF8F5]/40 hover:bg-white hover:border-brand-dark/20 hover:shadow-[0_8px_24px_rgba(28,20,14,0.05)] transition-all duration-500 ease-out flex flex-col justify-between"
                 >
                   <div>
-                    {/* Thumbnail Image with hover zoom */}
+                    {/* Thumbnail Image with gentle luxury zoom */}
                     <div
                       role="button"
                       tabIndex={0}
@@ -194,7 +192,7 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
                       <img
                         src={item.image}
                         alt={item.imageAlt}
-                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover object-center group-hover:scale-[1.025] transition-transform duration-700 ease-out"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
@@ -312,7 +310,7 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
                   key={activeContent.id}
                   src={activeContent.image}
                   alt={activeContent.imageAlt}
-                  className="w-full h-full object-cover object-center animate-fade-in transition-transform duration-700 hover:scale-105"
+                  className="w-full h-full object-cover object-center animate-fade-in transition-transform duration-1000 ease-out hover:scale-[1.02]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/50 via-transparent to-transparent pointer-events-none" />
 
