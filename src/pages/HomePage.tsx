@@ -29,14 +29,6 @@ export default function HomePage() {
 
         {/* ── 2. Hero & Brand Positioning Statement ── */}
         <main className="w-full py-4 sm:py-6 md:py-8 flex flex-col items-center justify-center text-center">
-          {/* Section Eyebrow */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-50/80 border border-gold-200/50 mb-3 animate-fade-in">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold-600 animate-pulse" />
-            <span className="font-sans text-[10px] sm:text-[11px] font-semibold tracking-[0.24em] uppercase text-gold-700">
-              Good Things Co. · Gift Atelier
-            </span>
-          </div>
-
           {/* Main Brand Statement (Single unbroken line on desktop) */}
           <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-[3.15rem] xl:text-[3.45rem] font-normal text-brand-dark tracking-tight leading-tight whitespace-normal md:whitespace-nowrap mb-2.5 animate-fade-in">
             Thoughtful gifts for inspired living

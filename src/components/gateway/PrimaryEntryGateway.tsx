@@ -176,9 +176,9 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
               return (
                 <div
                   key={tabKey}
-                  className="group rounded-2xl border border-brand-dark/10 p-5 bg-[#FAF8F5]/40 hover:bg-white hover:border-brand-dark/20 hover:shadow-[0_8px_24px_rgba(28,20,14,0.05)] transition-all duration-500 ease-out flex flex-col justify-between"
+                  className="group rounded-2xl border border-brand-dark/10 p-6 bg-[#FAF8F5]/40 hover:bg-white hover:border-brand-dark/20 hover:shadow-[0_8px_24px_rgba(28,20,14,0.05)] transition-all duration-500 ease-out flex flex-col items-center justify-between text-center"
                 >
-                  <div>
+                  <div className="flex flex-col items-center text-center w-full">
                     {/* Thumbnail Image with gentle luxury zoom */}
                     <div
                       role="button"
@@ -187,7 +187,7 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') handleTabChange(tabKey);
                       }}
-                      className="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-brand-dark/5 cursor-pointer"
+                      className="relative aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-brand-dark/5 cursor-pointer"
                     >
                       <img
                         src={item.image}
@@ -213,13 +213,13 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
                     </p>
 
                     {/* Short Description */}
-                    <p className="font-sans text-[11px] text-brand-medium/85 leading-relaxed line-clamp-2">
+                    <p className="font-sans text-[11px] text-brand-medium/85 leading-relaxed line-clamp-2 max-w-xs mx-auto">
                       {item.shortDesc}
                     </p>
                   </div>
 
                   {/* Actions: Direct Link or Preview Journey */}
-                  <div className="pt-4 mt-4 border-t border-brand-dark/10 flex items-center justify-between">
+                  <div className="pt-4 mt-4 border-t border-brand-dark/10 w-full flex items-center justify-center gap-4">
                     <Link
                       to={item.ctaHref}
                       className="inline-flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-brand-dark hover:text-gold-700 transition-colors"
@@ -227,6 +227,8 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
                       <span>{item.label === 'About' ? 'Our Story' : 'Enter'}</span>
                       <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </Link>
+
+                    <span className="text-brand-dark/20 text-xs">•</span>
 
                     <button
                       type="button"
@@ -329,7 +331,7 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
       </div>
 
       {/* =========================================================
-          MOBILE VIEW: COMPACT TAP ROWS (NONE OPEN ON LOAD)
+          MOBILE VIEW: COMPACT TAP ROWS (CENTER ALIGNED FOR VISUAL APPEAL)
           ========================================================= */}
       <div className="md:hidden divide-y divide-brand-dark/10">
         {tabKeys.map((tabKey) => {
@@ -338,50 +340,43 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
 
           return (
             <div key={tabKey} className="transition-colors">
-              {/* Compact Tap Header */}
+              {/* Compact Tap Header — Center Aligned */}
               <button
                 type="button"
                 onClick={() => setMobileExpandedTab(isExpanded ? null : tabKey)}
-                className="w-full p-5 flex items-center justify-between text-left cursor-pointer hover:bg-black/2 transition-colors"
+                className="w-full py-5 px-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-black/2 transition-colors relative"
                 aria-expanded={isExpanded}
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-serif text-lg font-medium text-brand-dark">
-                      {item.label}
-                    </span>
-                    {(tabKey === 'shop' || tabKey === 'corporate') && (
-                      <span className="px-2 py-0.5 rounded-full bg-gold-50 text-gold-700 text-[9px] font-sans font-bold uppercase tracking-wider">
-                        Primary
-                      </span>
-                    )}
-                  </div>
-                  <span className="font-sans text-xs text-brand-medium/80 block mt-0.5">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <span className="font-serif text-xl font-medium text-brand-dark">
+                    {item.label}
+                  </span>
+                  <span className="font-sans text-xs text-brand-medium/80 block mt-1">
                     {item.headline}
                   </span>
                 </div>
-                <span className="w-8 h-8 rounded-full border border-brand-dark/15 flex items-center justify-center text-xs text-brand-dark font-sans shrink-0">
-                  {isExpanded ? '▲' : '→'}
+                <span className="mt-2.5 w-7 h-7 rounded-full border border-brand-dark/15 flex items-center justify-center text-[10px] text-brand-dark font-sans shrink-0 transition-transform duration-300">
+                  {isExpanded ? '▲' : '▼'}
                 </span>
               </button>
 
               {/* Mobile Expanded Drawer inside same container */}
               {isExpanded && (
-                <div className="px-5 pb-6 pt-1 space-y-4 bg-[#FAF8F5]/60 animate-fade-in">
-                  <p className="font-sans text-xs text-brand-medium/90 leading-relaxed">
+                <div className="px-6 pb-6 pt-2 space-y-4 bg-[#FAF8F5]/60 text-center animate-fade-in flex flex-col items-center">
+                  <p className="font-sans text-xs text-brand-medium/90 leading-relaxed max-w-sm mx-auto">
                     {item.description}
                   </p>
 
                   {/* Mobile Journey preview */}
-                  <div>
+                  <div className="w-full flex flex-col items-center">
                     <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-light block mb-2">
                       Journey:
                     </span>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
                       {item.journeySteps.map((step) => (
                         <span
                           key={step}
-                          className="px-2 py-0.5 rounded bg-white border border-brand-dark/10 text-brand-dark text-[10px] font-sans"
+                          className="px-2.5 py-0.5 rounded bg-white border border-brand-dark/10 text-brand-dark text-[10px] font-sans"
                         >
                           {step}
                         </span>
@@ -391,7 +386,7 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
 
                   <Link
                     to={item.ctaHref}
-                    className="w-full inline-flex items-center justify-center py-3 px-6 bg-brand-dark text-brand-ivory hover:bg-gold-600 font-sans text-xs font-semibold tracking-wider uppercase transition-colors"
+                    className="w-full max-w-xs inline-flex items-center justify-center py-3 px-6 bg-brand-dark text-brand-ivory hover:bg-gold-600 font-sans text-xs font-semibold tracking-wider uppercase transition-colors"
                   >
                     <span>{item.ctaText} →</span>
                   </Link>
