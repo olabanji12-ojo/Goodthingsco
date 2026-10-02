@@ -18,6 +18,7 @@ import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
 import LookbookPage from './pages/LookbookPage';
 import CorporatePage from './pages/CorporatePage';
 import CreatePage from './pages/CreatePage';
@@ -65,6 +66,7 @@ function AppRoutes() {
         <Route path="/shop/product/:slug" element={<ProductDetailPage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/dev-test" element={<DevTestPage />} />
 
         {/* Admin Authentication */}

@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
   Trash2,
@@ -34,6 +34,7 @@ import { getProductImageUrl } from '../services/cloudinaryService';
 import { CartItem } from '../types/cart';
 
 export const CartPage: React.FC = () => {
+  const navigate = useNavigate();
   const {
     items,
     totalQuantity,
@@ -50,7 +51,6 @@ export const CartPage: React.FC = () => {
   } = useCart();
 
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
-  const [checkoutNoticeOpen, setCheckoutNoticeOpen] = useState(false);
 
   // Trigger live stock revalidation on mount
   useEffect(() => {
@@ -89,7 +89,7 @@ export const CartPage: React.FC = () => {
 
   const handleProceedToCheckout = () => {
     if (!isCartValidForCheckout) return;
-    setCheckoutNoticeOpen(true);
+    navigate('/checkout');
   };
 
   return (
@@ -480,39 +480,6 @@ export const CartPage: React.FC = () => {
           )}
         </main>
       </div>
-
-      {/* Checkout Preview Modal / Notice */}
-      {checkoutNoticeOpen && (
-        <div className="fixed inset-0 z-50 bg-brand-dark/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-brand-dark/10 text-center space-y-4 animate-fade-in">
-            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-gold-700 flex items-center justify-center mx-auto">
-              <Sparkles size={28} />
-            </div>
-            <h3 className="font-serif text-2xl text-brand-dark font-normal">
-              Ready for Checkout Phase
-            </h3>
-            <p className="font-sans text-xs sm:text-sm text-brand-medium/90 leading-relaxed">
-              Your cart with <strong className="text-brand-dark">{totalQuantity} items ({formatNaira(subtotal)})</strong> is fully validated, persistent, and ready. Checkout & Paystack payment integration is scheduled for the next phase.
-            </p>
-            <div className="pt-2 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => setCheckoutNoticeOpen(false)}
-                className="w-full py-3.5 rounded-xl bg-brand-dark text-white font-sans text-xs font-semibold uppercase tracking-wider hover:bg-gold-600 transition-colors cursor-pointer"
-              >
-                Close Preview
-              </button>
-              <Link
-                to="/shop"
-                onClick={() => setCheckoutNoticeOpen(false)}
-                className="w-full py-2.5 text-brand-medium hover:text-brand-dark font-sans text-xs transition-colors"
-              >
-                Continue Gifting Discovery
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </div>
