@@ -22,7 +22,10 @@ import {
   RotateCcw,
   Loader2,
   AlertCircle,
+  ShoppingBag,
+  CheckCircle2,
 } from 'lucide-react';
+import { useCart } from '../../contexts/CartContext';
 
 export interface ShopFlowContainerProps {
   className?: string;
@@ -49,6 +52,11 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   className = '',
   onComplete,
 }) => {
+  const { addItem, getCartCount } = useCart();
+  const [cartNotice, setCartNotice] = useState<string | null>(null);
+  const [addedModalOpen, setAddedModalOpen] = useState<boolean>(false);
+  const [lastAddedName, setLastAddedName] = useState<string>('');
+
   const [searchParams] = useSearchParams();
   const initialOccasion = searchParams.get('occasion') as OccasionId | null;
   const initialRecipient = searchParams.get('recipient') as RecipientGroupId | null;
@@ -248,6 +256,90 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   // Find recipient group definition
   const currentRecipientGroupDef = RECIPIENTS.find((r) => r.id === selectedRecipientGroup);
 
+  // Quick Add to Cart for Step 5 & 6
+  const handleQuickAddToCart = (gift: GiftItem) => {
+    const raw = gift.rawProduct as Product | undefined;
+    const stock = raw?.stock !== undefined ? raw.stock : 999;
+    if (stock <= 0) {
+      setCartNotice(`"${gift.title}" is currently out of stock.`);
+      setTimeout(() => setCartNotice(null), 3000);
+      return;
+    }
+
+    const firstImage = raw?.images?.[0];
+    const imagePayload = firstImage
+      ? {
+          url: typeof firstImage === 'string' ? firstImage : firstImage.url,
+          publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
+          alt: typeof firstImage === 'object' ? firstImage.alt : gift.title,
+        }
+      : { url: gift.image, alt: gift.title };
+
+    const result = addItem({
+      productId: raw?.id || gift.id,
+      slug: gift.slug || raw?.slug || gift.id,
+      name: gift.title,
+      unitPrice: gift.price,
+      quantity: 1,
+      currentStock: stock,
+      image: imagePayload,
+      packaging: 'Signature Presentation Box',
+      ribbonColour: 'Gold Satin',
+    });
+
+    if (result.success) {
+      setCartNotice(`Added "${gift.title}" to your cart.`);
+      setTimeout(() => setCartNotice(null), 3500);
+    } else {
+      setCartNotice(result.message);
+      setTimeout(() => setCartNotice(null), 4000);
+    }
+  };
+
+  // Add Personalised Gift to Cart from Step 7
+  const handleAddPersonalisedToCart = () => {
+    const raw = selectedProduct.rawProduct as Product | undefined;
+    const stock = raw?.stock !== undefined ? raw.stock : 999;
+    if (stock <= 0) {
+      setCartNotice(`"${selectedProduct.title}" is currently out of stock.`);
+      setTimeout(() => setCartNotice(null), 3000);
+      return;
+    }
+
+    const firstImage = raw?.images?.[0];
+    const imagePayload = firstImage
+      ? {
+          url: typeof firstImage === 'string' ? firstImage : firstImage.url,
+          publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
+          alt: typeof firstImage === 'object' ? firstImage.alt : selectedProduct.title,
+        }
+      : { url: selectedProduct.image, alt: selectedProduct.title };
+
+    const calculatedUnitPrice = selectedProduct.price + packagingPrice + monogramPrice;
+
+    const result = addItem({
+      productId: raw?.id || selectedProduct.id,
+      slug: selectedProduct.slug || raw?.slug || selectedProduct.id,
+      name: selectedProduct.title,
+      unitPrice: calculatedUnitPrice,
+      quantity: 1,
+      currentStock: stock,
+      image: imagePayload,
+      packaging: selectedPackaging.name,
+      ribbonColour: selectedRibbon.name,
+      giftMessage: giftMessage.trim() || undefined,
+      personalisationText: hasMonogram ? monogramText.trim() || undefined : undefined,
+    });
+
+    if (result.success) {
+      setLastAddedName(selectedProduct.title);
+      setAddedModalOpen(true);
+    } else {
+      setCartNotice(result.message);
+      setTimeout(() => setCartNotice(null), 4000);
+    }
+  };
+
   // Helper to render high-finish product card
   const renderProductCard = (gift: GiftItem, isSuggested = false) => {
     const isSelected = (selectedProduct.slug || selectedProduct.id) === (gift.slug || gift.id);
@@ -352,34 +444,50 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
             </p>
           </div>
 
-          <div className="pt-3 border-t border-brand-dark/10 flex items-center justify-between gap-2">
-            <div className="flex flex-col">
-              <span className="font-serif text-base font-bold text-brand-dark">
-                {gift.formattedPrice}
-              </span>
-              {raw?.compareAtPrice && (
-                <span className="font-sans text-[11px] text-brand-light line-through">
-                  ₦{raw.compareAtPrice.toLocaleString()}
+          <div className="pt-3 border-t border-brand-dark/10 flex flex-col gap-2">
+            <div className="flex items-baseline justify-between">
+              <div className="flex flex-col">
+                <span className="font-serif text-base font-bold text-brand-dark">
+                  {gift.formattedPrice}
                 </span>
-              )}
+                {raw?.compareAtPrice && (
+                  <span className="font-sans text-[11px] text-brand-light line-through">
+                    ₦{raw.compareAtPrice.toLocaleString()}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                disabled={isOutOfStock}
+                onClick={() => {
+                  if (!isOutOfStock) {
+                    setSelectedProduct(gift);
+                    goToStep(6);
+                  }
+                }}
+                className="text-xs font-sans font-semibold text-gold-700 hover:text-gold-900 cursor-pointer underline flex items-center gap-0.5"
+              >
+                <span>Select & Personalise</span>
+                <span>→</span>
+              </button>
             </div>
 
             <button
               type="button"
               disabled={isOutOfStock}
-              onClick={() => {
-                if (!isOutOfStock) {
-                  setSelectedProduct(gift);
-                  goToStep(6);
-                }
+              onClick={(e) => {
+                e.stopPropagation();
+                handleQuickAddToCart(gift);
               }}
-              className={`px-3 py-1.5 rounded-lg font-sans text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
+              className={`w-full py-2 rounded-xl font-sans text-xs font-semibold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 isOutOfStock
-                  ? 'bg-brand-dark/20 text-brand-medium cursor-not-allowed'
-                  : 'bg-brand-dark text-white hover:bg-gold-600'
+                  ? 'bg-brand-dark/15 text-brand-medium/50 cursor-not-allowed border border-brand-dark/5'
+                  : 'bg-brand-dark text-white hover:bg-gold-600 active:scale-[0.99] shadow-xs'
               }`}
             >
-              {isOutOfStock ? 'Sold Out' : 'Select Gift →'}
+              <ShoppingBag size={13} />
+              <span>{isOutOfStock ? 'Sold Out' : 'Add to Gifting Cart'}</span>
             </button>
           </div>
         </div>
@@ -1035,6 +1143,25 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                     </strong>
                   </span>
                 </div>
+
+                {/* Step 6 Action CTAs */}
+                <div className="pt-4 flex flex-wrap gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickAddToCart(selectedProduct)}
+                    className="px-5 py-2.5 rounded-xl bg-brand-dark text-white hover:bg-gold-600 font-sans text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                  >
+                    <ShoppingBag size={14} />
+                    <span>Add to Gifting Cart</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToStep(7)}
+                    className="px-5 py-2.5 rounded-xl border border-brand-dark/20 text-brand-dark hover:border-brand-dark font-sans text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    Personalise This Gift →
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1247,6 +1374,26 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Step 7 Add Personalised Gift CTA bar */}
+            <div className="mt-5 p-4 sm:p-5 rounded-2xl bg-amber-50/70 border border-amber-200/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <span className="font-serif text-sm sm:text-base font-semibold text-brand-dark block">
+                  Add This Personalised Curation to Your Cart
+                </span>
+                <span className="font-sans text-xs text-brand-medium">
+                  {selectedPackaging.name} · {selectedRibbon.name} {hasMonogram ? `· Monogram "${monogramText}"` : ''} · Complimentary Handwritten Card
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddPersonalisedToCart}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-brand-dark text-white hover:bg-gold-600 font-sans text-xs font-semibold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer whitespace-nowrap"
+              >
+                <ShoppingBag size={14} />
+                <span>Add to Gifting Cart</span>
+              </button>
             </div>
           </div>
         )}
@@ -1624,6 +1771,55 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
           </div>
         )}
       </div>
+
+      {/* Added to Cart Modal */}
+      {addedModalOpen && (
+        <div className="fixed inset-0 z-50 bg-brand-dark/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-brand-dark/10 text-center space-y-4 animate-fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto">
+              <CheckCircle2 size={30} />
+            </div>
+
+            <h3 className="font-serif text-2xl text-brand-dark font-normal">
+              Added to Cart
+            </h3>
+
+            <p className="font-sans text-xs sm:text-sm text-brand-medium/90 leading-relaxed">
+              <strong className="text-brand-dark font-semibold">"{lastAddedName}"</strong> has been added to your cart with your personalized presentation options.
+            </p>
+
+            <div className="pt-3 flex flex-col gap-2.5">
+              <Link
+                to="/cart"
+                onClick={() => setAddedModalOpen(false)}
+                className="w-full py-3.5 rounded-xl bg-brand-dark text-white font-sans text-xs font-semibold uppercase tracking-[0.16em] hover:bg-gold-600 transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>View Cart & Checkout ({getCartCount()})</span>
+                <span>→</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAddedModalOpen(false);
+                  goToStep(5);
+                }}
+                className="w-full py-3 rounded-xl bg-brand-cream/80 text-brand-dark font-sans text-xs font-semibold uppercase tracking-wider hover:bg-brand-cream transition-colors cursor-pointer"
+              >
+                Continue Gifting Discovery
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notice */}
+      {cartNotice && (
+        <div className="fixed bottom-6 right-6 z-50 bg-brand-dark text-white px-5 py-3.5 rounded-xl shadow-2xl font-sans text-xs font-medium flex items-center gap-2.5 border border-white/10 animate-fade-in">
+          <CheckCircle2 size={16} className="text-gold-400 shrink-0" />
+          <span>{cartNotice}</span>
+        </div>
+      )}
     </div>
   );
 };

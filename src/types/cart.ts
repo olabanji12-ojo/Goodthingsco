@@ -70,7 +70,7 @@ export interface CartContextType {
   removeItem: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => CartQuantityResult;
   clearCart: () => void;
-  revalidateStock: () => Promise<void>;
+  revalidateStock: (targetItems?: CartItem[]) => Promise<void>;
 
   // Computed Getters
   getCartCount: () => number;

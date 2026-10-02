@@ -8,7 +8,7 @@
  * - Persistent guest cart via localStorage with defensive fallback
  */
 
-import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   CartItem,
   CartContextType,
@@ -30,39 +30,58 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [items, setItems] = useState<CartItem[]>(() => loadCartFromStorage());
   const [isValidating, setIsValidating] = useState<boolean>(false);
 
+  // Keep latest authoritative cart items in ref to avoid stale closure in async callbacks
+  const itemsRef = useRef<CartItem[]>(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   // Sync to localStorage on every items update
   useEffect(() => {
     saveCartToStorage(items);
   }, [items]);
 
   /**
-   * Revalidate all cart items against live Firestore product documents.
+   * Revalidate cart items against live Firestore product documents.
    * Detects:
    * - Stock changes (e.g. stock reduced or reached 0)
    * - Unavailable or archived products
    * - Price changes
+   *
+   * Accepts optional targetItems (e.g. immediately after bulk operations)
+   * or defaults to the authoritative itemsRef.current.
    */
-  const revalidateStock = useCallback(async () => {
-    if (items.length === 0) return;
+  const revalidateStock = useCallback(async (targetItems?: CartItem[]) => {
+    const currentItems = targetItems || itemsRef.current;
+    if (currentItems.length === 0) return;
 
     setIsValidating(true);
     try {
       // Collect unique product queries to minimize redundant reads
-      const uniqueProductIds = Array.from(new Set(items.map((i) => i.productId)));
-      const productMap: Record<string, any> = {};
+      const uniqueProductIds = Array.from(new Set(currentItems.map((i) => i.productId)));
+      const productMap: Record<string, { prod: any; confirmedMissing: boolean }> = {};
 
       await Promise.all(
         uniqueProductIds.map(async (pId) => {
-          let prod = await getProductById(pId);
-          if (!prod) {
-            // Fallback: search by slug if ID lookup didn't match
-            const sampleItem = items.find((i) => i.productId === pId);
-            if (sampleItem?.slug) {
-              prod = await getProductBySlug(sampleItem.slug, true);
+          try {
+            let prod = await getProductById(pId);
+            if (!prod) {
+              // Fallback: search by slug if ID lookup didn't match
+              const sampleItem = currentItems.find((i) => i.productId === pId);
+              if (sampleItem?.slug) {
+                prod = await getProductBySlug(sampleItem.slug, true);
+              }
             }
-          }
-          if (prod) {
-            productMap[pId] = prod;
+            if (prod) {
+              productMap[pId] = { prod, confirmedMissing: false };
+            } else {
+              // Only mark confirmed missing if lookup returned null without throwing
+              productMap[pId] = { prod: null, confirmedMissing: true };
+            }
+          } catch (lookupErr) {
+            console.warn(`[CartContext] Product query failed for ${pId}:`, lookupErr);
+            // In case of query error / network hitch, do NOT falsely corrupt items
+            productMap[pId] = { prod: null, confirmedMissing: false };
           }
         })
       );
@@ -71,10 +90,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setItems((prevItems) => {
         let hasChanges = false;
         const updated = prevItems.map((item) => {
-          const liveProd = productMap[item.productId];
+          const entry = productMap[item.productId];
+          if (!entry) {
+            // Product was added during async fetch — keep intact
+            return item;
+          }
 
-          if (!liveProd) {
-            // Product removed or missing from database
+          if (entry.confirmedMissing) {
+            // Product confirmed missing from database
             if (!item.isUnavailable) hasChanges = true;
             return {
               ...item,
@@ -82,6 +105,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isOutOfStock: true,
               currentStock: 0,
             };
+          }
+
+          const liveProd = entry.prod;
+          if (!liveProd) {
+            // Lookup errored, do NOT corrupt item
+            return item;
           }
 
           const currentStock = typeof liveProd.stock === 'number' ? liveProd.stock : 0;
@@ -118,7 +147,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsValidating(false);
     }
-  }, [items]);
+  }, []);
 
   // Revalidate stock on initial mount and when window regains focus
   useEffect(() => {
@@ -214,9 +243,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return [newItem, ...prevItems];
       });
 
-      // Background revalidation
-      setTimeout(() => revalidateStock(), 100);
-
       return {
         success: true,
         message: resultMessage,
@@ -224,7 +250,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isNewItem: isNew,
       };
     },
-    [revalidateStock]
+    []
   );
 
   /**
