@@ -9,6 +9,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import {
   User,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -25,6 +26,7 @@ interface AdminAuthContextType {
   loading: boolean;
   isAuthorizedAdmin: boolean;
   login: (email: string, pass: string) => Promise<void>;
+  signup: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   authError: string | null;
   clearError: () => void;
@@ -90,10 +92,17 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     if (isAtelierMaster) {
       try {
-        await signInWithEmailAndPassword(auth, cleanEmail, pass);
-      } catch {
-        // Firebase console auth provider not yet toggled on; continue with master session
-        console.info('[AdminAuth] Master atelier session activated for:', cleanEmail);
+        const cred = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+        const sessionUser: AdminUser = {
+          email: cred.user.email,
+          uid: cred.user.uid,
+          displayName: cred.user.displayName || cleanEmail.split('@')[0],
+        };
+        setUser(sessionUser);
+        localStorage.setItem('gtc_admin_auth', JSON.stringify(sessionUser));
+        return;
+      } catch (err) {
+        console.info('[AdminAuth] Master atelier fallback activated for:', cleanEmail, err);
       }
       const adminSession: AdminUser = {
         email: cleanEmail,
@@ -132,13 +141,58 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       let message = 'Failed to sign in. Please verify your credentials.';
       if (err instanceof Error) {
         if (err.message.includes('auth/invalid-credential') || err.message.includes('auth/wrong-password')) {
-          message = 'Invalid email or password. Please try again.';
+          message = 'Invalid email or password. If you have not created your administrator account yet, switch to "Create Account" above.';
         } else if (err.message.includes('auth/user-not-found')) {
-          message = 'No admin account found with this email address.';
+          message = 'No administrator account found with this email. Please switch to "Create Account" above to register.';
         } else if (err.message.includes('auth/operation-not-allowed') || err.message.includes('CONFIGURATION_NOT_FOUND') || err.message.includes('auth/configuration-not-found')) {
           message = 'Firebase Auth Email/Password provider is not enabled in Firebase Console. You can log in using patrick@renda.co / tofunmie or admin@goodthingsco.com / Atelier2026!';
         } else if (err.message.includes('auth/too-many-requests')) {
           message = 'Access temporarily disabled due to multiple failed login attempts. Please try again later.';
+        } else {
+          message = err.message;
+        }
+      }
+      setAuthError(message);
+      throw new Error(message);
+    }
+  };
+
+  const signup = async (email: string, pass: string) => {
+    setAuthError(null);
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail) {
+      const msg = 'Please enter an administrator email address.';
+      setAuthError(msg);
+      throw new Error(msg);
+    }
+
+    if (pass.length < 6) {
+      const msg = 'Password must be at least 6 characters long.';
+      setAuthError(msg);
+      throw new Error(msg);
+    }
+
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
+      const sessionUser: AdminUser = {
+        email: credential.user.email,
+        uid: credential.user.uid,
+        displayName: credential.user.displayName || cleanEmail.split('@')[0],
+      };
+      setUser(sessionUser);
+      localStorage.setItem('gtc_admin_auth', JSON.stringify(sessionUser));
+    } catch (err: unknown) {
+      let message = 'Failed to create administrator account.';
+      if (err instanceof Error) {
+        if (err.message.includes('auth/email-already-in-use')) {
+          message = 'This email is already registered in Firebase. Switch to "Sign In" to access your dashboard.';
+        } else if (err.message.includes('auth/weak-password')) {
+          message = 'Password is too weak. Please use at least 6 characters with a combination of letters and numbers.';
+        } else if (err.message.includes('auth/invalid-email')) {
+          message = 'Please provide a valid email address.';
+        } else if (err.message.includes('auth/operation-not-allowed')) {
+          message = 'Email/Password provider is not enabled in Firebase Console. Please verify Build > Authentication > Sign-in method.';
         } else {
           message = err.message;
         }
@@ -168,6 +222,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         loading,
         isAuthorizedAdmin,
         login,
+        signup,
         logout,
         authError,
         clearError,

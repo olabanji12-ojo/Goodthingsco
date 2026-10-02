@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useLenis } from './lib/lenis';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
+import { CartProvider } from './contexts/CartContext';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import AdminLayout from './components/admin/AdminLayout';
 
@@ -16,6 +17,7 @@ import AdminLayout from './components/admin/AdminLayout';
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
+import CartPage from './pages/CartPage';
 import LookbookPage from './pages/LookbookPage';
 import CorporatePage from './pages/CorporatePage';
 import CreatePage from './pages/CreatePage';
@@ -62,6 +64,7 @@ function AppRoutes() {
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/shop/product/:slug" element={<ProductDetailPage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
+        <Route path="/cart" element={<CartPage />} />
         <Route path="/dev-test" element={<DevTestPage />} />
 
         {/* Admin Authentication */}
@@ -94,7 +97,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AdminAuthProvider>
-        <AppRoutes />
+        <CartProvider>
+          <AppRoutes />
+        </CartProvider>
       </AdminAuthProvider>
     </BrowserRouter>
   );

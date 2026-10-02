@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { ShoppingBag } from 'lucide-react';
 import logoImg from '../../assets/branding/logo.png';
+import { useCart } from '../../contexts/CartContext';
 
 interface HeroNavProps {
   className?: string;
@@ -15,6 +17,7 @@ interface HeroNavProps {
  */
 export const HeroNav: React.FC<HeroNavProps> = ({ className = '', activeItem }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { totalQuantity } = useCart();
 
   const navItems = [
     { label: 'Shop', href: '/shop' },
@@ -118,27 +121,44 @@ export const HeroNav: React.FC<HeroNavProps> = ({ className = '', activeItem }) 
             })}
           </ul>
 
-          {/* ── Mobile Hamburger Button ── */}
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden text-brand-dark p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark rounded-md hover:bg-black/5 transition-colors cursor-pointer"
-            aria-label="Open navigation menu"
-            data-hero-element="mobile-menu-toggle"
-          >
-            <svg
-              width="26"
-              height="26"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
+          <div className="flex items-center gap-3">
+            {/* Desktop Cart Button */}
+            <a
+              href="/cart"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-brand-dark/15 hover:border-brand-dark/40 bg-white/70 hover:bg-white text-brand-dark font-sans text-xs font-semibold tracking-wider transition-all shadow-2xs group"
+              aria-label={`View shopping cart containing ${totalQuantity} items`}
             >
-              <line x1="3" y1="7" x2="21" y2="7" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="17" x2="21" y2="17" />
-            </svg>
-          </button>
+              <ShoppingBag size={15} className="text-gold-700 transition-transform group-hover:scale-110" />
+              <span className="hidden sm:inline">Cart</span>
+              {totalQuantity > 0 && (
+                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-brand-dark text-white text-[10px] font-bold flex items-center justify-center">
+                  {totalQuantity}
+                </span>
+              )}
+            </a>
+
+            {/* ── Mobile Hamburger Button ── */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden text-brand-dark p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark rounded-md hover:bg-black/5 transition-colors cursor-pointer"
+              aria-label="Open navigation menu"
+              data-hero-element="mobile-menu-toggle"
+            >
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              >
+                <line x1="3" y1="7" x2="21" y2="7" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="17" x2="21" y2="17" />
+              </svg>
+            </button>
+          </div>
         </nav>
       </header>
 

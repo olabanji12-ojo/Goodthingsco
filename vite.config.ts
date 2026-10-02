@@ -7,6 +7,8 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   server: {
+    port: 5174,
+    strictPort: false,
     watch: {
       usePolling: true,
       interval: 800,

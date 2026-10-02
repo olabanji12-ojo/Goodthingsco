@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ShoppingBag } from 'lucide-react';
 import logoImg from '../../assets/branding/logo.png';
+import { useCart } from '../../contexts/CartContext';
 
 interface GatewayNavProps {
   activePath?: 'shop' | 'corporate' | 'create' | 'about';
@@ -14,6 +16,7 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
   className = '',
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { totalQuantity } = useCart();
 
   const navLinks: { id: 'shop' | 'corporate' | 'create' | 'about'; label: string; href: string }[] = [
     { id: 'shop', label: 'Shop', href: '/shop' },
@@ -68,41 +71,59 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
         </ul>
       </nav>
 
-      {/* ── Mobile Hamburger Button ── */}
-      <button
-        type="button"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="md:hidden p-2 text-brand-dark hover:bg-black/5 rounded-lg transition-colors cursor-pointer"
-        aria-label="Toggle navigation menu"
-        aria-expanded={mobileMenuOpen}
-      >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
+      {/* ── Cart Action & Mobile Toggle ── */}
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Cart Link with Live Count Badge */}
+        <Link
+          to="/cart"
+          className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full border border-brand-dark/15 hover:border-brand-dark/40 bg-white/70 hover:bg-white text-brand-dark font-sans text-xs font-semibold tracking-wider transition-all shadow-2xs group"
+          aria-label={`View shopping cart containing ${totalQuantity} items`}
         >
-          {mobileMenuOpen ? (
-            <>
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </>
-          ) : (
-            <>
-              <line x1="3" y1="8" x2="21" y2="8" />
-              <line x1="3" y1="16" x2="21" y2="16" />
-            </>
+          <ShoppingBag size={15} className="text-gold-700 transition-transform group-hover:scale-110" />
+          <span className="hidden sm:inline">Cart</span>
+          {totalQuantity > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-brand-dark text-white text-[10px] font-bold flex items-center justify-center">
+              {totalQuantity}
+            </span>
           )}
-        </svg>
-      </button>
+        </Link>
+
+        {/* Mobile Hamburger Button */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 text-brand-dark hover:bg-black/5 rounded-lg transition-colors cursor-pointer"
+          aria-label="Toggle navigation menu"
+          aria-expanded={mobileMenuOpen}
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          >
+            {mobileMenuOpen ? (
+              <>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </>
+            ) : (
+              <>
+                <line x1="3" y1="8" x2="21" y2="8" />
+                <line x1="3" y1="16" x2="21" y2="16" />
+              </>
+            )}
+          </svg>
+        </button>
+      </div>
 
       {/* ── Mobile Dropdown Menu ── */}
       {mobileMenuOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 p-5 bg-[#FAF8F5]/98 backdrop-blur-md rounded-2xl border border-brand-dark/10 shadow-xl z-50 md:hidden animate-fade-in">
-          <ul className="flex flex-col gap-4">
+        <div className="absolute top-full left-0 right-0 mt-2 p-5 bg-[#FAF8F5]/98 backdrop-blur-md rounded-2xl border border-brand-dark/10 shadow-xl z-50 md:hidden animate-fade-in space-y-4">
+          <ul className="flex flex-col gap-3">
             {navLinks.map((link) => (
               <li key={link.id}>
                 <Link
@@ -116,6 +137,17 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
               </li>
             ))}
           </ul>
+
+          <div className="pt-3 border-t border-brand-dark/10">
+            <Link
+              to="/cart"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-dark text-white font-sans text-xs font-semibold uppercase tracking-wider"
+            >
+              <ShoppingBag size={15} className="text-gold-400" />
+              <span>View Cart ({totalQuantity})</span>
+            </Link>
+          </div>
         </div>
       )}
     </header>

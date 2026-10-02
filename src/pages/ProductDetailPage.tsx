@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Check,
   Sparkles,
-  Package,
   AlertCircle,
-  Truck,
+  Plus,
+  Minus,
+  ShoppingBag,
+  CheckCircle2,
   Share2,
 } from 'lucide-react';
 import { GatewayNav } from '../components/gateway';
@@ -14,10 +16,12 @@ import { Footer } from '../components/homepage/footer/Footer';
 import { getProductBySlug } from '../services/productService';
 import { getProductImageUrl } from '../services/cloudinaryService';
 import { Product } from '../types/product';
+import { useCart } from '../contexts/CartContext';
+import { formatNaira } from '../utils/cartUtils';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
+  const { addItem, getCartCount } = useCart();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,10 +29,17 @@ export const ProductDetailPage: React.FC = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Interaction State
+  const [quantity, setQuantity] = useState(1);
   const [selectedVariantOptions, setSelectedVariantOptions] = useState<Record<string, string>>({});
   const [selectedPackaging, setSelectedPackaging] = useState<string>('');
   const [selectedRibbon, setSelectedRibbon] = useState<string>('');
+  const [giftMessage, setGiftMessage] = useState<string>('');
+  const [personalisationText, setPersonalisationText] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Feedback State
+  const [addedModalOpen, setAddedModalOpen] = useState(false);
+  const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -81,30 +92,90 @@ export const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const handleProceedToShop = () => {
-    // Navigate to shop with deep link parameters
-    const params = new URLSearchParams();
-    if (product?.occasions?.[0]) params.set('occasion', product.occasions[0]);
-    if (product?.recipients?.[0]) params.set('recipient', product.recipients[0]);
-    navigate(`/shop?${params.toString()}`);
+  const isOutOfStock = !product || !product.isAvailable || product.stock <= 0;
+  const maxStock = product ? product.stock : 0;
+
+  const handleQuantityDecrease = () => {
+    setQuantity((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleQuantityIncrease = () => {
+    if (quantity >= maxStock) {
+      setFeedbackNotice(`Cannot add more: only ${maxStock} in stock.`);
+      setTimeout(() => setFeedbackNotice(null), 3000);
+      return;
+    }
+    setQuantity((prev) => prev + 1);
+  };
+
+  const handleAddToCart = () => {
+    if (!product || isOutOfStock) return;
+
+    const firstImage = product.images?.[0];
+    const imagePayload = firstImage
+      ? {
+          url: typeof firstImage === 'string' ? firstImage : firstImage.url,
+          publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
+          alt: typeof firstImage === 'object' ? firstImage.alt : product.name,
+        }
+      : undefined;
+
+    const result = addItem({
+      productId: product.id || product.slug,
+      slug: product.slug,
+      name: product.name,
+      unitPrice: product.price,
+      quantity,
+      currentStock: product.stock,
+      image: imagePayload,
+      selectedVariants: Object.keys(selectedVariantOptions).length > 0 ? selectedVariantOptions : undefined,
+      packaging: selectedPackaging || undefined,
+      ribbonColour: selectedRibbon || undefined,
+      giftMessage: giftMessage.trim() || undefined,
+      personalisationText: personalisationText.trim() || undefined,
+    });
+
+    if (result.success) {
+      setAddedModalOpen(true);
+    } else {
+      setFeedbackNotice(result.message);
+      setTimeout(() => setFeedbackNotice(null), 3500);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between pb-12 sm:pb-20">
-        {/* Minimal Header Navigation */}
+        {/* Navigation */}
         <GatewayNav activePath="shop" />
 
         <main className="w-full py-6 sm:py-10">
           {/* Back Button */}
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-6 sm:mb-8 flex items-center justify-between">
             <Link
               to="/shop"
               className="inline-flex items-center gap-2 text-xs font-sans font-semibold uppercase tracking-wider text-brand-medium hover:text-brand-dark transition-colors"
             >
               <ArrowLeft size={14} /> Back to Curated Gift Finder
             </Link>
+
+            <button
+              type="button"
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 text-xs font-sans text-brand-light hover:text-brand-dark transition-colors cursor-pointer"
+            >
+              <Share2 size={13} />
+              <span>{copiedLink ? 'Link Copied!' : 'Share Curation'}</span>
+            </button>
           </div>
+
+          {/* Inline Feedback Banner */}
+          {feedbackNotice && (
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-sans text-xs flex items-center gap-2">
+              <AlertCircle size={15} className="text-amber-600 shrink-0" />
+              <span>{feedbackNotice}</span>
+            </div>
+          )}
 
           {/* Loading Skeleton */}
           {loading && (
@@ -158,95 +229,69 @@ export const ProductDetailPage: React.FC = () => {
 
                   {product.featured && (
                     <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-gold-600 text-white font-sans text-[10px] font-bold tracking-wider uppercase shadow-xs">
-                      Featured Atelier Curation
+                      Atelier Signature
                     </span>
                   )}
 
-                  <div className="absolute top-4 right-4 flex items-center gap-2">
-                    <button
-                      onClick={handleShare}
-                      className="p-2.5 rounded-full bg-white/90 backdrop-blur-sm text-brand-dark hover:bg-white shadow-xs transition-colors"
-                      title="Share curation"
-                    >
-                      <Share2 size={16} />
-                    </button>
-                  </div>
-
-                  {copiedLink && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-brand-dark/95 text-white font-sans text-xs shadow-md">
-                      Link copied to clipboard!
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 bg-brand-dark/65 backdrop-blur-[2px] flex items-center justify-center">
+                      <span className="px-5 py-2.5 rounded-full bg-brand-dark/90 text-white font-sans text-xs font-bold uppercase tracking-[0.2em] border border-white/20">
+                        Out of Stock
+                      </span>
                     </div>
                   )}
                 </div>
 
-                {/* Thumbnails Strip */}
+                {/* Thumbnails Row */}
                 {product.images && product.images.length > 1 && (
-                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                    {product.images.map((img, idx) => {
-                      const url = getProductImageUrl(img);
-                      const isSelected = selectedImageIndex === idx;
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => setSelectedImageIndex(idx)}
-                          className={`relative w-20 sm:w-24 aspect-square rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
-                            isSelected
-                              ? 'border-brand-dark ring-2 ring-brand-dark/20'
-                              : 'border-transparent opacity-70 hover:opacity-100'
-                          }`}
-                        >
-                          <img src={url} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
-                        </button>
-                      );
-                    })}
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {product.images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedImageIndex(idx)}
+                        className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                          selectedImageIndex === idx
+                            ? 'border-brand-dark scale-102 shadow-sm'
+                            : 'border-transparent opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <img
+                          src={getProductImageUrl(img)}
+                          alt={`${product.name} thumbnail ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
                   </div>
                 )}
-
-                {/* Craftsmanship Guarantees Bar */}
-                <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-white border border-brand-dark/10 text-center font-sans text-[11px] text-brand-medium">
-                  <div className="flex flex-col items-center gap-1">
-                    <Package size={16} className="text-gold-600" />
-                    <span>Artisanal Packaging</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-1 border-x border-brand-dark/10">
-                    <Sparkles size={16} className="text-gold-600" />
-                    <span>Personalised Card</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <Truck size={16} className="text-gold-600" />
-                    <span>White-Glove Dispatch</span>
-                  </div>
-                </div>
               </div>
 
-              {/* Right Column: Editorial Details & Options (5 cols) */}
+              {/* Right Column: Details & Customisation (5 cols) */}
               <div className="lg:col-span-5 space-y-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-gold-600">
-                      Good Things Co. · {product.category || 'Atelier Gift'}
-                    </span>
-                    <span className="w-1 h-1 rounded-full bg-brand-light" />
-                    <span className="font-sans text-xs text-brand-medium">
-                      {product.isAvailable && product.stock > 0 ? (
-                        <span className="text-emerald-700 font-medium">In Stock ({product.stock} available)</span>
+                  <div className="flex items-center justify-between text-xs font-sans uppercase tracking-[0.18em] text-brand-light mb-1.5">
+                    <span>{product.category || 'Atelier Gift Box'}</span>
+                    <span>
+                      {isOutOfStock ? (
+                        <strong className="text-rose-600 font-semibold">Sold Out</strong>
                       ) : (
-                        <span className="text-rose-700 font-medium">Temporarily Unavailable</span>
+                        <span className="text-emerald-700 font-medium">In Stock ({product.stock} available)</span>
                       )}
                     </span>
                   </div>
 
-                  <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-brand-dark font-normal tracking-tight mb-3">
+                  <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl text-brand-dark font-normal leading-tight mb-3">
                     {product.name}
                   </h1>
 
                   <div className="flex items-baseline gap-3">
                     <span className="font-serif text-2xl sm:text-3xl font-bold text-brand-dark">
-                      ₦{product.price.toLocaleString()}
+                      {formatNaira(product.price)}
                     </span>
                     {product.compareAtPrice && (
                       <span className="font-sans text-sm text-brand-light line-through">
-                        ₦{product.compareAtPrice.toLocaleString()}
+                        {formatNaira(product.compareAtPrice)}
                       </span>
                     )}
                   </div>
@@ -259,32 +304,7 @@ export const ProductDetailPage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Taxonomy Tags / Gifting Suitability */}
-                <div className="p-4 rounded-2xl bg-white border border-brand-dark/10 space-y-3 font-sans text-xs">
-                  <div className="font-bold uppercase tracking-wider text-[10px] text-brand-light">
-                    Gifting Suitability
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {product.occasions?.map((occ) => (
-                      <span
-                        key={occ}
-                        className="px-2.5 py-1 rounded-md bg-[#FAF8F5] border border-brand-dark/10 text-brand-dark capitalize text-[11px]"
-                      >
-                        {occ.replace(/-/g, ' ')}
-                      </span>
-                    ))}
-                    {product.recipients?.map((rec) => (
-                      <span
-                        key={rec}
-                        className="px-2.5 py-1 rounded-md bg-[#FAF8F5] border border-brand-dark/10 text-brand-dark capitalize text-[11px]"
-                      >
-                        For {rec.replace(/-/g, ' ')}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Variants (if present) */}
+                {/* Variants Selection */}
                 {product.variants && product.variants.length > 0 && (
                   <div className="space-y-4 pt-2">
                     {product.variants.map((v) => (
@@ -361,7 +381,7 @@ export const ProductDetailPage: React.FC = () => {
                             key={rib}
                             type="button"
                             onClick={() => setSelectedRibbon(rib)}
-                            className={`px-3 py-1.5 rounded-lg border text-xs font-sans transition-all cursor-pointer ${
+                            className={`px-3.5 py-1.5 rounded-lg border text-xs font-sans transition-all cursor-pointer ${
                               isSelected
                                 ? 'bg-gold-600 text-white border-gold-600 font-semibold shadow-xs'
                                 : 'bg-white text-brand-dark border-brand-dark/15 hover:border-brand-dark/40'
@@ -375,37 +395,109 @@ export const ProductDetailPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Personalisation Available Badge */}
-                {product.personalisation?.enabled && (
-                  <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/60 flex items-start gap-3">
-                    <Sparkles size={18} className="text-gold-700 shrink-0 mt-0.5" />
-                    <div className="font-sans text-xs text-amber-950">
-                      <div className="font-bold mb-0.5">Bespoke Personalisation Included</div>
-                      <div className="text-amber-900/80 leading-relaxed">
-                        {product.personalisation.messageAllowed && 'Handwritten calligraphy card'}
-                        {product.personalisation.messageAllowed && product.personalisation.customTextAllowed && ' & '}
-                        {product.personalisation.customTextAllowed &&
-                          `Custom foil monogramming (up to ${product.personalisation.maxTextLength || 24} chars)`}
-                        {' configured during concierge checkout.'}
-                      </div>
+                {/* Bespoke Personalisation / Gift Message Inputs */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-white border border-brand-dark/10 space-y-4">
+                  <div className="flex items-center gap-2 font-serif text-sm font-normal text-brand-dark">
+                    <Sparkles size={16} className="text-gold-600" />
+                    <span>Complimentary Personalisation Included</span>
+                  </div>
+
+                  {/* Handwritten Gift Card Message */}
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="product-gift-message"
+                      className="font-sans text-[11px] font-semibold uppercase tracking-wider text-brand-medium block"
+                    >
+                      Handwritten Calligraphy Card Message:
+                    </label>
+                    <textarea
+                      id="product-gift-message"
+                      value={giftMessage}
+                      onChange={(e) => setGiftMessage(e.target.value)}
+                      placeholder="e.g. Wishing you a year filled with warmth, joy, and peace. Happy Birthday Mum!"
+                      rows={2}
+                      maxLength={180}
+                      className="w-full p-2.5 rounded-xl border border-brand-dark/15 text-xs font-sans text-brand-dark bg-[#FAF8F5] focus:outline-none focus:border-gold-600 resize-none"
+                    />
+                    <div className="text-right text-[10px] text-brand-light font-sans">
+                      {giftMessage.length}/180 characters
                     </div>
                   </div>
-                )}
 
-                {/* Primary Action Button */}
-                <div className="pt-4 space-y-3">
+                  {/* Monogram / Personalisation Text if enabled */}
+                  {product.personalisation?.customTextAllowed && (
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="product-custom-text"
+                        className="font-sans text-[11px] font-semibold uppercase tracking-wider text-brand-medium block"
+                      >
+                        Custom Foil Monogramming / Name:
+                      </label>
+                      <input
+                        id="product-custom-text"
+                        type="text"
+                        value={personalisationText}
+                        onChange={(e) => setPersonalisationText(e.target.value)}
+                        placeholder="e.g. KO or Emmanuel"
+                        maxLength={product.personalisation.maxTextLength || 24}
+                        className="w-full p-2.5 rounded-xl border border-brand-dark/15 text-xs font-sans text-brand-dark bg-[#FAF8F5] focus:outline-none focus:border-gold-600"
+                      />
+                      <div className="text-right text-[10px] text-brand-light font-sans">
+                        {personalisationText.length}/{product.personalisation.maxTextLength || 24} characters max
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quantity Controls & Add to Cart */}
+                <div className="pt-2 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <span className="font-sans text-xs font-bold uppercase tracking-wider text-brand-dark">
+                      Quantity:
+                    </span>
+                    <div className="flex items-center border border-brand-dark/20 rounded-xl bg-white overflow-hidden shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={handleQuantityDecrease}
+                        disabled={quantity <= 1 || isOutOfStock}
+                        className="w-10 h-10 flex items-center justify-center text-brand-dark hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="w-12 text-center font-sans text-sm font-bold text-brand-dark">
+                        {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleQuantityIncrease}
+                        disabled={quantity >= maxStock || isOutOfStock}
+                        className="w-10 h-10 flex items-center justify-center text-brand-dark hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    {!isOutOfStock && (
+                      <span className="font-sans text-xs text-brand-light">
+                        (Max {maxStock} available)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Add To Cart Primary Button */}
                   <button
                     type="button"
-                    onClick={handleProceedToShop}
-                    disabled={!product.isAvailable || product.stock === 0}
-                    className={`w-full py-4 rounded-2xl font-sans text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 ${
-                      product.isAvailable && product.stock > 0
-                        ? 'bg-brand-dark text-white hover:bg-gold-600 active:scale-[0.99]'
-                        : 'bg-brand-light text-brand-medium cursor-not-allowed'
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
+                    className={`w-full py-4 rounded-2xl font-sans text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] transition-all flex items-center justify-center gap-2.5 shadow-md ${
+                      !isOutOfStock
+                        ? 'bg-brand-dark text-white hover:bg-gold-600 active:scale-[0.99] cursor-pointer'
+                        : 'bg-brand-light/50 text-brand-medium/60 cursor-not-allowed'
                     }`}
                   >
-                    <span>Personalise & Order This Gift</span>
-                    <span>→</span>
+                    <ShoppingBag size={17} />
+                    <span>{isOutOfStock ? 'Currently Out of Stock' : 'Add to Gifting Cart'}</span>
                   </button>
 
                   <div className="text-center font-sans text-[11px] text-brand-light">
@@ -417,6 +509,44 @@ export const ProductDetailPage: React.FC = () => {
           )}
         </main>
       </div>
+
+      {/* Added to Cart Feedback Modal */}
+      {addedModalOpen && product && (
+        <div className="fixed inset-0 z-50 bg-brand-dark/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-brand-dark/10 text-center space-y-4 animate-fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto">
+              <CheckCircle2 size={30} />
+            </div>
+
+            <h3 className="font-serif text-2xl text-brand-dark font-normal">
+              Added to Cart
+            </h3>
+
+            <p className="font-sans text-xs sm:text-sm text-brand-medium/90 leading-relaxed">
+              <strong className="text-brand-dark font-semibold">"{product.name}"</strong> (Qty: {quantity}) has been added to your cart with your bespoke presentation selections.
+            </p>
+
+            <div className="pt-3 flex flex-col gap-2.5">
+              <Link
+                to="/cart"
+                onClick={() => setAddedModalOpen(false)}
+                className="w-full py-3.5 rounded-xl bg-brand-dark text-white font-sans text-xs font-semibold uppercase tracking-[0.16em] hover:bg-gold-600 transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>View Cart ({getCartCount()})</span>
+                <span>→</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setAddedModalOpen(false)}
+                className="w-full py-3 rounded-xl bg-brand-cream/80 text-brand-dark font-sans text-xs font-semibold uppercase tracking-wider hover:bg-brand-cream transition-colors cursor-pointer"
+              >
+                Continue Gifting Discovery
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
