@@ -7,7 +7,7 @@ import { firestoreOrders, type OrderRepository } from './repository';
 import { OrderHttpError, TRACKING_MISS, applyUpdate, effectiveHistory, listSummary, parseTracking, trackingSummary, validateUpdate, verificationMatches } from './domain';
 import { normalizeTrackingPhone } from '../../src/utils/orderManagement';
 
-type Identity = { uid: string; admin?: unknown };
+type Identity = { uid: string; admin?: unknown; email?: string };
 interface Dependencies {
   repository: OrderRepository;
   verify: (token: string) => Promise<Identity>;
@@ -26,7 +26,9 @@ export function createOrderManagement(dependencies: Partial<Dependencies> = {}) 
       if (error instanceof OrderHttpError && error.status === 503) throw error;
       throw new OrderHttpError(401, 'Your session is invalid or expired. Please sign in again.');
     }
-    if (identity.admin !== true) throw new OrderHttpError(403, 'Administrator permission required.');
+    const isAllowedAdmin = identity.admin === true ||
+      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com'].includes(identity.email.toLowerCase()));
+    if (!isAllowedAdmin) throw new OrderHttpError(403, 'Administrator permission required.');
     return identity;
   }
   function validId(id: string) {
@@ -67,7 +69,7 @@ export function createOrderManagement(dependencies: Partial<Dependencies> = {}) 
           return { result: { order, changed: prior.changed, replayed: true, statusChanged: false, notifyIssue: false, notifications: prior.notifications } };
         }
         const change = applyUpdate(order, input, actor.uid, now());
-        const notifications = (change.statusChanged && Object.hasOwn(STATUS_EVENTS, change.order.orderStatus)) || change.notifyIssue ? 'attempted' as const : 'none' as const;
+        const notifications = (change.statusChanged && Object.prototype.hasOwnProperty.call(STATUS_EVENTS, change.order.orderStatus)) || change.notifyIssue ? 'attempted' as const : 'none' as const;
         return { ...(change.changed ? { order: change.order } : {}),
           receipt: { hash, actor: actor.uid, createdAt: now(), revision: change.order.revision || 0,
             changed: change.changed, notifications, note: input.note || '' },
@@ -79,7 +81,7 @@ export function createOrderManagement(dependencies: Partial<Dependencies> = {}) 
       if (!committed.replayed && notifications === 'attempted') {
         try {
           const tasks = [];
-          if (committed.statusChanged && Object.hasOwn(STATUS_EVENTS, committed.order.orderStatus)) tasks.push(
+          if (committed.statusChanged && Object.prototype.hasOwnProperty.call(STATUS_EVENTS, committed.order.orderStatus)) tasks.push(
             notify.orderStatusChanged(committed.order, committed.order.orderStatus as FulfillmentStatus, `${id}:${input.eventId}:status`, committed.order.delivery));
           if (committed.notifyIssue) tasks.push(notify.orderDelayed(committed.order, committed.order.deliveryIssue!.message,
             `${id}:${input.eventId}:issue`, committed.order.delivery));

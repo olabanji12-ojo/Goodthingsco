@@ -26,7 +26,7 @@ export function validateUpdate(value: unknown): OrderUpdateInput {
     throw new OrderHttpError(400, 'A valid change ID and revision are required.');
   const result: OrderUpdateInput = { eventId, expectedRevision: Number(body.expectedRevision) };
   if (body.status !== undefined) {
-    if (typeof body.status !== 'string' || !Object.hasOwn(ORDER_STATUS_LABELS, body.status)) throw new OrderHttpError(400, 'Invalid order status.');
+    if (typeof body.status !== 'string' || !Object.prototype.hasOwnProperty.call(ORDER_STATUS_LABELS, body.status)) throw new OrderHttpError(400, 'Invalid order status.');
     result.status = body.status as OrderStatus;
   }
   if (body.note !== undefined) result.note = text(body.note, 1000);

@@ -1,4 +1,15 @@
 {
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
@@ -6,6 +17,9 @@
     { "path": "./tsconfig.email-tests.json" },
     { "path": "./tsconfig.order-tests.json" },
     { "path": "./tsconfig.corporate-tests.json" },
-    { "path": "./tsconfig.custom-tests.json" }
+    { "path": "./tsconfig.custom-tests.json" },
+    { "path": "./tsconfig.settings-tests.json" },
+    { "path": "./tsconfig.content-tests.json" },
+    { "path": "./tsconfig.checkout-tests.json" }
   ]
 }

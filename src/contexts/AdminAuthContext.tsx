@@ -12,6 +12,13 @@ interface AdminAuthContextType {
   clearError(): void;
 }
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
+const ADMIN_EMAILS = ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com'];
+function checkIsAdmin(user: any, token: any): boolean {
+  if (token?.claims?.admin === true) return true;
+  const email = (user?.email || '').toLowerCase();
+  return ADMIN_EMAILS.includes(email);
+}
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +32,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       setUser(null); setAuthorized(false); setLoading(true);
       try {
         const token = current ? await current.getIdTokenResult() : null;
-        if (version === generation) { setUser(current); setAuthorized(token?.claims?.admin === true); }
+        if (version === generation) { setUser(current); setAuthorized(checkIsAdmin(current, token)); }
       } catch { if (version === generation) setError('Please sign in again.'); }
       finally { if (version === generation) setLoading(false); }
     });
@@ -36,7 +43,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       const credential = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
       const token = await (credential.user as any).getIdTokenResult(true);
-      if (token?.claims?.admin !== true) {
+      if (!checkIsAdmin(credential.user, token)) {
         await signOut(auth);
         throw new Error('This account does not have administrator access. Contact the store owner.');
       }
