@@ -27,3 +27,8 @@ Thumbs.db
 # Temp
 _temp_assets/
 temp_*.txt
+
+# Firebase Service Account Credentials
+*adminsdk*.json
+service-account*.json
+*serviceAccount*.json
