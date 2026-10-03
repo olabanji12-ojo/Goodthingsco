@@ -1,5 +1,6 @@
 import {
   CorporatePurpose,
+  CorporateIndustry,
   CorporateGiftType,
   CorporateBudgetTier,
   CorporateGiftProduct,
@@ -24,6 +25,22 @@ export const CORPORATE_PURPOSES: { id: CorporatePurpose; label: string; desc: st
   { id: 'new-employee', label: 'New Employee', desc: 'Warm luxury onboarding packages' },
   { id: 'appreciation', label: 'Appreciation', desc: 'End-of-year & spontaneous gratitude' },
   { id: 'custom', label: 'Custom', desc: 'Tailored solutions designed with our atelier' },
+];
+
+// ── 1b. Industries ──
+export const CORPORATE_INDUSTRIES: { id: CorporateIndustry; label: string; desc: string }[] = [
+  { id: 'finance', label: 'Finance', desc: 'Banking, investments, insurance & fintech' },
+  { id: 'technology', label: 'Technology', desc: 'Software, telecommunications & digital infrastructure' },
+  { id: 'healthcare', label: 'Healthcare', desc: 'Medical practices, pharmaceuticals & wellness' },
+  { id: 'legal', label: 'Legal', desc: 'Law firms, chambers & corporate counsel' },
+  { id: 'consulting', label: 'Consulting', desc: 'Management, strategy, advisory & audit' },
+  { id: 'education', label: 'Education', desc: 'Universities, academies & learning institutions' },
+  { id: 'real-estate-building', label: 'Real Estate & Building', desc: 'Development, construction & architecture' },
+  { id: 'hospitality', label: 'Hospitality', desc: 'Hotels, luxury resorts, dining & travel' },
+  { id: 'government', label: 'Government', desc: 'Public sector, agencies & diplomatic missions' },
+  { id: 'agriculture', label: 'Agriculture', desc: 'Agribusiness, processing & export' },
+  { id: 'media-creative', label: 'Media & Creative', desc: 'Advertising, entertainment, design & PR' },
+  { id: 'other', label: 'Other', desc: 'Specialized enterprise or bespoke sector' },
 ];
 
 // ── 2. Gift Types ──

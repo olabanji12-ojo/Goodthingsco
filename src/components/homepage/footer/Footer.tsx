@@ -20,6 +20,7 @@ export const Footer: React.FC<{ className?: string }> = ({ className = '' }) => 
   const footerRef = useRef<HTMLElement>(null);
 
   const navLinks = [
+    { label: 'Track Order', href: '/track-order' },
     { label: 'Shop', href: '/shop' },
     { label: 'Corporate', href: '/corporate' },
     { label: 'Create', href: '/create' },

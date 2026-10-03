@@ -18,6 +18,20 @@ export type CorporatePurpose =
   | 'appreciation'
   | 'custom';
 
+export type CorporateIndustry =
+  | 'finance'
+  | 'technology'
+  | 'healthcare'
+  | 'legal'
+  | 'consulting'
+  | 'education'
+  | 'real-estate-building'
+  | 'hospitality'
+  | 'government'
+  | 'agriculture'
+  | 'media-creative'
+  | 'other';
+
 export type CorporateGiftType = 'choose-gift' | 'build-own' | 'branded-merch';
 
 export type CorporateBudgetTier = 'under-25k' | '25k-50k' | '50k-100k' | 'premium';

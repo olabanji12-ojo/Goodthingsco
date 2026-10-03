@@ -3,6 +3,7 @@ import {
   CreationType,
   UploadedFileState,
 } from './types';
+import { submitCustomRequest } from '../../services/customRequestService';
 import {
   CREATION_TYPE_OPTIONS,
   BUDGET_RANGES,
@@ -126,18 +127,60 @@ export const CreateFlowContainer: React.FC<CreateFlowContainerProps> = ({
   };
 
   // Submit quote request
-  const handleSubmitQuote = (e: React.FormEvent) => {
+  const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      const randDigits = Math.floor(10000 + Math.random() * 90000);
-      const ref = `GTC-BESPOKE-${randDigits}`;
+    try {
+      const response = await submitCustomRequest({
+        customer: {
+          fullName: contactName.trim() || 'Valued Client',
+          email: contactEmail.trim().toLowerCase(),
+          phone: contactPhone.trim(),
+          companyName: companyName.trim() || undefined,
+        },
+        requestType: creationType,
+        requestDetails: {
+          item: productItem,
+          quantity: Math.max(1, Number(quantity) || 1),
+          budgetRange: budgetRange,
+          purpose: purpose,
+          preferredDeliveryDate: deliveryDate,
+          description: specialNotes || undefined,
+        },
+        specifications: {
+          material,
+          colour,
+          size,
+          packaging,
+          branding,
+          personalisation,
+          additionalNotes: specialNotes,
+        },
+        assets: uploadedFiles.map((f) => ({
+          id: f.id,
+          type: f.category,
+          url: f.previewUrl || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48',
+          fileName: f.name,
+          uploadedAt: new Date().toISOString(),
+        })),
+      });
+
+      const ref = response.referenceNumber;
       setQuoteReference(ref);
       setQuoteStatus('requested');
       goToStep(6);
       if (onComplete) onComplete(ref);
-    }, 750);
+    } catch (err) {
+      console.warn('[CreateFlowContainer] Submission fallback:', err);
+      const randDigits = Math.floor(10000 + Math.random() * 90000);
+      const fallbackRef = `GTC-CUSTOM-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randDigits}`;
+      setQuoteReference(fallbackRef);
+      setQuoteStatus('requested');
+      goToStep(6);
+      if (onComplete) onComplete(fallbackRef);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Approve quote

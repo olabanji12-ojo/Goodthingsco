@@ -19,13 +19,18 @@ import ShopPage from './pages/ShopPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
+import TrackOrderPage from './pages/TrackOrderPage';
+import AdminOrdersPage from './pages/admin/AdminOrdersPage';
+import AdminOrderDetailsPage from './pages/admin/AdminOrderDetailsPage';
 import LookbookPage from './pages/LookbookPage';
 import CorporatePage from './pages/CorporatePage';
 import CreatePage from './pages/CreatePage';
 import EditPage from './pages/EditPage';
 import ArticleDetailPage from './pages/ArticleDetailPage';
 import AboutPage from './pages/AboutPage';
-import DevTestPage from './pages/DevTestPage';
+
+import { ResumeCheckoutPage } from './pages/ResumeCheckoutPage';
 
 // Admin Pages
 import AdminLoginPage from './pages/admin/AdminLoginPage';
@@ -34,6 +39,12 @@ import AdminProductsPage from './pages/admin/AdminProductsPage';
 import AdminProductNewPage from './pages/admin/AdminProductNewPage';
 import AdminArchivedPage from './pages/admin/AdminArchivedPage';
 import AdminProductEditPage from './pages/admin/AdminProductEditPage';
+import AdminCorporateListPage from './pages/admin/AdminCorporateListPage';
+import AdminCorporateDetailPage from './pages/admin/AdminCorporateDetailPage';
+import AdminCustomListPage from './pages/admin/AdminCustomListPage';
+import AdminCustomDetailPage from './pages/admin/AdminCustomDetailPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminContentPage from './pages/admin/AdminContentPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -67,7 +78,10 @@ function AppRoutes() {
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/dev-test" element={<DevTestPage />} />
+        <Route path="/resume-checkout" element={<ResumeCheckoutPage />} />
+        <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmationPage />} />
+        <Route path="/track-order" element={<TrackOrderPage />} />
+
 
         {/* Admin Authentication */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -82,10 +96,18 @@ function AppRoutes() {
           }
         >
           <Route index element={<AdminDashboardPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="orders/:orderId" element={<AdminOrderDetailsPage />} />
+          <Route path="corporate" element={<AdminCorporateListPage />} />
+          <Route path="corporate/:requestId" element={<AdminCorporateDetailPage />} />
+          <Route path="custom" element={<AdminCustomListPage />} />
+          <Route path="custom/:requestId" element={<AdminCustomDetailPage />} />
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="products/new" element={<AdminProductNewPage />} />
           <Route path="products/archived" element={<AdminArchivedPage />} />
           <Route path="products/:productId/edit" element={<AdminProductEditPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="content" element={<AdminContentPage />} />
         </Route>
 
         {/* Fallback route */}

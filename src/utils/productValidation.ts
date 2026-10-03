@@ -8,11 +8,13 @@
 import { CreateProductInput, BudgetRangeTier, UpdateProductInput } from '../types/product';
 import { isValidSlug } from './slugify';
 
-export const VALID_BUDGET_RANGES: BudgetRangeTier[] = [
+export const VALID_BUDGET_RANGES: (BudgetRangeTier | string)[] = [
   'under-25000',
   '25000-50000',
   '50000-100000',
-  '100000-plus',
+  '100000-250000',
+  '250000-plus',
+  '100000-plus', // Backwards compatibility for existing records
 ];
 
 export interface ValidationResult {
@@ -133,6 +135,13 @@ export function validateCreateProduct(input: Partial<CreateProductInput>): Valid
     }
   }
 
+  // 13. Lifestyles (optional array)
+  if (input.lifestyles !== undefined) {
+    if (!Array.isArray(input.lifestyles)) {
+      errors.push('Lifestyles must be an array.');
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -189,6 +198,10 @@ export function validateUpdateProduct(updates: UpdateProductInput): ValidationRe
 
   if (updates.recipients !== undefined && !Array.isArray(updates.recipients)) {
     errors.push('Recipients must be an array of strings.');
+  }
+
+  if (updates.lifestyles !== undefined && !Array.isArray(updates.lifestyles)) {
+    errors.push('Lifestyles must be an array.');
   }
 
   if (updates.images !== undefined) {

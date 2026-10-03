@@ -28,11 +28,21 @@ import frame5Img from '../assets/section2/Frame 5 (1).png';
 import frame6Img from '../assets/section2/Frame 6.png';
 import frame9Img from '../assets/section2/Frame 9.png';
 
+import { LifestyleCategory } from '../types/product';
+
 export type OccasionId =
   | 'birthday'
   | 'thank-you'
   | 'congratulations'
+  | 'anniversary'
+  | 'wedding'
+  | 'new-baby'
+  | 'new-home'
+  | 'graduation'
+  | 'promotion'
+  | 'farewell'
   | 'just-because'
+  | 'seasonal'
   | 'christmas'
   | 'valentines'
   | 'easter'
@@ -41,6 +51,19 @@ export type OccasionId =
   | 'new-year';
 
 export type RecipientGroupId = 'her' | 'him' | 'family' | 'friend' | 'business' | 'self';
+
+export type BudgetTierId =
+  | 'under-25k'
+  | '25k-50k'
+  | '50k-100k'
+  | '100k-250k'
+  | '250k-plus'
+  | 'under-25000'
+  | '25000-50000'
+  | '50000-100000'
+  | '100000-250000'
+  | '250000-plus'
+  | 'premium';
 
 export interface GiftItem {
   id: string;
@@ -53,7 +76,8 @@ export interface GiftItem {
   occasions: OccasionId[];
   primaryRecipient: RecipientGroupId;
   subRecipients: string[];
-  budgetTier: 'under-25k' | '25k-50k' | '50k-100k' | 'premium';
+  budgetTier: BudgetTierId;
+  lifestyles?: LifestyleCategory[];
   description: string;
   included: string[];
   badge?: string;
@@ -75,11 +99,21 @@ export interface RecipientGroup {
   suboptions?: { id: string; label: string }[];
 }
 
+export interface RecipientOption {
+  id: string;
+  label: string;
+}
+
 export interface BudgetOption {
-  id: 'under-25k' | '25k-50k' | '50k-100k' | 'premium';
+  id: BudgetTierId;
   label: string;
   maxPrice: number;
   minPrice: number;
+}
+
+export interface LifestyleOption {
+  id: LifestyleCategory;
+  label: string;
 }
 
 export interface PackagingOption {
@@ -98,13 +132,18 @@ export interface RibbonColorOption {
 
 // ── 1. Occasions ──
 export const OCCASIONS: OccasionOption[] = [
-  // Everyday Milestones
   { id: 'birthday', label: 'Birthday', tagline: 'Celebratory keepsakes & joyful sets', category: 'everyday' },
   { id: 'thank-you', label: 'Thank You', tagline: 'Heartfelt gestures of genuine gratitude', category: 'everyday' },
   { id: 'congratulations', label: 'Congratulations', tagline: 'Honoring proud achievements & milestones', category: 'everyday' },
+  { id: 'anniversary', label: 'Anniversary', tagline: 'Tokens of enduring love & commitment', category: 'everyday' },
+  { id: 'wedding', label: 'Wedding', tagline: 'Timeless treasures for the happy couple', category: 'everyday' },
+  { id: 'new-baby', label: 'New Baby', tagline: 'Gentle keepsakes for precious beginnings', category: 'everyday' },
+  { id: 'new-home', label: 'New Home', tagline: 'Warm artisan comforts for the hearth', category: 'everyday' },
+  { id: 'graduation', label: 'Graduation', tagline: 'Commemorating scholar milestones', category: 'everyday' },
+  { id: 'promotion', label: 'Promotion', tagline: 'Distinguished gifts for executive elevation', category: 'everyday' },
+  { id: 'farewell', label: 'Farewell', tagline: 'Fond remembrances for new journeys', category: 'everyday' },
   { id: 'just-because', label: 'Just Because', tagline: 'Spontaneous tokens of care & love', category: 'everyday' },
-
-  // Seasonal Celebrations (Client Specification)
+  { id: 'seasonal', label: 'Seasonal', tagline: 'Festive hampers & holiday celebrations', category: 'seasonal' },
   { id: 'christmas', label: 'Christmas', tagline: 'Festive hampers, seasonal botanicals & holiday warmth', category: 'seasonal' },
   { id: 'valentines', label: "Valentine's", tagline: 'Romantic keepsakes & tokens of timeless affection', category: 'seasonal' },
   { id: 'easter', label: 'Easter', tagline: 'Springtime confections, renewal & joyful gathering', category: 'seasonal' },
@@ -113,7 +152,25 @@ export const OCCASIONS: OccasionOption[] = [
   { id: 'new-year', label: 'New Year', tagline: 'Fresh starts, celebratory toasts & inspiring horizons', category: 'seasonal' },
 ];
 
-// ── 2. Recipients with Progressive Disclosure ──
+// ── 2. Recipients Flat List (Client Specification) ──
+export const RECIPIENT_OPTIONS: RecipientOption[] = [
+  { id: 'her', label: 'Her' },
+  { id: 'him', label: 'Him' },
+  { id: 'mum', label: 'Mum' },
+  { id: 'dad', label: 'Dad' },
+  { id: 'husband', label: 'Husband' },
+  { id: 'wife', label: 'Wife' },
+  { id: 'sister', label: 'Sister' },
+  { id: 'brother', label: 'Brother' },
+  { id: 'friend', label: 'Friend' },
+  { id: 'colleague', label: 'Colleague' },
+  { id: 'boss', label: 'Boss' },
+  { id: 'client', label: 'Client' },
+  { id: 'employee', label: 'Employee' },
+  { id: 'executive', label: 'Executive' },
+];
+
+// ── 2b. Legacy Hierarchical Recipients (Preserved for compatibility) ──
 export const RECIPIENTS: RecipientGroup[] = [
   { id: 'her', label: 'Her', hasSuboptions: false },
   { id: 'him', label: 'Him', hasSuboptions: false },
@@ -153,12 +210,32 @@ export const RECIPIENTS: RecipientGroup[] = [
   { id: 'self', label: 'Shopping for Self', hasSuboptions: false },
 ];
 
-// ── 3. Budget Tiers ──
+// ── 3. Budget Tiers (Updated to Client Specification) ──
 export const BUDGET_TIERS: BudgetOption[] = [
-  { id: 'under-25k', label: 'Under ₦25,000', minPrice: 0, maxPrice: 25000 },
-  { id: '25k-50k', label: '₦25,000 – ₦50,000', minPrice: 25000, maxPrice: 50000 },
-  { id: '50k-100k', label: '₦50,000 – ₦100,000', minPrice: 50000, maxPrice: 100000 },
-  { id: 'premium', label: '₦100,000+', minPrice: 100000, maxPrice: 9999999 },
+  { id: 'under-25000', label: 'Under ₦25K', minPrice: 0, maxPrice: 25000 },
+  { id: '25000-50000', label: '₦25K–₦50K', minPrice: 25000, maxPrice: 50000 },
+  { id: '50000-100000', label: '₦50K–₦100K', minPrice: 50000, maxPrice: 100000 },
+  { id: '100000-250000', label: '₦100K–₦250K', minPrice: 100000, maxPrice: 250000 },
+  { id: '250000-plus', label: '₦250K+', minPrice: 250000, maxPrice: 999999999 },
+];
+
+// ── 3b. Lifestyle Options (Client Taxonomy) ──
+export const LIFESTYLE_OPTIONS: LifestyleOption[] = [
+  { id: 'food-drink', label: 'Food & Drink' },
+  { id: 'fashion-style', label: 'Fashion & Style' },
+  { id: 'home-hosting', label: 'Home & Hosting' },
+  { id: 'books-writing', label: 'Books & Writing' },
+  { id: 'art-creativity', label: 'Art & Creativity' },
+  { id: 'travel', label: 'Travel' },
+  { id: 'beauty-personal-care', label: 'Beauty & Personal Care' },
+  { id: 'work-productivity', label: 'Work & Productivity' },
+  { id: 'culture-heritage', label: 'Culture & Heritage' },
+  { id: 'wellness', label: 'Wellness' },
+  { id: 'sports-fitness', label: 'Sports & Fitness' },
+  { id: 'kids-family', label: 'Kids & Family' },
+  { id: 'music-entertainment', label: 'Music & Entertainment' },
+  { id: 'technology', label: 'Technology' },
+  { id: 'nature-outdoors', label: 'Nature & Outdoors' },
 ];
 
 // ── 4. Packaging Types ──

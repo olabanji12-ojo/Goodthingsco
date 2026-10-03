@@ -317,6 +317,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems([]);
   }, []);
 
+  /**
+   * Atomically replaces the current cart with recovered or loaded items.
+   */
+  const replaceCart = useCallback((newItems: CartItem[]) => {
+    setItems(Array.isArray(newItems) ? newItems : []);
+  }, []);
+
   // Computed values
   const totalQuantity = useMemo(() => calculateCartCount(items), [items]);
   const subtotal = useMemo(() => calculateCartSubtotal(items), [items]);
@@ -358,6 +365,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeItem,
       updateQuantity,
       clearCart,
+      replaceCart,
       revalidateStock,
       getCartCount,
       getCartSubtotal,
@@ -375,6 +383,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeItem,
       updateQuantity,
       clearCart,
+      replaceCart,
       revalidateStock,
       getCartCount,
       getCartSubtotal,

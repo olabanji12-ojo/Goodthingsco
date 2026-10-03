@@ -8,6 +8,8 @@ node_modules/
 
 # Build output
 dist/
+*.tsbuildinfo
+artifacts/email-previews/
 
 # Editor
 .vscode/
@@ -24,3 +26,4 @@ Thumbs.db
 
 # Temp
 _temp_assets/
+temp_*.txt

@@ -21,6 +21,7 @@ import {
   ProductImage,
   ProductVariant,
   BudgetRangeTier,
+  LifestyleCategory,
 } from '../../types/product';
 import {
   uploadImages,
@@ -69,7 +70,26 @@ export const BUDGET_TIERS: { value: BudgetRangeTier; label: string }[] = [
   { value: 'under-25000', label: 'Under ₦25,000' },
   { value: '25000-50000', label: '₦25,000 – ₦50,000' },
   { value: '50000-100000', label: '₦50,000 – ₦100,000' },
-  { value: '100000-plus', label: '₦100,000+' },
+  { value: '100000-250000', label: '₦100,000 – ₦250,000' },
+  { value: '250000-plus', label: '₦250,000+' },
+];
+
+export const STANDARD_LIFESTYLES: { value: LifestyleCategory; label: string }[] = [
+  { value: 'food-drink', label: 'Food & Drink' },
+  { value: 'fashion-style', label: 'Fashion & Style' },
+  { value: 'home-hosting', label: 'Home & Hosting' },
+  { value: 'books-writing', label: 'Books & Writing' },
+  { value: 'art-creativity', label: 'Art & Creativity' },
+  { value: 'travel', label: 'Travel' },
+  { value: 'beauty-personal-care', label: 'Beauty & Personal Care' },
+  { value: 'work-productivity', label: 'Work & Productivity' },
+  { value: 'culture-heritage', label: 'Culture & Heritage' },
+  { value: 'wellness', label: 'Wellness' },
+  { value: 'sports-fitness', label: 'Sports & Fitness' },
+  { value: 'kids-family', label: 'Kids & Family' },
+  { value: 'music-entertainment', label: 'Music & Entertainment' },
+  { value: 'technology', label: 'Technology' },
+  { value: 'nature-outdoors', label: 'Nature & Outdoors' },
 ];
 
 export const STANDARD_CATEGORIES = [
@@ -133,6 +153,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
   const [budgetRange, setBudgetRange] = useState<BudgetRangeTier>(initialProduct?.budgetRange || '25000-50000');
   const [occasions, setOccasions] = useState<string[]>(initialProduct?.occasions || ['birthday']);
   const [recipients, setRecipients] = useState<string[]>(initialProduct?.recipients || ['her']);
+  const [lifestyles, setLifestyles] = useState<LifestyleCategory[]>(initialProduct?.lifestyles || []);
   const [customOccasionInput, setCustomOccasionInput] = useState('');
   const [customRecipientInput, setCustomRecipientInput] = useState('');
 
@@ -253,6 +274,13 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
     );
   };
 
+  // Lifestyle Toggle
+  const toggleLifestyle = (val: LifestyleCategory) => {
+    setLifestyles((prev) =>
+      prev.includes(val) ? prev.filter((l) => l !== val) : [...prev, val]
+    );
+  };
+
   const handleAddCustomRecipient = () => {
     const formatted = slugify(customRecipientInput);
     if (formatted && !recipients.includes(formatted)) {
@@ -331,6 +359,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
       budgetRange,
       occasions,
       recipients,
+      lifestyles: lifestyles || [],
       images,
       packagingOptions,
       ribbonColours,
@@ -1048,6 +1077,41 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
             >
               Add
             </button>
+          </div>
+        </div>
+
+        {/* Lifestyle Categories Multi-Select (Client Specification) */}
+        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+            Lifestyle Categories (Select one or more for Shop discovery)
+          </label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {STANDARD_LIFESTYLES.map((ls) => {
+              const selected = lifestyles.includes(ls.value);
+              return (
+                <button
+                  key={ls.value}
+                  type="button"
+                  onClick={() => toggleLifestyle(ls.value)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    border: selected ? '1px solid #c89d5c' : '1px solid #cbd5e1',
+                    backgroundColor: selected ? '#c89d5c' : '#ffffff',
+                    color: selected ? '#ffffff' : '#475569',
+                    fontSize: '13px',
+                    fontWeight: selected ? 500 : 400,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {selected && <Check size={14} />}
+                  <span>{ls.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

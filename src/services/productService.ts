@@ -29,6 +29,7 @@ import {
   UpdateProductInput,
   ProductFilterParams,
   BudgetRangeTier,
+  LifestyleCategory,
 } from '../types/product';
 import { slugify } from '../utils/slugify';
 import {
@@ -559,6 +560,7 @@ export interface ShopFilterCriteria {
   recipient?: string;
   specificRecipient?: string;
   budgetRange?: BudgetRangeTier | string;
+  lifestyle?: LifestyleCategory | string;
 }
 
 export interface FilteredProductsResult {
@@ -572,7 +574,9 @@ export function normalizeBudgetTier(budget?: string): BudgetRangeTier | undefine
   if (budget === 'under-25k' || budget === 'under-25000') return 'under-25000';
   if (budget === '25k-50k' || budget === '25000-50000') return '25000-50000';
   if (budget === '50k-100k' || budget === '50000-100000') return '50000-100000';
-  if (budget === 'premium' || budget === '100000-plus') return '100000-plus';
+  if (budget === '100k-250k' || budget === '100000-250000') return '100000-250000';
+  if (budget === '250k-plus' || budget === '250000-plus') return '250000-plus';
+  if (budget === 'premium' || budget === '100000-plus') return '100000-250000';
   return budget as BudgetRangeTier;
 }
 
@@ -580,11 +584,11 @@ export function normalizeBudgetTier(budget?: string): BudgetRangeTier | undefine
  * 13. GET FILTERED PRODUCTS FOR SHOP JOURNEY
  *
  * Powers the customer-facing guided concierge flow:
- * Occasion -> Recipient -> Budget
+ * Occasion -> Recipient -> Budget -> Lifestyle
  *
  * 1. Fetches active, available products from Firestore.
  * 2. Filters strictly for exact matches on all active criteria.
- * 3. If exact matches are empty, generates smart related suggestions (same occasion or budget)
+ * 3. If exact matches are empty, generates smart related suggestions (same occasion, budget, or lifestyle)
  *    so the customer is never left facing a dead-end.
  */
 export async function getFilteredProducts(
@@ -596,6 +600,7 @@ export async function getFilteredProducts(
   const recipient = criteria.recipient?.trim().toLowerCase();
   const specificRecipient = criteria.specificRecipient?.trim().toLowerCase();
   const budgetRange = normalizeBudgetTier(criteria.budgetRange);
+  const lifestyle = criteria.lifestyle?.trim().toLowerCase();
 
   const exactMatches = activeProducts.filter((p) => {
     // Must be unarchived and available
@@ -626,9 +631,33 @@ export async function getFilteredProducts(
       if (!matchRecipient) return false;
     }
 
-    // 3. Budget Range match
+    // 3. Budget Range match (with price-based check for legacy products)
     if (budgetRange) {
-      if (p.budgetRange !== budgetRange) return false;
+      if (p.budgetRange === budgetRange) {
+        // Direct match
+      } else if ((p.budgetRange as any) === '100000-plus') {
+        const derived = (p.price || 0) >= 250000 ? '250000-plus' : '100000-250000';
+        if (derived !== budgetRange) return false;
+      } else if (!p.budgetRange && p.price !== undefined) {
+        let derived: BudgetRangeTier = '25000-50000';
+        if (p.price < 25000) derived = 'under-25000';
+        else if (p.price <= 50000) derived = '25000-50000';
+        else if (p.price <= 100000) derived = '50000-100000';
+        else if (p.price <= 250000) derived = '100000-250000';
+        else derived = '250000-plus';
+        if (derived !== budgetRange) return false;
+      } else {
+        return false;
+      }
+    }
+
+    // 4. Lifestyle match
+    if (lifestyle && lifestyle !== 'all') {
+      const matchLifestyle = p.lifestyles?.some((l) => {
+        const cleanL = l.toLowerCase().trim();
+        return cleanL === lifestyle || cleanL.replace(/\s+/g, '-') === lifestyle;
+      });
+      if (!matchLifestyle) return false;
     }
 
     return true;

@@ -128,19 +128,77 @@ export function resolveDeliveryZone(country: string, state: string): DeliveryZon
   return 'other-nigeria';
 }
 
-/**
- * Computes the delivery fee and metadata for the given zone.
- */
-export function getDeliveryFeeCalculation(zone: DeliveryZone): {
+export interface DeliveryCalculationResult {
   fee: number;
   requiresQuote: boolean;
+  enabled: boolean;
   name: string;
   estimatedDeliveryTime: string;
-} {
+  notice?: string;
+}
+
+/**
+ * Computes the delivery fee and metadata for the given zone.
+ * Respects live admin settings if provided; otherwise falls back to static defaults.
+ */
+export function getDeliveryFeeCalculation(
+  zone: DeliveryZone,
+  liveShipping?: any
+): DeliveryCalculationResult {
+  if (liveShipping) {
+    if (zone === 'lagos' && liveShipping.lagos) {
+      const z = liveShipping.lagos;
+      const estimate =
+        z.estimatedMinDays && z.estimatedMaxDays
+          ? `${z.estimatedMinDays}–${z.estimatedMaxDays} business days`
+          : z.estimatedDeliveryTime || '1 - 2 Business Days';
+      return {
+        fee: z.enabled ? Math.max(0, z.fee) : 0,
+        requiresQuote: false,
+        enabled: z.enabled !== false,
+        name: z.label || 'Lagos Delivery',
+        estimatedDeliveryTime: estimate,
+        notice: z.notice,
+      };
+    }
+    if (zone === 'other-nigeria' && liveShipping.otherNigeria) {
+      const z = liveShipping.otherNigeria;
+      const estimate =
+        z.estimatedMinDays && z.estimatedMaxDays
+          ? `${z.estimatedMinDays}–${z.estimatedMaxDays} business days`
+          : z.estimatedDeliveryTime || '3 - 5 Business Days';
+      return {
+        fee: z.enabled ? Math.max(0, z.fee) : 0,
+        requiresQuote: false,
+        enabled: z.enabled !== false,
+        name: z.label || 'Other Nigerian States',
+        estimatedDeliveryTime: estimate,
+        notice: z.notice,
+      };
+    }
+    if (zone === 'international' && liveShipping.international) {
+      const z = liveShipping.international;
+      const isFixed = z.mode === 'fixed';
+      const estimate =
+        z.estimatedMinDays && z.estimatedMaxDays
+          ? `${z.estimatedMinDays}–${z.estimatedMaxDays} business days`
+          : z.estimatedDeliveryTime || '5 - 10 Business Days';
+      return {
+        fee: z.enabled && isFixed ? Math.max(0, z.fee) : 0,
+        requiresQuote: !isFixed,
+        enabled: z.enabled !== false,
+        name: z.label || 'International Delivery',
+        estimatedDeliveryTime: estimate,
+        notice: z.notice,
+      };
+    }
+  }
+
   const config = DELIVERY_ZONES[zone] || DELIVERY_ZONES['other-nigeria'];
   return {
     fee: config.baseFee,
     requiresQuote: config.requiresQuote,
+    enabled: true,
     name: config.name,
     estimatedDeliveryTime: config.estimatedDeliveryTime,
   };

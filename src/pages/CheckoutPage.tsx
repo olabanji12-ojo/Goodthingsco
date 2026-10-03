@@ -28,7 +28,9 @@ import {
   AlertTriangle,
   AlertCircle,
   ShoppingBag,
+  Loader2,
 } from 'lucide-react';
+import { initializeOrderPayment } from '../services/paymentService';
 import { GatewayNav } from '../components/gateway';
 import { Footer } from '../components/homepage/footer/Footer';
 import { useCart } from '../contexts/CartContext';
@@ -53,6 +55,12 @@ import {
   saveCheckoutToStorage,
   getMinDeliveryDateString,
 } from '../utils/checkoutUtils';
+import {
+  createCheckoutAutosaver,
+  getStoredSessionId,
+} from '../services/checkoutSessionService';
+import { getPublicStoreSettings } from '../services/settingsService';
+import type { PublicStoreSettings } from '../types/settings';
 
 export const CheckoutPage: React.FC = () => {
   const { items, subtotal, totalQuantity, revalidateStock } = useCart();
@@ -91,6 +99,7 @@ export const CheckoutPage: React.FC = () => {
   const [errors, setErrors] = useState<CheckoutValidationErrors>({});
   const [revalidationSummary, setRevalidationSummary] = useState<StockRevalidationSummary | null>(null);
   const [validatingOrder, setValidatingOrder] = useState<boolean>(false);
+  const [initializingPayment, setInitializingPayment] = useState<boolean>(false);
   const [preparedPayload, setPreparedPayload] = useState<ValidatedCheckoutPayload | null>(null);
   const [paymentNoticeOpen, setPaymentNoticeOpen] = useState<boolean>(false);
 
@@ -98,6 +107,18 @@ export const CheckoutPage: React.FC = () => {
   useEffect(() => {
     saveCheckoutToStorage(formData);
   }, [formData]);
+
+  // Debounced server-side abandoned checkout autosave (1000ms debounce)
+  const autosaver = useMemo(() => createCheckoutAutosaver(1000), []);
+
+  useEffect(() => {
+    if (items.length > 0) {
+      autosaver.queueSave(formData, items);
+    }
+    return () => {
+      autosaver.cancel();
+    };
+  }, [formData, items, autosaver]);
 
   // Compute live delivery zone from country and state
   const currentZone = useMemo(() => {
@@ -120,10 +141,29 @@ export const CheckoutPage: React.FC = () => {
     }
   }, [currentZone, formData.delivery.zone]);
 
-  // Compute delivery fee
+  // Live Store Settings
+  const [publicSettings, setPublicSettings] = useState<PublicStoreSettings | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getPublicStoreSettings()
+      .then((settings) => {
+        if (active && settings) {
+          setPublicSettings(settings);
+        }
+      })
+      .catch((err) => {
+        console.warn('[Checkout] Failed to load store settings, using defaults:', err);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Compute delivery fee from live settings (or fallback defaults)
   const deliveryCalc = useMemo(() => {
-    return getDeliveryFeeCalculation(currentZone);
-  }, [currentZone]);
+    return getDeliveryFeeCalculation(currentZone, publicSettings?.shipping);
+  }, [currentZone, publicSettings?.shipping]);
 
   const deliveryFee = deliveryCalc.fee;
   const orderTotal = subtotal + deliveryFee;
@@ -221,6 +261,25 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    // 1b. Check shipping zone eligibility
+    if (!deliveryCalc.enabled) {
+      setErrors({
+        state: 'Delivery to this location is currently unavailable.',
+      });
+      const el = document.getElementById('checkout-state') || document.getElementById('checkout-country');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    if (deliveryCalc.requiresQuote) {
+      setErrors({
+        country: 'International shipping requires a custom freight quote before online payment. Please contact our team at hello@goodthingsco.ng.',
+      });
+      const el = document.getElementById('checkout-country');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     setErrors({});
     setValidatingOrder(true);
 
@@ -250,15 +309,30 @@ export const CheckoutPage: React.FC = () => {
         deliveryZoneName: deliveryCalc.name,
         deliveryRequiresQuote: deliveryCalc.requiresQuote,
         validatedAt: new Date().toISOString(),
+        checkoutSessionId: getStoredSessionId() || undefined,
       };
 
       setPreparedPayload(payload);
-      setPaymentNoticeOpen(true);
-    } catch (err) {
-      console.error('[CheckoutPage] Validation error:', err);
+      setInitializingPayment(true);
+
+      const initResult = await initializeOrderPayment(payload);
+
+      if (!initResult.success || !initResult.authorizationUrl) {
+        setErrors({
+          inventory: initResult.message || 'Payment gateway initialization failed. Please try again.',
+        });
+        setInitializingPayment(false);
+        return;
+      }
+
+      // Redirect to secure Paystack payment gateway
+      window.location.href = initResult.authorizationUrl;
+    } catch (err: any) {
+      console.error('[CheckoutPage] Validation/Payment error:', err);
       setErrors({
-        inventory: 'Failed to verify inventory with the atelier. Please try again.',
+        inventory: err?.message || 'Failed to verify inventory or connect to payment gateway. Please try again.',
       });
+      setInitializingPayment(false);
     } finally {
       setValidatingOrder(false);
     }
@@ -679,19 +753,42 @@ export const CheckoutPage: React.FC = () => {
                   </div>
 
                   {/* Dynamic Delivery Zone Indicator */}
-                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 flex items-start gap-3">
-                    <Truck size={20} className="text-gold-700 shrink-0 mt-0.5" />
-                    <div className="font-sans text-xs text-amber-950 space-y-1">
+                  <div
+                    className={`p-4 rounded-2xl border flex items-start gap-3 transition-colors ${
+                      !deliveryCalc.enabled
+                        ? 'bg-rose-50/90 border-rose-200 text-rose-950'
+                        : 'bg-amber-50/80 border-amber-200/80 text-amber-950'
+                    }`}
+                  >
+                    <Truck
+                      size={20}
+                      className={!deliveryCalc.enabled ? 'text-rose-600 shrink-0 mt-0.5' : 'text-gold-700 shrink-0 mt-0.5'}
+                    />
+                    <div className="font-sans text-xs space-y-1">
                       <div className="flex items-center gap-2 font-bold">
                         <span>{deliveryCalc.name}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-gold-600 text-white text-[10px] uppercase font-bold">
-                          {deliveryCalc.requiresQuote ? 'Quote Required' : formatNaira(deliveryFee)}
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-white text-[10px] uppercase font-bold ${
+                            !deliveryCalc.enabled
+                              ? 'bg-rose-600'
+                              : deliveryCalc.requiresQuote
+                                ? 'bg-amber-600'
+                                : 'bg-gold-600'
+                          }`}
+                        >
+                          {!deliveryCalc.enabled
+                            ? 'Unavailable'
+                            : deliveryCalc.requiresQuote
+                              ? 'Quote Required'
+                              : formatNaira(deliveryFee)}
                         </span>
                       </div>
-                      <p className="text-amber-900/80">
-                        {deliveryCalc.requiresQuote
-                          ? 'International delivery rates vary by destination weight and customs. The atelier team will confirm exact shipping before dispatch.'
-                          : `Estimated dispatch window: ${deliveryCalc.estimatedDeliveryTime}`}
+                      <p className={!deliveryCalc.enabled ? 'text-rose-800' : 'text-amber-900/80'}>
+                        {!deliveryCalc.enabled
+                          ? 'Delivery to this location is currently unavailable.'
+                          : deliveryCalc.requiresQuote
+                            ? (deliveryCalc.notice || 'International delivery rates vary by destination weight and customs. The atelier team will confirm exact shipping before dispatch.')
+                            : `Estimated dispatch window: ${deliveryCalc.estimatedDeliveryTime}`}
                       </p>
                     </div>
                   </div>
@@ -886,11 +983,33 @@ export const CheckoutPage: React.FC = () => {
                   <button
                     id="checkout-submit-button"
                     type="submit"
-                    disabled={validatingOrder}
-                    className="w-full py-4 rounded-2xl bg-brand-dark text-white font-sans text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] hover:bg-gold-600 active:scale-[0.99] transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                    disabled={validatingOrder || initializingPayment || !deliveryCalc.enabled}
+                    className={`w-full py-4 rounded-2xl font-sans text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] transition-all shadow-md flex items-center justify-center gap-2 ${
+                      !deliveryCalc.enabled
+                        ? 'bg-neutral-400 text-white cursor-not-allowed'
+                        : 'bg-brand-dark text-white hover:bg-gold-600 active:scale-[0.99] cursor-pointer'
+                    }`}
                   >
-                    <span>{validatingOrder ? 'Validating Inventory...' : 'Continue to Payment'}</span>
-                    <span>→</span>
+                    {validatingOrder ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin text-gold-400" />
+                        <span>Validating Inventory...</span>
+                      </>
+                    ) : initializingPayment ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin text-gold-400" />
+                        <span>Connecting to Paystack...</span>
+                      </>
+                    ) : !deliveryCalc.enabled ? (
+                      <span>Delivery Location Unavailable</span>
+                    ) : deliveryCalc.requiresQuote ? (
+                      <span>Shipping Quote Required</span>
+                    ) : (
+                      <>
+                        <span>Continue to Payment</span>
+                        <span>→</span>
+                      </>
+                    )}
                   </button>
 
                   {/* Security Guarantee */}

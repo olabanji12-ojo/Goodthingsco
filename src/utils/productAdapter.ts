@@ -6,7 +6,7 @@
  */
 
 import { Product } from '../types/product';
-import { GiftItem, OccasionId, RecipientGroupId } from '../data/giftsData';
+import { GiftItem, OccasionId, RecipientGroupId, BudgetTierId } from '../data/giftsData';
 import { getProductImageUrl } from '../services/cloudinaryService';
 
 export function adaptProductToGiftItem(product: Product): GiftItem {
@@ -16,11 +16,22 @@ export function adaptProductToGiftItem(product: Product): GiftItem {
       : 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80';
 
   // Map canonical budgetRange to UI budgetTier
-  let budgetTier: 'under-25k' | '25k-50k' | '50k-100k' | 'premium' = '25k-50k';
-  if (product.budgetRange === 'under-25000') budgetTier = 'under-25k';
-  else if (product.budgetRange === '25000-50000') budgetTier = '25k-50k';
-  else if (product.budgetRange === '50000-100000') budgetTier = '50k-100k';
-  else if (product.budgetRange === '100000-plus') budgetTier = 'premium';
+  let budgetTier: BudgetTierId = '25000-50000';
+  if (product.budgetRange === 'under-25000') budgetTier = 'under-25000';
+  else if (product.budgetRange === '25000-50000') budgetTier = '25000-50000';
+  else if (product.budgetRange === '50000-100000') budgetTier = '50000-100000';
+  else if (product.budgetRange === '100000-250000') budgetTier = '100000-250000';
+  else if (product.budgetRange === '250000-plus') budgetTier = '250000-plus';
+  else if ((product.budgetRange as any) === '100000-plus') {
+    // Migration: derive from authoritative price
+    budgetTier = (product.price || 0) >= 250000 ? '250000-plus' : '100000-250000';
+  } else if (product.price !== undefined) {
+    if (product.price < 25000) budgetTier = 'under-25000';
+    else if (product.price <= 50000) budgetTier = '25000-50000';
+    else if (product.price <= 100000) budgetTier = '50000-100000';
+    else if (product.price <= 250000) budgetTier = '100000-250000';
+    else budgetTier = '250000-plus';
+  }
 
   // Occasions array
   const occasions = (product.occasions || []) as OccasionId[];
@@ -65,6 +76,7 @@ export function adaptProductToGiftItem(product: Product): GiftItem {
     primaryRecipient,
     subRecipients: product.recipients || [],
     budgetTier,
+    lifestyles: product.lifestyles || [],
     description: product.description,
     included:
       product.packagingOptions && product.packagingOptions.length > 0

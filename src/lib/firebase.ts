@@ -4,7 +4,7 @@
  * Dedicated, centralized Firebase instance for the Good Things Co. platform.
  * Project: goodthingsco01
  *
- * All credentials are read from environment variables (VITE_FIREBASE_*).
+ * All credentials are read from Vite environment variables (VITE_FIREBASE_*).
  * No credentials or private keys are hardcoded in application logic.
  */
 
@@ -12,7 +12,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 
-// 1. Read configuration from environment variables
+// 1. Read configuration from Vite environment variables (client-side only)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,

@@ -92,4 +92,5 @@ export interface ValidatedCheckoutPayload {
   deliveryZoneName: string;
   deliveryRequiresQuote: boolean;
   validatedAt: string;
+  checkoutSessionId?: string;
 }

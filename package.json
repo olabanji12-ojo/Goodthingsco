@@ -5,11 +5,25 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
+    "test:email": "tsc -p tsconfig.email-tests.json && node scripts/email.mjs test",
+    "email:preview": "node scripts/email.mjs preview",
+    "email:test": "node scripts/email.mjs send-test",
+    "test:email:bundle": "node scripts/checkEmailBundle.mjs",
+    "test:orders": "tsc -p tsconfig.order-tests.json && node scripts/orders.mjs test",
+    "test:orders:ui": "node scripts/orders.mjs ui",
+    "test:checkout": "tsc -p tsconfig.checkout-tests.json && node scripts/checkout.mjs",
+    "test:corporate": "tsc -p tsconfig.corporate-tests.json && node scripts/corporate.mjs",
+    "test:custom": "tsc -p tsconfig.custom-tests.json && node scripts/custom.mjs",
+    "test:settings": "tsc -p tsconfig.settings-tests.json && node scripts/settings.mjs",
+    "test:content": "tsc -p tsconfig.content-tests.json && node scripts/content.mjs",
+    "admin:claim": "node scripts/set-admin-claim.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "firebase": "^11.4.0",
+    "firebase-admin": "^14.5.0",
     "gsap": "^3.12.7",
     "lenis": "^1.1.18",
     "lucide-react": "^0.554.0",
@@ -19,8 +33,10 @@
     "unsplash-js": "^8.0.1"
   },
   "devDependencies": {
+    "@types/node": "^24.19.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "@vercel/node": "^17.0.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
     "postcss": "^8.4.35",

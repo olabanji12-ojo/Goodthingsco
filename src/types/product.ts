@@ -11,7 +11,29 @@ export type BudgetRangeTier =
   | 'under-25000'
   | '25000-50000'
   | '50000-100000'
-  | '100000-plus';
+  | '100000-250000'
+  | '250000-plus';
+
+/**
+ * Lifestyle category taxonomy — used for gift discovery filtering.
+ * A product may belong to multiple lifestyle categories.
+ */
+export type LifestyleCategory =
+  | 'food-drink'
+  | 'fashion-style'
+  | 'home-hosting'
+  | 'books-writing'
+  | 'art-creativity'
+  | 'travel'
+  | 'beauty-personal-care'
+  | 'work-productivity'
+  | 'culture-heritage'
+  | 'wellness'
+  | 'sports-fitness'
+  | 'kids-family'
+  | 'music-entertainment'
+  | 'technology'
+  | 'nature-outdoors';
 
 export interface ProductVariant {
   name: string; // e.g. "Size", "Colour", "Style"
@@ -61,6 +83,8 @@ export interface Product {
   personalisation?: ProductPersonalisation;
   packagingOptions?: string[]; // e.g. ['Gift Box', 'Gift Bag', 'Wooden Box', 'Pouch']
   ribbonColours?: string[]; // e.g. ['Gold', 'White', 'Midnight Navy', 'Olive']
+  /** Lifestyle categories for shop discovery filtering. Safe default: [] */
+  lifestyles?: LifestyleCategory[];
   createdAt?: Timestamp | FieldValue | Date | string;
   updatedAt?: Timestamp | FieldValue | Date | string;
 }
@@ -87,6 +111,7 @@ export interface CreateProductInput {
   personalisation?: ProductPersonalisation;
   packagingOptions?: string[];
   ribbonColours?: string[];
+  lifestyles?: LifestyleCategory[];
 }
 
 /**
@@ -103,6 +128,7 @@ export interface ProductFilterParams {
   occasion?: string;
   recipient?: string;
   budgetRange?: BudgetRangeTier;
+  lifestyle?: LifestyleCategory | string;
   category?: string;
   featured?: boolean;
   isAvailable?: boolean;

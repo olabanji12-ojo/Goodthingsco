@@ -14,6 +14,7 @@ import {
   Inbox,
   Truck,
   Settings,
+  FileText,
 } from 'lucide-react';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 
@@ -29,17 +30,18 @@ export default function AdminLayout() {
 
   const navItems = [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/admin/orders', label: 'Orders', icon: ShoppingBag, end: false },
+    { to: '/admin/corporate', label: 'Corporate Requests', icon: Inbox, end: false },
+    { to: '/admin/custom', label: 'Custom Requests', icon: Sparkles, end: false },
     { to: '/admin/products', label: 'Products', icon: Package, end: true },
     { to: '/admin/products/new', label: 'Add Product', icon: PlusCircle, end: true },
     { to: '/admin/products/archived', label: 'Archived Products', icon: Archive, end: true },
+    { to: '/admin/settings', label: 'Settings & Delivery', icon: Settings, end: true },
+    { to: '/admin/content', label: 'Website Content', icon: FileText, end: true },
   ];
 
   const futureItems = [
-    { label: 'Orders', icon: ShoppingBag },
-    { label: 'Corporate Requests', icon: Inbox },
-    { label: 'Bespoke Commissions', icon: Sparkles },
-    { label: 'Shipping & Delivery', icon: Truck },
-    { label: 'Settings', icon: Settings },
+    { label: 'WhatsApp Automation', icon: Truck },
   ];
 
   const sidebarContent = (
@@ -78,7 +80,7 @@ export default function AdminLayout() {
       {/* Main Navigation */}
       <div style={{ flex: 1, padding: '20px 12px', overflowY: 'auto' }}>
         <div style={{ color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 12px 10px 12px', fontWeight: 600 }}>
-          Product Catalog
+          Store Management
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

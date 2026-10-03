@@ -1,26 +1,42 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    // Match products collection
+    function isAdmin() { return request.auth != null && request.auth.token.admin == true; }
     match /products/{productId} {
-      // 1. PUBLIC READ: Allow anyone to read active, unarchived products
-      // (Authenticated admins can read all products including archived ones)
-      allow read: if resource.data.isArchived == false || isAuthenticated();
-
-      // 2. ADMIN WRITE: Only authenticated administrators can create, update, or archive products
-      allow create, update, delete: if isAuthenticated();
+      allow read: if resource.data.isArchived == false || isAdmin();
+      allow create, update, delete: if isAdmin();
     }
-
-    // Default deny for all other collections until explicitly configured
-    match /{document=**} {
+    // All order operations use the trusted server. Even admins use the API so
+    // authorization, audit history and notification idempotency cannot be bypassed.
+    match /orders/{orderId} {
+      allow read, write: if false;
+      match /{document=**} { allow read, write: if false; }
+    }
+    match /orderTrackingLimits/{key} { allow read, write: if false; }
+    // Abandoned checkout customer data is strictly private and managed exclusively by the trusted server API
+    match /abandonedCheckouts/{sessionId} {
+      allow read, write: if false;
+      match /{document=**} { allow read, write: if false; }
+    }
+    // Corporate requests contain private enterprise client data and are managed exclusively by the trusted server API
+    match /corporateRequests/{requestId} {
+      allow read, write: if false;
+      match /{document=**} { allow read, write: if false; }
+    }
+    // Custom / bespoke requests contain client creative files and are managed exclusively by the trusted server API
+    match /customRequests/{requestId} {
+      allow read, write: if false;
+      match /{document=**} { allow read, write: if false; }
+    }
+    // Store settings are managed exclusively by the trusted server API
+    match /settings/{document=**} {
       allow read, write: if false;
     }
+    // Website content CMS: public read, admin write
+    match /siteContent/{page} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /{document=**} { allow read, write: if false; }
   }
 }
