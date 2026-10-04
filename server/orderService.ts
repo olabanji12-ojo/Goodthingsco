@@ -51,7 +51,11 @@ export const inMemoryOrdersByRef = new Map<string, Order>();
 
 export function isFirestoreAvailable(): boolean {
   try {
-    db();
+    if (typeof db === 'function') {
+      db();
+    } else if (!db) {
+      return false;
+    }
     return true;
   } catch {
     return false;
