@@ -22,41 +22,17 @@ const createRes = () => ({
   end(value) { body = JSON.parse(value); }
 });
 
-// Test 1: Unknown route returns 404 JSON
-await handler({ url: '/api/runtime-smoke-test', method: 'GET', headers: {} }, createRes());
-assert.equal(body.success, false);
-
-// Test 2: Checkout session POST initializes session without crashing
-await handler({
-  url: '/api/checkout/session',
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: { customer: { fullName: 'Smoke Test User' } }
-}, createRes());
-assert.equal(body.success, true);
-assert.ok(body.sessionId && body.sessionId.startsWith('ac_'));
-
-// Test 3: Vercel rewrite via x-matched-path header routes correctly
-await handler({
-  url: '/api?path=checkout/session',
-  method: 'POST',
-  headers: {
-    'content-type': 'application/json',
-    'x-matched-path': '/api/checkout/session'
-  },
-  body: { customer: { fullName: 'Vercel Rewritten User' } }
-}, createRes());
-assert.equal(body.success, true);
-assert.ok(body.sessionId && body.sessionId.startsWith('ac_'));
-
-// Test 4: Paystack initialize returns 400 JSON on empty payload (never crashes with 500)
-await handler({
-  url: '/api/paystack/initialize',
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: { payload: {} }
-}, createRes());
-assert.equal(body.success, false);
-
-console.info('API native ESM startup passed; routes, rewrite headers, and fallbacks verified with 0 errors.');
-
+// Exercise routing without accessing Firebase, Paystack, or creating records.
+for (const request of [
+  { url: '/api/runtime-smoke-test', method: 'GET', headers: {}, expected: 404 },
+  { url: '/api/checkout/session', method: 'GET', headers: {}, expected: 405 },
+  { url: '/api?path=checkout/session', method: 'GET', headers: { 'x-matched-path': '/api/checkout/session' }, expected: 405 },
+  { url: '/api/paystack/initialize', method: 'GET', headers: {}, expected: 404 },
+]) {
+  const response = createRes();
+  await handler(request, response);
+  assert.equal(response.statusCode, request.expected);
+  assert.equal(body.success, false);
+  assert.match(headers['content-type'], /application\/json/);
+}
+console.info('API startup and routing passed without require(ESM) support. No external writes.');
