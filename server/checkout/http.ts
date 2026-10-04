@@ -4,8 +4,19 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'url';
+import { timingSafeEqual } from 'node:crypto';
 import { abandonedCheckoutService } from './service.js';
 import { CheckoutHttpError } from './domain.js';
+
+function safeCompareBearer(header: string | undefined, secret: string | undefined): boolean {
+  if (!header || !secret) return false;
+  const trimmedSecret = secret.trim();
+  if (!trimmedSecret) return false;
+  const expected = Buffer.from(`Bearer ${trimmedSecret}`);
+  const actual = Buffer.from(header.trim());
+  if (actual.length !== expected.length) return false;
+  return timingSafeEqual(actual, expected);
+}
 
 async function readJson(req: IncomingMessage & { body?: unknown }): Promise<any> {
   if (req.body !== undefined) {
@@ -100,12 +111,13 @@ export function createCheckoutHttp(service = abandonedCheckoutService) {
         return true;
       }
 
-      // 5. POST /api/checkout/reminders/process (trigger reminder evaluation)
+      // 5. GET/POST /api/checkout/process-reminders or /api/checkout/reminders/process
       // Protected: caller must supply the CRON_SECRET to prevent unauthenticated triggering.
-      if (path === '/api/checkout/reminders/process' && method === 'POST') {
-        const cronSecret = process.env.CRON_SECRET;
+      // Supports Vercel Cron (which invokes endpoints via HTTP GET) and manual/webhook POST.
+      const isReminderRoute = path === '/api/checkout/process-reminders' || path === '/api/checkout/reminders/process';
+      if (isReminderRoute && (method === 'GET' || method === 'POST')) {
         const authHeader = req.headers.authorization;
-        if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
+        if (!safeCompareBearer(authHeader, process.env.CRON_SECRET)) {
           send(401, { success: false, message: 'Unauthorized.' });
           return true;
         }

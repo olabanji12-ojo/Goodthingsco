@@ -27,6 +27,8 @@ for (const request of [
   { url: '/api/runtime-smoke-test', method: 'GET', headers: {}, expected: 404 },
   { url: '/api/checkout/session', method: 'GET', headers: {}, expected: 405 },
   { url: '/api?path=checkout/session', method: 'GET', headers: { 'x-matched-path': '/api/checkout/session' }, expected: 405 },
+  { url: '/api/checkout/process-reminders', method: 'GET', headers: {}, expected: 401 },
+  { url: '/api?path=checkout/process-reminders', method: 'GET', headers: { 'x-matched-path': '/api/checkout/process-reminders' }, expected: 401 },
   { url: '/api/paystack/initialize', method: 'GET', headers: {}, expected: 404 },
 ]) {
   const response = createRes();

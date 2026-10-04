@@ -12,7 +12,7 @@ const output = resolve(folder, 'runner.cjs');
 try {
   const result = await build({
     absWorkingDir: root,
-    entryPoints: ['tests/checkout/abandonedCheckout.test.ts'],
+    entryPoints: ['tests/checkout/index.test.ts'],
     bundle: true,
     platform: 'node',
     target: 'node20',
