@@ -49,21 +49,28 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
 
 export default async function handler(req: IncomingMessage & { body?: any }, res: ServerResponse) {
   try {
-    // When deployed on Vercel with rewrites, req.url may be rewritten to '/api'.
-    // Restore the actual original client request path from Vercel's x-matched-path or x-forwarded-uri headers.
+    // When deployed on Vercel with rewrites, req.url may be rewritten to '/api' or '/api?path=...'.
+    // Restore the actual original client request path from Vercel headers or query param.
     const matchedPath = (req.headers['x-matched-path'] as string)
       || (req.headers['x-forwarded-uri'] as string)
       || (req.headers['x-original-url'] as string);
 
-    if (matchedPath && matchedPath.startsWith('/api/')) {
-      req.url = matchedPath;
-    } else if (req.url?.startsWith('/api?path=')) {
-      const parsedUrl = new URL(req.url, 'http://localhost');
+    const originalUrl = req.url || '/';
+
+    if (matchedPath && matchedPath !== '/api' && matchedPath.startsWith('/api/')) {
+      // x-matched-path has the clean original path (e.g., '/api/settings/public')
+      req.url = matchedPath.split('?')[0]; // strip any query string from matched path
+    } else if (originalUrl.startsWith('/api?path=') || originalUrl.startsWith('/api/?path=')) {
+      // Fallback: path was embedded as a query param by the rewrite rule
+      const parsedUrl = new URL(originalUrl, 'http://localhost');
       const paramPath = parsedUrl.searchParams.get('path');
       if (paramPath) {
         req.url = `/api/${paramPath.replace(/^\//, '')}`;
       }
     }
+
+    // Debug log for production tracing (shows what path the router sees)
+    console.log(`[API] ${req.method} ${req.url} (original: ${originalUrl}, x-matched-path: ${matchedPath || 'none'})`);
 
     // 1. Delegate to domain handlers
     if (await handleOrderHttp(req, res)) return;

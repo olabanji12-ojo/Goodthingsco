@@ -33,7 +33,8 @@ async function request<T>(path: string, options: RequestInit = {}, admin = false
 
   let data: any;
   try {
-    data = await response.json();
+    const text = await response.text();
+    data = JSON.parse(text);
   } catch {
     throw new Error('Store settings service is temporarily unavailable. Please try again shortly.');
   }
