@@ -254,7 +254,7 @@ export function createCustomManagement(dependencies: ServiceDependencies = {}) {
       if (!validUntil) {
         const defaults = await settings.getEffectiveQuoteDefaults();
         const days = defaults.customDefaultValidityDays || 7;
-        validUntil = new Date(Date.now() + days * 86400 * 1000).toISOString().split('T')[0];
+        validUntil = new Date(new Date(timestamp).getTime() + days * 86400 * 1000).toISOString().split('T')[0];
       }
 
       const updatedQuote = {
@@ -326,7 +326,7 @@ export function createCustomManagement(dependencies: ServiceDependencies = {}) {
       if (!validUntil) {
         const defaults = await settings.getEffectiveQuoteDefaults();
         const days = defaults.customDefaultValidityDays || 7;
-        validUntil = new Date(Date.now() + days * 86400 * 1000).toISOString().split('T')[0];
+        validUntil = new Date(new Date(timestamp).getTime() + days * 86400 * 1000).toISOString().split('T')[0];
       }
 
       const updatedQuote = {

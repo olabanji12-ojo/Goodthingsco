@@ -248,7 +248,7 @@ export function createCorporateManagement(dependencies: ServiceDependencies = {}
       if (!validUntil) {
         const defaults = await settings.getEffectiveQuoteDefaults();
         const days = defaults.corporateDefaultValidityDays || 7;
-        validUntil = new Date(Date.now() + days * 86400 * 1000).toISOString().split('T')[0];
+        validUntil = new Date(new Date(now).getTime() + days * 86400 * 1000).toISOString().split('T')[0];
       }
 
       const quoteData = {
@@ -295,7 +295,7 @@ export function createCorporateManagement(dependencies: ServiceDependencies = {}
       if (!validUntil) {
         const defaults = await settings.getEffectiveQuoteDefaults();
         const days = defaults.corporateDefaultValidityDays || 7;
-        validUntil = new Date(Date.now() + days * 86400 * 1000).toISOString().split('T')[0];
+        validUntil = new Date(new Date(now).getTime() + days * 86400 * 1000).toISOString().split('T')[0];
       }
 
       const quoteData = {
