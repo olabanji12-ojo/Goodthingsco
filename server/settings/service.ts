@@ -47,7 +47,7 @@ export function createSettingsManagement(dependencies: ServiceDependencies = {})
     }
 
     const isAllowed = identity.admin === true ||
-      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com'].includes(identity.email.toLowerCase()));
+      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com', 'tofunmieolabanji@gmail.com'].includes(identity.email.toLowerCase()));
     if (!isAllowed) {
       throw new SettingsHttpError(403, 'Administrator privilege required.');
     }

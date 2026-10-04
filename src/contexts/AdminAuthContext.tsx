@@ -12,7 +12,12 @@ interface AdminAuthContextType {
   clearError(): void;
 }
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
-const ADMIN_EMAILS = ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com'];
+const ADMIN_EMAILS = [
+  'olabanji@gmail.com',
+  'ojo@gmail.com',
+  'emmanuelojo291@gmail.com',
+  'tofunmieolabanji@gmail.com',
+];
 function checkIsAdmin(user: any, token: any): boolean {
   if (token?.claims?.admin === true) return true;
   const email = (user?.email || '').toLowerCase();

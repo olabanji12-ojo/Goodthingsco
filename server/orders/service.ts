@@ -27,7 +27,7 @@ export function createOrderManagement(dependencies: Partial<Dependencies> = {}) 
       throw new OrderHttpError(401, 'Your session is invalid or expired. Please sign in again.');
     }
     const isAllowedAdmin = identity.admin === true ||
-      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com'].includes(identity.email.toLowerCase()));
+      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com', 'tofunmieolabanji@gmail.com'].includes(identity.email.toLowerCase()));
     if (!isAllowedAdmin) throw new OrderHttpError(403, 'Administrator permission required.');
     return identity;
   }
