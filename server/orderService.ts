@@ -46,8 +46,8 @@ export const ORDERS_COLLECTION = 'orders';
 export const PRODUCTS_COLLECTION = 'products';
 
 // In-memory fallback order storage for local development / testing when Firebase credentials are not yet configured
-const inMemoryOrders = new Map<string, Order>();
-const inMemoryOrdersByRef = new Map<string, Order>();
+export const inMemoryOrders = new Map<string, Order>();
+export const inMemoryOrdersByRef = new Map<string, Order>();
 
 export function isFirestoreAvailable(): boolean {
   try {
