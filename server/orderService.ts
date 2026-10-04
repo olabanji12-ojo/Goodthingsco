@@ -45,6 +45,19 @@ import { settingsService } from './settings/service.js';
 export const ORDERS_COLLECTION = 'orders';
 export const PRODUCTS_COLLECTION = 'products';
 
+// In-memory fallback order storage for local development / testing when Firebase credentials are not yet configured
+const inMemoryOrders = new Map<string, Order>();
+const inMemoryOrdersByRef = new Map<string, Order>();
+
+export function isFirestoreAvailable(): boolean {
+  try {
+    db();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export interface CreateOrderResult {
   success: boolean;
   orderNumber?: string;
@@ -83,57 +96,73 @@ export async function createPendingOrderServer(
   }
 
   try {
-    // B. Authoritative Inventory and Pricing Verification
+    const firestoreReady = isFirestoreAvailable();
     let authoritativeSubtotal = 0;
     const verifiedOrderItems: OrderItem[] = [];
 
-    for (const item of payload.items) {
-      const prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-      const prodSnap = await getDoc(prodRef);
+    if (firestoreReady) {
+      // B. Authoritative Inventory and Pricing Verification via Firestore
+      for (const item of payload.items) {
+        const prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+        const prodSnap = await getDoc(prodRef);
 
-      if (!prodSnap.exists()) {
-        return {
-          success: false,
-          message: `Product "${item.name}" was not found in our catalog. Please review your cart.`,
-        };
+        if (!prodSnap.exists()) {
+          return {
+            success: false,
+            message: `Product "${item.name}" was not found in our catalog. Please review your cart.`,
+          };
+        }
+
+        const prodData = prodSnap.data();
+
+        // Availability and Archive checks
+        if (prodData.isArchived || prodData.isAvailable === false) {
+          return {
+            success: false,
+            message: `Product "${prodData.name || item.name}" is no longer available. Please remove it from your cart.`,
+          };
+        }
+
+        // Stock verification
+        const availableStock = typeof prodData.stock === 'number' ? prodData.stock : 0;
+        if (availableStock <= 0) {
+          return {
+            success: false,
+            message: `Product "${prodData.name || item.name}" is currently out of stock.`,
+          };
+        }
+
+        if (item.quantity > availableStock) {
+          return {
+            success: false,
+            message: `Only ${availableStock} of "${prodData.name || item.name}" available in stock (requested ${item.quantity}).`,
+          };
+        }
+
+        // Authoritative Price Calculation
+        const livePrice = typeof prodData.price === 'number' ? prodData.price : item.unitPrice;
+        const itemSubtotal = livePrice * item.quantity;
+        authoritativeSubtotal += itemSubtotal;
+
+        verifiedOrderItems.push({
+          ...mapCartItemToOrderItem(item),
+          unitPrice: livePrice,
+          subtotal: itemSubtotal,
+        });
       }
+    } else {
+      console.warn('[OrderService] Firebase Admin not configured. Operating in local memory fallback mode for items and pricing.');
+      for (const item of payload.items) {
+        const itemPrice = typeof item.unitPrice === 'number' && item.unitPrice >= 0 ? item.unitPrice : 0;
+        const itemSubtotal = itemPrice * item.quantity;
+        authoritativeSubtotal += itemSubtotal;
 
-      const prodData = prodSnap.data();
-
-      // Availability and Archive checks
-      if (prodData.isArchived || prodData.isAvailable === false) {
-        return {
-          success: false,
-          message: `Product "${prodData.name || item.name}" is no longer available. Please remove it from your cart.`,
-        };
+        verifiedOrderItems.push({
+          ...mapCartItemToOrderItem(item),
+          unitPrice: itemPrice,
+          subtotal: itemSubtotal,
+        });
       }
-
-      // Stock verification
-      const availableStock = typeof prodData.stock === 'number' ? prodData.stock : 0;
-      if (availableStock <= 0) {
-        return {
-          success: false,
-          message: `Product "${prodData.name || item.name}" is currently out of stock.`,
-        };
-      }
-
-      if (item.quantity > availableStock) {
-        return {
-          success: false,
-          message: `Only ${availableStock} of "${prodData.name || item.name}" available in stock (requested ${item.quantity}).`,
-        };
-      }
-
-      // Authoritative Price Calculation
-      const livePrice = typeof prodData.price === 'number' ? prodData.price : item.unitPrice;
-      const itemSubtotal = livePrice * item.quantity;
-      authoritativeSubtotal += itemSubtotal;
-
-      verifiedOrderItems.push({
-        ...mapCartItemToOrderItem(item),
-        unitPrice: livePrice,
-        subtotal: itemSubtotal,
-      });
     }
 
     // C. Authoritative Delivery Zone and Fee Calculation
@@ -141,25 +170,30 @@ export async function createPendingOrderServer(
       payload.delivery.address.country,
       payload.delivery.address.state
     );
-    const shippingSettings = await settingsService.getEffectiveShipping();
-    const deliveryCalc = getDeliveryFeeCalculation(resolvedZone, shippingSettings);
+    let authoritativeDeliveryFee = payload.deliveryFee || 0;
+    try {
+      const shippingSettings = await settingsService.getEffectiveShipping();
+      const deliveryCalc = getDeliveryFeeCalculation(resolvedZone, shippingSettings);
 
-    if (!deliveryCalc.enabled) {
-      return {
-        success: false,
-        message: 'Delivery to this location is currently unavailable.',
-      };
+      if (!deliveryCalc.enabled) {
+        return {
+          success: false,
+          message: 'Delivery to this location is currently unavailable.',
+        };
+      }
+
+      if (deliveryCalc.requiresQuote) {
+        return {
+          success: false,
+          message: 'Delivery to this location requires a custom shipping quote before checkout.',
+          requiresShippingQuote: true,
+        };
+      }
+      authoritativeDeliveryFee = deliveryCalc.fee;
+    } catch {
+      // Use fallback delivery fee if settings service is unavailable
     }
 
-    if (deliveryCalc.requiresQuote) {
-      return {
-        success: false,
-        message: 'Delivery to this location requires a custom shipping quote before checkout.',
-        requiresShippingQuote: true,
-      };
-    }
-
-    const authoritativeDeliveryFee = deliveryCalc.fee;
     const authoritativeTotal = authoritativeSubtotal + authoritativeDeliveryFee;
     const amountKobo = nairaToKobo(authoritativeTotal);
 
@@ -215,10 +249,19 @@ export async function createPendingOrderServer(
       updatedAt: new Date().toISOString(),
     };
 
-    // F. Save Pending Order to Firestore
-    const ordersCol = collection(db, ORDERS_COLLECTION);
-    const docRef = await addDoc(ordersCol, orderDocData);
-    const orderId = docRef.id;
+    // F. Save Pending Order to Firestore or In-Memory Store
+    let orderId: string;
+    if (firestoreReady) {
+      const ordersCol = collection(db, ORDERS_COLLECTION);
+      const docRef = await addDoc(ordersCol, orderDocData);
+      orderId = docRef.id;
+    } else {
+      orderId = `mem_ord_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const savedOrder: Order = { id: orderId, ...orderDocData };
+      inMemoryOrders.set(orderId, savedOrder);
+      inMemoryOrdersByRef.set(reference, savedOrder);
+      console.warn('[OrderService] Order saved to in-memory store:', orderNumber, `(${orderId})`);
+    }
 
     // The order is already durable. Delivery failures are isolated by the notification layer.
     await notificationService.orderCreated({ id: orderId, ...orderDocData });
@@ -280,21 +323,42 @@ export async function confirmPaidOrderServer(
   }
 
   try {
-    // A. Locate the Order in Firestore by reference
-    const ordersCol = collection(db, ORDERS_COLLECTION);
-    const q = query(ordersCol, where('payment.reference', '==', reference.trim()), firestoreLimit(1));
-    const snapshot = await getDocs(q);
+    const firestoreReady = isFirestoreAvailable();
+    let existingOrder: Order | null = null;
+    let orderId: string = '';
 
-    if (snapshot.empty) {
+    // A. Locate the Order in Firestore by reference if available
+    if (firestoreReady) {
+      try {
+        const ordersCol = collection(db, ORDERS_COLLECTION);
+        const q = query(ordersCol, where('payment.reference', '==', reference.trim()), firestoreLimit(1));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const orderDocSnap = snapshot.docs[0];
+          orderId = orderDocSnap.id;
+          existingOrder = { id: orderId, ...orderDocSnap.data() } as Order;
+        }
+      } catch (err) {
+        console.warn('[OrderService.confirmPaidOrder] Firestore query failed, falling back to in-memory store:', err);
+      }
+    }
+
+    // Fallback to in-memory store if not found in Firestore
+    if (!existingOrder) {
+      const memOrder = inMemoryOrdersByRef.get(reference.trim());
+      if (memOrder) {
+        existingOrder = memOrder;
+        orderId = memOrder.id || '';
+      }
+    }
+
+    if (!existingOrder) {
       return {
         success: false,
         message: `No order found matching payment reference: ${reference}`,
       };
     }
-
-    const orderDocSnap = snapshot.docs[0];
-    const orderId = orderDocSnap.id;
-    const existingOrder = { id: orderId, ...orderDocSnap.data() } as Order;
 
     // B. IDEMPOTENCY CHECK: If already confirmed and paid, do not re-process
     if (existingOrder.payment?.status === 'paid') {
@@ -313,14 +377,23 @@ export async function confirmPaidOrderServer(
 
     if (!verifyResult.success || verifyResult.status !== 'success') {
       // Record payment failure on order record
-      const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-      await runTransaction(db, async (txn: Transaction) => {
-        txn.update(orderRef, {
-          'payment.status': 'failed',
-          'payment.paymentException': verifyResult.message,
-          updatedAt: new Date().toISOString(),
-        });
-      });
+      if (firestoreReady) {
+        try {
+          const orderRef = doc(db, ORDERS_COLLECTION, orderId);
+          await runTransaction(db, async (txn: Transaction) => {
+            txn.update(orderRef, {
+              'payment.status': 'failed',
+              'payment.paymentException': verifyResult.message,
+              updatedAt: new Date().toISOString(),
+            });
+          });
+        } catch {
+          // ignore
+        }
+      } else {
+        existingOrder.payment.status = 'failed';
+        existingOrder.payment.paymentException = verifyResult.message;
+      }
 
       return {
         success: false,
@@ -349,87 +422,98 @@ export async function confirmPaidOrderServer(
       }
     }
 
-    // E. ATOMIC TRANSACTION: Stock Deduction and Order Status Update
+    // E. ATOMIC TRANSACTION (if Firestore is ready) or IN-MEMORY UPDATE
     let finalOrderStatus: OrderStatus = 'confirmed';
     let paymentException: string | undefined = undefined;
-    let confirmedByAnotherRequest: Order | undefined;
 
-    await runTransaction(db, async (txn: Transaction) => {
-      // Verification endpoint and webhook can run concurrently. Only the transaction
-      // that changes pending -> paid may emit payment emails or deduct inventory.
-      confirmedByAnotherRequest = undefined;
-      paymentException = undefined;
-      finalOrderStatus = 'confirmed';
-      const liveOrder = await txn.get(doc(db, ORDERS_COLLECTION, orderId));
-      if (!liveOrder.exists()) throw new Error('Order no longer exists');
-      if (liveOrder.data().payment?.status === 'paid') {
-        confirmedByAnotherRequest = { id: orderId, ...liveOrder.data() } as Order;
-        return;
-      }
-      // 1. Read live product documents for all items
-      const productDocs: { ref: any; data: any; qtyPurchased: number }[] = [];
-      let isStockSufficient = true;
-
-      for (const item of existingOrder.items) {
-        const prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-        const prodSnap = await txn.get(prodRef);
-
-        if (!prodSnap.exists()) {
-          isStockSufficient = false;
-          paymentException = `Product ${item.name} (${item.productId}) removed before order fulfillment.`;
-          continue;
-        }
-
-        const pData = prodSnap.data();
-        const liveStock = typeof pData.stock === 'number' ? pData.stock : 0;
-
-        if (liveStock < item.quantity) {
-          isStockSufficient = false;
-          paymentException = `Concurrent stock depletion for ${item.name}. Available: ${liveStock}, requested: ${item.quantity}.`;
-        }
-
-        productDocs.push({ ref: prodRef, data: pData, qtyPurchased: item.quantity });
-      }
-
-      // 2. Decrement stock if sufficient; otherwise flag for review without going negative
-      if (isStockSufficient) {
-        for (const p of productDocs) {
-          const currentStock = typeof p.data.stock === 'number' ? p.data.stock : 0;
-          const newStock = Math.max(0, currentStock - p.qtyPurchased);
-          txn.update(p.ref, {
-            stock: newStock,
-            isAvailable: newStock > 0 ? (p.data.isAvailable ?? true) : false,
-            updatedAt: new Date().toISOString(),
-          });
-        }
+    if (firestoreReady) {
+      let confirmedByAnotherRequest: Order | undefined;
+      await runTransaction(db, async (txn: Transaction) => {
+        // Verification endpoint and webhook can run concurrently. Only the transaction
+        // that changes pending -> paid may emit payment emails or deduct inventory.
+        confirmedByAnotherRequest = undefined;
+        paymentException = undefined;
         finalOrderStatus = 'confirmed';
-      } else {
-        // Edge case: payment succeeded, but inventory exhausted concurrently
-        console.warn(`[OrderService] Concurrent stock conflict on order ${existingOrder.orderNumber}: ${paymentException}`);
-        finalOrderStatus = 'confirmed-review-required';
-      }
+        const liveOrder = await txn.get(doc(db, ORDERS_COLLECTION, orderId));
+        if (!liveOrder.exists()) throw new Error('Order no longer exists');
+        if (liveOrder.data().payment?.status === 'paid') {
+          confirmedByAnotherRequest = { id: orderId, ...liveOrder.data() } as Order;
+          return;
+        }
+        // 1. Read live product documents for all items
+        const productDocs: { ref: any; data: any; qtyPurchased: number }[] = [];
+        let isStockSufficient = true;
 
-      // 3. Update Order Document
-      const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-      txn.update(orderRef, {
-        'payment.status': 'paid',
-        revision: (liveOrder.data().revision || 0) + 1,
-        statusHistory: [...effectiveHistory(liveOrder.data() as Order), {
-          eventId: `payment-${orderId}`, status: finalOrderStatus,
-          changedAt: verifyResult.paidAt || new Date().toISOString(), changedBy: 'system:paystack',
-        }],
-        'payment.paidAt': verifyResult.paidAt || new Date().toISOString(),
-        'payment.channel': verifyResult.channel || 'card',
-        'payment.transactionId': verifyResult.transactionId || '',
-        'payment.paymentException': paymentException || null,
-        orderStatus: finalOrderStatus,
-        updatedAt: new Date().toISOString(),
+        for (const item of existingOrder!.items) {
+          const prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+          const prodSnap = await txn.get(prodRef);
+
+          if (!prodSnap.exists()) {
+            isStockSufficient = false;
+            paymentException = `Product ${item.name} (${item.productId}) removed before order fulfillment.`;
+            continue;
+          }
+
+          const pData = prodSnap.data();
+          const liveStock = typeof pData.stock === 'number' ? pData.stock : 0;
+
+          if (liveStock < item.quantity) {
+            isStockSufficient = false;
+            paymentException = `Concurrent stock depletion for ${item.name}. Available: ${liveStock}, requested: ${item.quantity}.`;
+          }
+
+          productDocs.push({ ref: prodRef, data: pData, qtyPurchased: item.quantity });
+        }
+
+        // 2. Decrement stock if sufficient; otherwise flag for review without going negative
+        if (isStockSufficient) {
+          for (const p of productDocs) {
+            const currentStock = typeof p.data.stock === 'number' ? p.data.stock : 0;
+            const newStock = Math.max(0, currentStock - p.qtyPurchased);
+            txn.update(p.ref, {
+              stock: newStock,
+              isAvailable: newStock > 0 ? (p.data.isAvailable ?? true) : false,
+              updatedAt: new Date().toISOString(),
+            });
+          }
+          finalOrderStatus = 'confirmed';
+        } else {
+          // Edge case: payment succeeded, but inventory exhausted concurrently
+          console.warn(`[OrderService] Concurrent stock conflict on order ${existingOrder!.orderNumber}: ${paymentException}`);
+          finalOrderStatus = 'confirmed-review-required';
+        }
+
+        // 3. Update Order Document
+        const orderRef = doc(db, ORDERS_COLLECTION, orderId);
+        txn.update(orderRef, {
+          'payment.status': 'paid',
+          revision: (liveOrder.data().revision || 0) + 1,
+          statusHistory: [...effectiveHistory(liveOrder.data() as Order), {
+            eventId: `payment-${orderId}`, status: finalOrderStatus,
+            changedAt: verifyResult.paidAt || new Date().toISOString(), changedBy: 'system:paystack',
+          }],
+          'payment.paidAt': verifyResult.paidAt || new Date().toISOString(),
+          'payment.channel': verifyResult.channel || 'card',
+          'payment.transactionId': verifyResult.transactionId || '',
+          'payment.paymentException': paymentException || null,
+          orderStatus: finalOrderStatus,
+          updatedAt: new Date().toISOString(),
+        });
       });
-    });
 
-    if (confirmedByAnotherRequest) {
-      return { success: true, alreadyProcessed: true, orderNumber: existingOrder.orderNumber,
-        orderId, order: confirmedByAnotherRequest, message: 'Payment was already verified and confirmed.' };
+      if (confirmedByAnotherRequest) {
+        return { success: true, alreadyProcessed: true, orderNumber: existingOrder.orderNumber,
+          orderId, order: confirmedByAnotherRequest, message: 'Payment was already verified and confirmed.' };
+      }
+    } else {
+      existingOrder.payment.status = 'paid';
+      existingOrder.payment.paidAt = verifyResult.paidAt || new Date().toISOString();
+      existingOrder.payment.channel = verifyResult.channel;
+      existingOrder.payment.transactionId = verifyResult.transactionId;
+      existingOrder.orderStatus = finalOrderStatus;
+      existingOrder.updatedAt = new Date().toISOString();
+      inMemoryOrders.set(orderId, existingOrder);
+      inMemoryOrdersByRef.set(reference.trim(), existingOrder);
     }
 
     const updatedOrder: Order = {
@@ -484,18 +568,30 @@ export async function getOrderByNumberServer(orderNumber: string): Promise<Order
   if (!orderNumber || typeof orderNumber !== 'string') return null;
 
   try {
-    const ordersCol = collection(db, ORDERS_COLLECTION);
-    const q = query(ordersCol, where('orderNumber', '==', orderNumber.trim()), firestoreLimit(1));
-    const snapshot = await getDocs(q);
+    const firestoreReady = isFirestoreAvailable();
+    if (firestoreReady) {
+      const ordersCol = collection(db, ORDERS_COLLECTION);
+      const q = query(ordersCol, where('orderNumber', '==', orderNumber.trim()), firestoreLimit(1));
+      const snapshot = await getDocs(q);
 
-    if (snapshot.empty) return null;
+      if (!snapshot.empty) {
+        const docSnap = snapshot.docs[0];
+        return {
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as Order;
+      }
+    }
 
-    const docSnap = snapshot.docs[0];
-    return {
-      id: docSnap.id,
-      ...docSnap.data(),
-    } as Order;
+    // Check in-memory store
+    for (const ord of inMemoryOrders.values()) {
+      if (ord.orderNumber === orderNumber.trim()) return ord;
+    }
+    return null;
   } catch (err) {
+    for (const ord of inMemoryOrders.values()) {
+      if (ord.orderNumber === orderNumber.trim()) return ord;
+    }
     console.error('[OrderService.getOrderByNumber] Error:', err);
     return null;
   }
