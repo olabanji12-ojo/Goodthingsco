@@ -17,6 +17,7 @@
     "test:custom": "tsc -p tsconfig.custom-tests.json && node scripts/custom.mjs",
     "test:settings": "tsc -p tsconfig.settings-tests.json && node scripts/settings.mjs",
     "test:content": "tsc -p tsconfig.content-tests.json && node scripts/content.mjs",
+    "test:paystack": "tsc -p tsconfig.payment-tests.json && node scripts/paystack.mjs",
     "admin:claim": "node scripts/set-admin-claim.mjs",
     "build": "vite build",
     "preview": "vite preview"

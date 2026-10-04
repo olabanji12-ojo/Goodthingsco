@@ -20,6 +20,7 @@
     { "path": "./tsconfig.custom-tests.json" },
     { "path": "./tsconfig.settings-tests.json" },
     { "path": "./tsconfig.content-tests.json" },
-    { "path": "./tsconfig.checkout-tests.json" }
+    { "path": "./tsconfig.checkout-tests.json" },
+    { "path": "./tsconfig.payment-tests.json" }
   ]
 }
