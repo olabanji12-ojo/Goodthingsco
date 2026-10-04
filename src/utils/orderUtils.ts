@@ -5,8 +5,8 @@
  * currency conversions (Naira <-> Kobo), and order item formatting.
  */
 
-import { CartItem } from '../types/cart';
-import { OrderItem } from '../types/order';
+import { CartItem } from '../types/cart.js';
+import { OrderItem } from '../types/order.js';
 
 /**
  * Generates a clean, customer-support friendly unique order number.

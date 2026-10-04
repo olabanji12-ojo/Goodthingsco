@@ -1,5 +1,5 @@
-import type { OrderEmailData, OrderEmailEvent } from '../types';
-import { money, renderLayout, safeUrl, type EmailTemplate } from './layout';
+import type { OrderEmailData, OrderEmailEvent } from '../types.js';
+import { money, renderLayout, safeUrl, type EmailTemplate } from './layout.js';
 
 const statusCopy = {
   ORDER_PREPARING: ['Preparing', 'We are thoughtfully preparing your order.'],

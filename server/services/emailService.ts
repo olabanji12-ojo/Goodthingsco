@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { env } from 'node:process';
-import { getEmailConfig, isEmailAddress, type EmailConfig } from '../email/config';
-import { renderEmail } from '../email/templates';
+import { getEmailConfig, isEmailAddress, type EmailConfig } from '../email/config.js';
+import { renderEmail } from '../email/templates/index.js';
 import { STATUS_EVENTS, type AbandonedCheckoutData, type CorporateQuoteEmailData, type CustomQuoteEmailData, type EmailNotification, type EmailResult,
-  type FulfillmentStatus, type NotificationLog, type OrderEmailData, type RequestEmailData } from '../email/types';
+  type FulfillmentStatus, type NotificationLog, type OrderEmailData, type RequestEmailData } from '../email/types.js';
 
 interface EmailDependencies {
   config?: () => EmailConfig;

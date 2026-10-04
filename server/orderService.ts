@@ -22,25 +22,25 @@ import {
   runTransaction,
   limit as firestoreLimit,
   type Transaction,
-} from './orderFirestore';
-import { db } from './firebase';
-import { notificationService } from './services/notificationService';
-import { effectiveHistory } from './orders/domain';
-import { Order, OrderItem, OrderStatus } from '../src/types/order';
-import { ValidatedCheckoutPayload } from '../src/types/checkout';
+} from './orderFirestore.js';
+import { db } from './firebase.js';
+import { notificationService } from './services/notificationService.js';
+import { effectiveHistory } from './orders/domain.js';
+import { Order, OrderItem, OrderStatus } from '../src/types/order.js';
+import { ValidatedCheckoutPayload } from '../src/types/checkout.js';
 import {
   generateOrderNumber,
   generatePaystackReference,
   nairaToKobo,
   mapCartItemToOrderItem,
-} from '../src/utils/orderUtils';
-import { resolveDeliveryZone, getDeliveryFeeCalculation } from '../src/config/shipping';
+} from '../src/utils/orderUtils.js';
+import { resolveDeliveryZone, getDeliveryFeeCalculation } from '../src/config/shipping.js';
 import {
   initializePaystackTransaction,
   verifyPaystackTransaction,
-} from './paystackService';
-import { abandonedCheckoutService } from './checkout/service';
-import { settingsService } from './settings/service';
+} from './paystackService.js';
+import { abandonedCheckoutService } from './checkout/service.js';
+import { settingsService } from './settings/service.js';
 
 export const ORDERS_COLLECTION = 'orders';
 export const PRODUCTS_COLLECTION = 'products';

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { orderManagement } from './service';
-import { OrderHttpError } from './domain';
+import { orderManagement } from './service.js';
+import { OrderHttpError } from './domain.js';
 
 async function readJson(req: IncomingMessage & { body?: unknown }): Promise<unknown> {
   if (!req.headers['content-type']?.toLowerCase().startsWith('application/json')) throw new OrderHttpError(415, 'Send a JSON request.');

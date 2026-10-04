@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-import type { Order, OrderStatusEntry, OrderStatus } from '../../src/types/order';
-import type { OrderUpdateInput, TrackingOrder, OrderListItem } from '../../src/types/orderManagement';
-import { ORDER_STATUS_LABELS, ORDER_TRANSITIONS, normalizeTrackingPhone, safeTrackingUrl } from '../../src/utils/orderManagement';
+import type { Order, OrderStatusEntry, OrderStatus } from '../../src/types/order.js';
+import type { OrderUpdateInput, TrackingOrder, OrderListItem } from '../../src/types/orderManagement.js';
+import { ORDER_STATUS_LABELS, ORDER_TRANSITIONS, normalizeTrackingPhone, safeTrackingUrl } from '../../src/utils/orderManagement.js';
 
 export class OrderHttpError extends Error {
   constructor(public status: number, message: string) { super(message); }

@@ -2,8 +2,8 @@
  * Good Things Co. — Store Settings Firestore Repository
  */
 
-import { getAdminFirestore } from '../firebase';
-import { DEFAULT_STORE_SETTINGS, type StoreSettings } from '../../src/types/settings';
+import { getAdminFirestore } from '../firebase.js';
+import { DEFAULT_STORE_SETTINGS, type StoreSettings } from '../../src/types/settings.js';
 
 export const SETTINGS_COLLECTION = 'settings';
 export const STORE_SETTINGS_DOC = 'store';

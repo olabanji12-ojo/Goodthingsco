@@ -11,7 +11,7 @@ import type {
   CorporateGiftType,
   CorporateBudgetRange,
   UploadedAssetReference,
-} from '../../src/types/corporate';
+} from '../../src/types/corporate.js';
 
 export class CorporateHttpError extends Error {
   constructor(public status: number, message: string) {

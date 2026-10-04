@@ -1,6 +1,6 @@
-import type { EmailNotification } from '../types';
-import { orderEmail } from './orderEmails';
-import { renderLayout, type EmailTemplate } from './layout';
+import type { EmailNotification } from '../types.js';
+import { orderEmail } from './orderEmails.js';
+import { renderLayout, type EmailTemplate } from './layout.js';
 
 export function renderEmail(notification: EmailNotification): EmailTemplate {
   if ('orderNumber' in notification.data) {

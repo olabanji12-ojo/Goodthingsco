@@ -2,24 +2,24 @@
  * Good Things Co. — Store Settings Orchestration Service
  */
 
-import { getAdminAuth } from '../firebase';
+import { getAdminAuth } from '../firebase.js';
 import {
   firestoreSettingsRepository,
   type StoreSettingsRepository,
-} from './repository';
+} from './repository.js';
 import {
   SettingsHttpError,
   validateStoreSettingsUpdate,
   applySettingsUpdate,
   toPublicSettings,
-} from './domain';
+} from './domain.js';
 import type {
   StoreSettings,
   PublicStoreSettings,
   ShippingSettings,
   QuoteDefaultsSettings,
   AbandonedCheckoutSettings,
-} from '../../src/types/settings';
+} from '../../src/types/settings.js';
 
 type AdminIdentity = { uid: string; admin?: unknown; email?: string };
 

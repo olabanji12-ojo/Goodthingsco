@@ -1,8 +1,8 @@
-import type { Order } from '../../src/types/order';
-import type { CorporateRequest } from '../../src/types/corporate';
-import type { CustomRequest } from '../../src/types/customRequest';
-import { toOrderEmailData, type DeliveryDetails, type EmailResult, type FulfillmentStatus } from '../email/types';
-import { emailService } from './emailService';
+import type { Order } from '../../src/types/order.js';
+import type { CorporateRequest } from '../../src/types/corporate.js';
+import type { CustomRequest } from '../../src/types/customRequest.js';
+import { toOrderEmailData, type DeliveryDetails, type EmailResult, type FulfillmentStatus } from '../email/types.js';
+import { emailService } from './emailService.js';
 
 // Channel orchestration boundary. Only email is implemented in this phase.
 // These hooks are internal: call after a trusted server operation has committed.

@@ -2,12 +2,12 @@
  * Good Things Co. — Server-Side Live Inventory & Pricing Revalidation for Recovered Checkouts
  */
 
-import { getAdminFirestore } from '../firebase';
-import type { CartItem } from '../../src/types/cart';
-import type { CheckoutRecoveryItem } from '../../src/types/abandonedCheckout';
-import { resolveDeliveryZone, getDeliveryFeeCalculation } from '../../src/config/shipping';
-import { mapRecoveryItemToCartItem } from './domain';
-import { settingsService } from '../settings/service';
+import { getAdminFirestore } from '../firebase.js';
+import type { CartItem } from '../../src/types/cart.js';
+import type { CheckoutRecoveryItem } from '../../src/types/abandonedCheckout.js';
+import { resolveDeliveryZone, getDeliveryFeeCalculation } from '../../src/config/shipping.js';
+import { mapRecoveryItemToCartItem } from './domain.js';
+import { settingsService } from '../settings/service.js';
 
 export const PRODUCTS_COLLECTION = 'products';
 

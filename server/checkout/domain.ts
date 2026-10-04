@@ -3,12 +3,12 @@
  */
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { CartItem } from '../../src/types/cart';
+import type { CartItem } from '../../src/types/cart.js';
 import type {
   AbandonedCheckoutSession,
   CheckoutRecoveryItem,
   CheckoutSessionInput,
-} from '../../src/types/abandonedCheckout';
+} from '../../src/types/abandonedCheckout.js';
 
 export class CheckoutHttpError extends Error {
   constructor(public status: number, message: string) {

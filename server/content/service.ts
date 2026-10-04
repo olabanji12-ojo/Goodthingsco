@@ -2,21 +2,21 @@
  * Good Things Co. — Website Content CMS Service
  */
 
-import { getAdminAuth } from '../firebase';
+import { getAdminAuth } from '../firebase.js';
 import {
   firestoreContentRepository,
   type ContentRepository,
-} from './repository';
+} from './repository.js';
 import {
   ContentHttpError,
   isValidPageId,
   validateAndSanitizePageContent,
-} from './domain';
+} from './domain.js';
 import type {
   ContentPageId,
   StoredPageContent,
   PageContentMap,
-} from '../../src/types/content';
+} from '../../src/types/content.js';
 
 type AdminIdentity = { uid: string; admin?: unknown; email?: string };
 

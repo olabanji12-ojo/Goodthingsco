@@ -1,4 +1,4 @@
-import type { Order, OrderDeliveryAddress, OrderStatus, PaymentStatus } from '../../src/types/order';
+import type { Order, OrderDeliveryAddress, OrderStatus, PaymentStatus } from '../../src/types/order.js';
 
 export const STATUS_EVENTS = {
   preparing: 'ORDER_PREPARING',

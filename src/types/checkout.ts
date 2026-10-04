@@ -5,8 +5,8 @@
  * form validation, and prepared order payloads for Paystack.
  */
 
-import { DeliveryZone } from '../config/shipping';
-import { CartItem } from './cart';
+import { DeliveryZone } from '../config/shipping.js';
+import { CartItem } from './cart.js';
 
 export interface CustomerDetails {
   fullName: string;

@@ -19,10 +19,10 @@ try {
     plugins: mode === 'test' ? [{ name: 'isolated-order-tests', setup(builder) {
       // Only test builds substitute Firebase and Paystack. No network or live writes.
       builder.onResolve({ filter: /^firebase\/firestore$/ }, () => ({ path: resolve(root, 'tests/email/orderMocks.ts') }));
-      builder.onResolve({ filter: /^\.\/orderFirestore$/ }, () => ({ path: resolve(root, 'tests/email/orderMocks.ts') }));
-      builder.onResolve({ filter: /^\.\/firebase$/ }, args => args.importer.endsWith('orderService.ts')
+      builder.onResolve({ filter: /^\.\/orderFirestore(?:\.js)?$/ }, () => ({ path: resolve(root, 'tests/email/orderMocks.ts') }));
+      builder.onResolve({ filter: /^\.\/firebase(?:\.js)?$/ }, args => args.importer.endsWith('orderService.ts')
         ? { path: resolve(root, 'tests/email/orderMocks.ts') } : undefined);
-      builder.onResolve({ filter: /^\.\/paystackService$/ }, args => args.importer.endsWith('orderService.ts')
+      builder.onResolve({ filter: /^\.\/paystackService(?:\.js)?$/ }, args => args.importer.endsWith('orderService.ts')
         ? { path: resolve(root, 'tests/email/orderMocks.ts') } : undefined);
     } }] : [],
   });

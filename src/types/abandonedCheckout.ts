@@ -2,8 +2,8 @@
  * Good Things Co. — Abandoned Checkout Type Definitions
  */
 
-import type { CartItem } from './cart';
-import type { CustomerDetails, RecipientDetails, DeliveryDetails } from './checkout';
+import type { CartItem } from './cart.js';
+import type { CustomerDetails, RecipientDetails, DeliveryDetails } from './checkout.js';
 
 export type AbandonedCheckoutStatus =
   | 'active'

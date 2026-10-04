@@ -1,6 +1,6 @@
-import type { Order } from '../../src/types/order';
-import type { OrderUpdateResult } from '../../src/types/orderManagement';
-import { getAdminFirestore } from '../firebase';
+import type { Order } from '../../src/types/order.js';
+import type { OrderUpdateResult } from '../../src/types/orderManagement.js';
+import { getAdminFirestore } from '../firebase.js';
 
 export interface ChangeReceipt {
   hash: string;

@@ -12,7 +12,7 @@ import type {
   CustomQuoteUpdateInput,
   CustomRequestAsset,
   CustomAssetCategory,
-} from '../../src/types/customRequest';
+} from '../../src/types/customRequest.js';
 
 export class CustomHttpError extends Error {
   constructor(public statusCode: number, message: string) {

@@ -1,10 +1,10 @@
-import { getAdminAuth } from '../firebase';
-import { notificationService } from '../services/notificationService';
-import { settingsService } from '../settings/service';
+import { getAdminAuth } from '../firebase.js';
+import { notificationService } from '../services/notificationService.js';
+import { settingsService } from '../settings/service.js';
 import {
   firestoreCustomRequests,
   type CustomRequestRepository,
-} from './repository';
+} from './repository.js';
 import {
   CustomHttpError,
   generateCustomReferenceNumber,
@@ -13,14 +13,14 @@ import {
   canTransitionCustomStatus,
   sanitizeText,
   PRODUCTION_STAGES,
-} from './domain';
+} from './domain.js';
 import type {
   CustomRequest,
   CustomRequestSubmissionInput,
   CustomQuoteUpdateInput,
   CustomStatusUpdateInput,
   CustomRequestStatus,
-} from '../../src/types/customRequest';
+} from '../../src/types/customRequest.js';
 
 type AdminIdentity = { uid: string; admin?: unknown; email?: string };
 

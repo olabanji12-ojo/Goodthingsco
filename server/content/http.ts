@@ -4,9 +4,9 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'url';
-import { contentService } from './service';
-import { ContentHttpError, isValidPageId } from './domain';
-import type { ContentPageId } from '../../src/types/content';
+import { contentService } from './service.js';
+import { ContentHttpError, isValidPageId } from './domain.js';
+import type { ContentPageId } from '../../src/types/content.js';
 
 async function readJson(req: IncomingMessage & { body?: unknown }): Promise<any> {
   if (req.body !== undefined) {

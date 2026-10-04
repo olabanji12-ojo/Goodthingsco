@@ -2,9 +2,9 @@
  * Good Things Co. — Website Content Firestore Repository
  */
 
-import { getAdminFirestore } from '../firebase';
-import type { ContentPageId, StoredPageContent, PageContentMap } from '../../src/types/content';
-import { DEFAULT_PAGE_CONTENTS, isValidPageId } from './domain';
+import { getAdminFirestore } from '../firebase.js';
+import type { ContentPageId, StoredPageContent, PageContentMap } from '../../src/types/content.js';
+import { DEFAULT_PAGE_CONTENTS, isValidPageId } from './domain.js';
 
 export interface ContentRepository {
   getPageContent<T extends ContentPageId>(pageId: T): Promise<StoredPageContent<PageContentMap[T]>>;

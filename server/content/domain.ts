@@ -5,7 +5,7 @@
 import type {
   ContentPageId,
   PageContentMap,
-} from '../../src/types/content';
+} from '../../src/types/content.js';
 
 export class ContentHttpError extends Error {
   constructor(public statusCode: number, message: string) {

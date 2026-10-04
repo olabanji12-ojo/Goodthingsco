@@ -5,8 +5,8 @@
 import type {
   CustomRequest,
   CustomStatusHistoryEntry,
-} from '../../src/types/customRequest';
-import { getAdminFirestore } from '../firebase';
+} from '../../src/types/customRequest.js';
+import { getAdminFirestore } from '../firebase.js';
 
 export const CUSTOM_REQUESTS_COLLECTION = 'customRequests';
 

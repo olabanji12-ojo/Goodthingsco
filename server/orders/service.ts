@@ -1,11 +1,11 @@
 import { createHash, randomBytes } from 'node:crypto';
-import type { OrderUpdateResult } from '../../src/types/orderManagement';
-import { getAdminAuth } from '../firebase';
-import { notificationService } from '../services/notificationService';
-import { STATUS_EVENTS, type FulfillmentStatus } from '../email/types';
-import { firestoreOrders, type OrderRepository } from './repository';
-import { OrderHttpError, TRACKING_MISS, applyUpdate, effectiveHistory, listSummary, parseTracking, trackingSummary, validateUpdate, verificationMatches } from './domain';
-import { normalizeTrackingPhone } from '../../src/utils/orderManagement';
+import type { OrderUpdateResult } from '../../src/types/orderManagement.js';
+import { getAdminAuth } from '../firebase.js';
+import { notificationService } from '../services/notificationService.js';
+import { STATUS_EVENTS, type FulfillmentStatus } from '../email/types.js';
+import { firestoreOrders, type OrderRepository } from './repository.js';
+import { OrderHttpError, TRACKING_MISS, applyUpdate, effectiveHistory, listSummary, parseTracking, trackingSummary, validateUpdate, verificationMatches } from './domain.js';
+import { normalizeTrackingPhone } from '../../src/utils/orderManagement.js';
 
 type Identity = { uid: string; admin?: unknown; email?: string };
 interface Dependencies {

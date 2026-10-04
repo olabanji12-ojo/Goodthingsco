@@ -23,7 +23,21 @@ export async function initializeOrderPayment(
       body: JSON.stringify({ payload }),
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return {
+        success: false,
+        reference: '',
+        orderNumber: '',
+        orderId: '',
+        message: response.status >= 500
+          ? 'Payment server is temporarily unavailable. Please try again shortly.'
+          : 'Unexpected server response. Please try again.',
+      };
+    }
 
     if (!response.ok || !data.success) {
       return {
@@ -70,7 +84,18 @@ export async function verifyOrderPayment(
       body: JSON.stringify({ reference }),
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return {
+        success: false,
+        message: response.status >= 500
+          ? 'Verification server is temporarily unavailable. Please try again shortly.'
+          : 'Unexpected response verifying payment.',
+      };
+    }
 
     if (!response.ok || !data.success) {
       return {

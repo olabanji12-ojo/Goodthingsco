@@ -2,12 +2,12 @@
  * Good Things Co. — Abandoned Checkout Orchestration Service
  */
 
-import { getAbandonedCheckoutConfig, type AbandonedCheckoutConfig } from './abandonedConfig';
-import { settingsService } from '../settings/service';
+import { getAbandonedCheckoutConfig, type AbandonedCheckoutConfig } from './abandonedConfig.js';
+import { settingsService } from '../settings/service.js';
 import {
   firestoreAbandonedCheckouts,
   type AbandonedCheckoutRepository,
-} from './repository';
+} from './repository.js';
 import {
   CheckoutHttpError,
   createResumeToken,
@@ -15,14 +15,14 @@ import {
   hashResumeToken,
   sanitizeSessionForPersistence,
   verifyResumeToken,
-} from './domain';
-import { revalidateRecoveredCheckout } from './revalidation';
-import { notificationService } from '../services/notificationService';
+} from './domain.js';
+import { revalidateRecoveredCheckout } from './revalidation.js';
+import { notificationService } from '../services/notificationService.js';
 import type {
   AbandonedCheckoutSession,
   CheckoutSessionInput,
   RecoveredCheckoutPayload,
-} from '../../src/types/abandonedCheckout';
+} from '../../src/types/abandonedCheckout.js';
 
 interface ServiceDependencies {
   repository?: AbandonedCheckoutRepository;

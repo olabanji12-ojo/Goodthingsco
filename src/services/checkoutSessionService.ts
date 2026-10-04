@@ -51,7 +51,15 @@ export async function initCheckoutSession(
       body: JSON.stringify({ ...input, sessionId: existingId }),
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.warn(`[CheckoutSession] Server returned non-JSON response (${response.status}) during session init`);
+      return null;
+    }
+
     if (!response.ok || !data.success) {
       console.warn('[CheckoutSession] Failed to initialize session:', data?.message);
       return null;
@@ -85,7 +93,15 @@ export async function autosaveCheckoutSession(
       body: JSON.stringify(updates),
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.warn(`[CheckoutSession] Server returned non-JSON response (${response.status}) during autosave`);
+      return false;
+    }
+
     return Boolean(response.ok && data.success);
   } catch (error) {
     console.warn('[CheckoutSession] Autosave failed:', error);
@@ -171,7 +187,17 @@ export async function resumeCheckoutSession(
       headers: { Accept: 'application/json' },
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return {
+        success: false,
+        message: 'Could not parse response from checkout recovery service.',
+      };
+    }
+
     if (!response.ok || !data.success) {
       return {
         success: false,
@@ -210,7 +236,14 @@ export async function markCheckoutSessionConverted(
       body: JSON.stringify({ orderId, orderNumber }),
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return false;
+    }
+
     clearStoredSessionId();
     return Boolean(response.ok && data.success);
   } catch {

@@ -2,13 +2,13 @@
  * Good Things Co. — Corporate Requests Orchestration Service
  */
 
-import { getAdminAuth } from '../firebase';
-import { notificationService } from '../services/notificationService';
-import { settingsService } from '../settings/service';
+import { getAdminAuth } from '../firebase.js';
+import { notificationService } from '../services/notificationService.js';
+import { settingsService } from '../settings/service.js';
 import {
   firestoreCorporateRequests,
   type CorporateRequestRepository,
-} from './repository';
+} from './repository.js';
 import {
   CorporateHttpError,
   generateCorporateReferenceNumber,
@@ -16,13 +16,13 @@ import {
   calculateQuoteTotal,
   canTransitionStatus,
   sanitizeText,
-} from './domain';
+} from './domain.js';
 import type {
   CorporateRequest,
   CorporateRequestSubmissionInput,
   CorporateQuoteUpdateInput,
   CorporateStatusUpdateInput,
-} from '../../src/types/corporate';
+} from '../../src/types/corporate.js';
 
 type AdminIdentity = { uid: string; admin?: unknown; email?: string };
 

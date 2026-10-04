@@ -1,4 +1,4 @@
-import type { Order, OrderStatus, PaymentStatus } from './order';
+import type { Order, OrderStatus, PaymentStatus } from './order.js';
 
 export interface OrderUpdateInput {
   eventId: string;

@@ -19,8 +19,9 @@
     "test:content": "tsc -p tsconfig.content-tests.json && node scripts/content.mjs",
     "test:paystack": "tsc -p tsconfig.payment-tests.json && node scripts/paystack.mjs",
     "admin:claim": "node scripts/set-admin-claim.mjs",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "npm run test:api-runtime && vite build",
+    "preview": "vite preview",
+    "test:api-runtime": "node scripts/checkApiRuntime.mjs"
   },
   "dependencies": {
     "firebase": "^11.4.0",

@@ -6,14 +6,14 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { handleOrderHttp } from '../server/orders/http';
-import { handleCheckoutHttp } from '../server/checkout/http';
-import { handleCorporateHttp } from '../server/corporate/http';
-import { handleCustomHttp } from '../server/custom/http';
-import { handleSettingsHttp } from '../server/settings/http';
-import { handleContentHttp } from '../server/content/http';
-import { createPendingOrderServer, confirmPaidOrderServer } from '../server/orderService';
-import { verifyWebhookSignature } from '../server/paystackService';
+import { handleOrderHttp } from '../server/orders/http.js';
+import { handleCheckoutHttp } from '../server/checkout/http.js';
+import { handleCorporateHttp } from '../server/corporate/http.js';
+import { handleCustomHttp } from '../server/custom/http.js';
+import { handleSettingsHttp } from '../server/settings/http.js';
+import { handleContentHttp } from '../server/content/http.js';
+import { createPendingOrderServer, confirmPaidOrderServer } from '../server/orderService.js';
+import { verifyWebhookSignature } from '../server/paystackService.js';
 
 async function parseBody(req: IncomingMessage & { body?: any }): Promise<any> {
   if (req.body !== undefined) {
@@ -49,6 +49,22 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
 
 export default async function handler(req: IncomingMessage & { body?: any }, res: ServerResponse) {
   try {
+    // When deployed on Vercel with rewrites, req.url may be rewritten to '/api'.
+    // Restore the actual original client request path from Vercel's x-matched-path or x-forwarded-uri headers.
+    const matchedPath = (req.headers['x-matched-path'] as string)
+      || (req.headers['x-forwarded-uri'] as string)
+      || (req.headers['x-original-url'] as string);
+
+    if (matchedPath && matchedPath.startsWith('/api/')) {
+      req.url = matchedPath;
+    } else if (req.url?.startsWith('/api?path=')) {
+      const parsedUrl = new URL(req.url, 'http://localhost');
+      const paramPath = parsedUrl.searchParams.get('path');
+      if (paramPath) {
+        req.url = `/api/${paramPath.replace(/^\//, '')}`;
+      }
+    }
+
     // 1. Delegate to domain handlers
     if (await handleOrderHttp(req, res)) return;
     if (await handleCheckoutHttp(req, res)) return;

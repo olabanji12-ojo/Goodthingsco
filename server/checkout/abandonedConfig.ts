@@ -1,4 +1,4 @@
-import type { AbandonedCheckoutSettings } from '../../src/types/settings';
+import type { AbandonedCheckoutSettings } from '../../src/types/settings.js';
 
 export interface AbandonedCheckoutConfig {
   abandonedAfterMinutes: number;

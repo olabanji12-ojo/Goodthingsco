@@ -5,8 +5,8 @@
 import type {
   CorporateRequest,
   CorporateStatusHistoryEntry,
-} from '../../src/types/corporate';
-import { getAdminFirestore } from '../firebase';
+} from '../../src/types/corporate.js';
+import { getAdminFirestore } from '../firebase.js';
 
 export const CORPORATE_REQUESTS_COLLECTION = 'corporateRequests';
 

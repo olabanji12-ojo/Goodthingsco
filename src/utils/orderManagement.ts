@@ -1,4 +1,4 @@
-import type { OrderStatus } from '../types/order';
+import type { OrderStatus } from '../types/order.js';
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   'pending-payment': 'Pending Payment', confirmed: 'Confirmed', preparing: 'Preparing', packaged: 'Packaged',

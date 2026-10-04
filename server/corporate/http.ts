@@ -4,8 +4,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'url';
-import { corporateManagement } from './service';
-import { CorporateHttpError } from './domain';
+import { corporateManagement } from './service.js';
+import { CorporateHttpError } from './domain.js';
 
 async function readJson(req: IncomingMessage & { body?: unknown }): Promise<any> {
   if (req.body !== undefined) {

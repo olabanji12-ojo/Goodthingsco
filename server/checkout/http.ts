@@ -4,8 +4,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'url';
-import { abandonedCheckoutService } from './service';
-import { CheckoutHttpError } from './domain';
+import { abandonedCheckoutService } from './service.js';
+import { CheckoutHttpError } from './domain.js';
 
 async function readJson(req: IncomingMessage & { body?: unknown }): Promise<any> {
   if (req.body !== undefined) {

@@ -7,8 +7,8 @@ import type {
   PublicStoreSettings,
   StoreSettingsUpdateInput,
   ShippingSettings,
-} from '../../src/types/settings';
-import type { DeliveryZone } from '../../src/config/shipping';
+} from '../../src/types/settings.js';
+import type { DeliveryZone } from '../../src/config/shipping.js';
 
 export class SettingsHttpError extends Error {
   constructor(public statusCode: number, message: string) {
