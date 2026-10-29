@@ -351,7 +351,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
       slug: slug.trim() ? slugify(slug) : slugify(name),
       description: description.trim(),
       price: isNaN(numPrice) ? 0 : numPrice,
-      compareAtPrice: numComparePrice,
+      ...(numComparePrice !== undefined && !isNaN(numComparePrice) ? { compareAtPrice: numComparePrice } : {}),
       category: selectedCategory,
       stock: isNaN(numStock) ? 0 : numStock,
       isAvailable,
@@ -369,7 +369,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
             enabled: true,
             messageAllowed,
             customTextAllowed,
-            maxTextLength: customTextAllowed ? parseInt(maxTextLength, 10) || 24 : undefined,
+            ...(customTextAllowed ? { maxTextLength: parseInt(maxTextLength, 10) || 24 } : {}),
           }
         : { enabled: false },
     };

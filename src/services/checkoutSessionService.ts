@@ -15,11 +15,18 @@ import type {
   RecoveredCheckoutPayload,
 } from '../types/abandonedCheckout';
 
+const TOKEN_STORAGE_KEY = 'gtc_checkout_session_token';
+export function getStoredSessionToken(): string | null {
+  try { return sessionStorage.getItem(TOKEN_STORAGE_KEY); } catch { return null; }
+}
+function storeToken(token: string): void {
+  try { sessionStorage.setItem(TOKEN_STORAGE_KEY, token); } catch {}
+}
 const SESSION_STORAGE_KEY = 'gtc_checkout_session_id';
 
 export function getStoredSessionId(): string | null {
   try {
-    return sessionStorage.getItem(SESSION_STORAGE_KEY);
+    return getStoredSessionToken() ? sessionStorage.getItem(SESSION_STORAGE_KEY) : null;
   } catch {
     return null;
   }
@@ -34,6 +41,7 @@ export function setStoredSessionId(id: string): void {
 export function clearStoredSessionId(): void {
   try {
     sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
   } catch {}
 }
 
@@ -44,10 +52,10 @@ export async function initCheckoutSession(
   input: CheckoutSessionInput
 ): Promise<{ sessionId: string; resumeToken: string; resumeUrl: string } | null> {
   try {
-    const existingId = input.sessionId || getStoredSessionId() || undefined;
+    const existingId = getStoredSessionToken() ? input.sessionId || getStoredSessionId() || undefined : undefined;
     const response = await fetch('/api/checkout/session', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getStoredSessionToken() || ''}` },
       body: JSON.stringify({ ...input, sessionId: existingId }),
     });
 
@@ -61,11 +69,15 @@ export async function initCheckoutSession(
     }
 
     if (!response.ok || !data.success) {
+      if (response.status === 403 || response.status === 404 || response.status === 409) {
+        clearStoredSessionId();
+      }
       console.warn('[CheckoutSession] Failed to initialize session:', data?.message);
       return null;
     }
 
     if (data.sessionId) {
+      storeToken(data.resumeToken);
       setStoredSessionId(data.sessionId);
     }
     return {
@@ -89,7 +101,7 @@ export async function autosaveCheckoutSession(
   try {
     const response = await fetch(`/api/checkout/session/${sessionId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getStoredSessionToken() || ''}` },
       body: JSON.stringify(updates),
     });
 
@@ -102,8 +114,14 @@ export async function autosaveCheckoutSession(
       return false;
     }
 
-    return Boolean(response.ok && data.success);
+    if (response.status === 403 || response.status === 404 || response.status === 409 || !response.ok) {
+      clearStoredSessionId();
+      return false;
+    }
+
+    return Boolean(data.success);
   } catch (error) {
+    clearStoredSessionId();
     console.warn('[CheckoutSession] Autosave failed:', error);
     return false;
   }
@@ -143,7 +161,11 @@ export function createCheckoutAutosaver(debounceMs = 1000) {
           sessionId = initResult.sessionId;
         }
       } else {
-        await autosaveCheckoutSession(sessionId, input);
+        const ok = await autosaveCheckoutSession(sessionId, input);
+        if (!ok) {
+          clearStoredSessionId();
+          await initCheckoutSession(input);
+        }
       }
     } finally {
       inFlight = false;
@@ -182,9 +204,10 @@ export async function resumeCheckoutSession(
   token: string
 ): Promise<{ success: boolean; payload?: RecoveredCheckoutPayload; message?: string }> {
   try {
-    const response = await fetch(`/api/checkout/resume?token=${encodeURIComponent(token)}`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
+    const response = await fetch('/api/checkout/resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
     });
 
     const text = await response.text();
@@ -206,6 +229,7 @@ export async function resumeCheckoutSession(
     }
 
     if (data.payload?.sessionId) {
+      storeToken(token);
       setStoredSessionId(data.payload.sessionId);
     }
 
@@ -232,7 +256,7 @@ export async function markCheckoutSessionConverted(
   try {
     const response = await fetch(`/api/checkout/session/${sessionId}/convert`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getStoredSessionToken() || ''}` },
       body: JSON.stringify({ orderId, orderNumber }),
     });
 

@@ -17,6 +17,7 @@ import {
   confirmPaidOrderServer,
 } from './orderService';
 import { verifyWebhookSignature } from './paystackService';
+import { verifyFlutterwaveWebhookSignature } from './flutterwaveService';
 import { handleOrderHttp } from './orders/http';
 import { handleCheckoutHttp } from './checkout/http';
 import { handleCorporateHttp } from './corporate/http';
@@ -62,42 +63,49 @@ export function devApiPlugin(): Plugin {
         const url = req.url || '';
         const method = (req.method || 'GET').toUpperCase();
 
-        // 1. POST /api/paystack/initialize
-        if (url === '/api/paystack/initialize' && method === 'POST') {
+        // 1. POST /api/paystack/initialize, /api/flutterwave/initialize, /api/payment/initialize
+        if ((url === '/api/paystack/initialize' || url === '/api/flutterwave/initialize' || url === '/api/payment/initialize') && method === 'POST') {
           try {
             const body = await parseBody(req);
             const protocol = req.headers['x-forwarded-proto'] || 'http';
             const host = req.headers.host || 'localhost:5174';
             const origin = `${protocol}://${host}`;
 
-            const result = await createPendingOrderServer(body.payload, origin);
+            const payload = { ...body.payload };
+            if (url === '/api/flutterwave/initialize') {
+              payload.paymentProvider = 'flutterwave';
+            }
+
+            const checkoutToken = (req.headers.authorization as string | undefined)?.replace(/^Bearer /, '');
+            const result = await createPendingOrderServer(payload, origin, checkoutToken);
             if (!result.success) {
               return sendJson(res, 400, result);
             }
             return sendJson(res, 200, result);
           } catch (err: any) {
-            console.error('[API /api/paystack/initialize] Error:', err);
+            console.error('[API payment initialize] Error:', err);
             return sendJson(res, 500, { success: false, message: err?.message || 'Server error' });
           }
         }
 
-        // 2. POST /api/paystack/verify
-        if (url === '/api/paystack/verify' && method === 'POST') {
+        // 2. POST /api/paystack/verify, /api/flutterwave/verify, /api/payment/verify
+        if ((url === '/api/paystack/verify' || url === '/api/flutterwave/verify' || url === '/api/payment/verify') && method === 'POST') {
           try {
             const body = await parseBody(req);
-            const reference = body.reference;
+            const reference = body.reference || body.tx_ref;
+            const transactionId = body.transactionId || body.transaction_id;
 
             if (!reference) {
               return sendJson(res, 400, { success: false, message: 'Missing transaction reference' });
             }
 
-            const result = await confirmPaidOrderServer(reference);
+            const result = await confirmPaidOrderServer(reference, transactionId);
             if (!result.success) {
               return sendJson(res, 400, result);
             }
             return sendJson(res, 200, result);
           } catch (err: any) {
-            console.error('[API /api/paystack/verify] Error:', err);
+            console.error('[API payment verify] Error:', err);
             return sendJson(res, 500, { success: false, message: err?.message || 'Server error' });
           }
         }
@@ -129,6 +137,38 @@ export function devApiPlugin(): Plugin {
             return sendJson(res, 200, { status: 'received' });
           } catch (err: any) {
             console.error('[API /api/paystack/webhook] Error:', err);
+            return sendJson(res, 500, { message: 'Webhook processing error' });
+          }
+        }
+
+        // 4. POST /api/flutterwave/webhook
+        if (url === '/api/flutterwave/webhook' && method === 'POST') {
+          try {
+            let rawBody = '';
+            await new Promise<void>((resolve) => {
+              req.on('data', (chunk) => {
+                rawBody += chunk.toString();
+              });
+              req.on('end', () => resolve());
+            });
+
+            const signature = req.headers['verif-hash'] as string | undefined;
+            const isValid = verifyFlutterwaveWebhookSignature(signature);
+
+            if (!isValid && process.env.FLUTTERWAVE_SECRET_HASH) {
+              console.warn('[Webhook] Invalid Flutterwave signature received');
+              return sendJson(res, 400, { message: 'Invalid webhook signature' });
+            }
+
+            const event = JSON.parse(rawBody);
+            const reference = event.data?.tx_ref || event.txRef || event.data?.reference;
+            if (reference && (event.event === 'charge.completed' || event.data?.status === 'successful')) {
+              await confirmPaidOrderServer(reference);
+            }
+
+            return sendJson(res, 200, { status: 'received' });
+          } catch (err: any) {
+            console.error('[API /api/flutterwave/webhook] Error:', err);
             return sendJson(res, 500, { message: 'Webhook processing error' });
           }
         }

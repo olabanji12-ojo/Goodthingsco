@@ -44,9 +44,17 @@ export interface QuoteDefaultsSettings {
   customDefaultValidityDays: number;
 }
 
+export interface PackagingSettings {
+  giftBoxFee: number;
+  linenBagFee: number;
+  woodenBoxFee: number;
+  pouchFee: number;
+}
+
 export interface StoreSettings {
   business: BusinessSettings;
   shipping: ShippingSettings;
+  packaging?: PackagingSettings;
   abandonedCheckout: AbandonedCheckoutSettings;
   quotes: QuoteDefaultsSettings;
   updatedAt: string;
@@ -73,6 +81,7 @@ export interface PublicStoreSettings {
     otherNigeria: PublicZoneDeliveryConfig;
     international: PublicInternationalDeliveryConfig;
   };
+  packaging?: PackagingSettings;
 }
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
@@ -84,7 +93,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   shipping: {
     lagos: {
       enabled: true,
-      fee: 3500,
+      fee: 0,
       estimatedMinDays: 1,
       estimatedMaxDays: 2,
       label: 'Lagos Delivery',
@@ -92,7 +101,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
     },
     otherNigeria: {
       enabled: true,
-      fee: 7500,
+      fee: 0,
       estimatedMinDays: 3,
       estimatedMaxDays: 5,
       label: 'Other Nigerian States',
@@ -106,6 +115,12 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
       estimatedMaxDays: 10,
       notice: 'Worldwide courier dispatch via DHL/FedEx partner services (Quote confirmed before dispatch)',
     },
+  },
+  packaging: {
+    giftBoxFee: 0,
+    linenBagFee: 0,
+    woodenBoxFee: 0,
+    pouchFee: 0,
   },
   abandonedCheckout: {
     abandonedAfterMinutes: 60,
@@ -128,6 +143,7 @@ export type StoreSettingsUpdateInput = {
     otherNigeria?: Partial<ZoneDeliverySettings>;
     international?: Partial<InternationalDeliverySettings>;
   };
+  packaging?: Partial<PackagingSettings>;
   abandonedCheckout?: Partial<AbandonedCheckoutSettings>;
   quotes?: Partial<QuoteDefaultsSettings>;
 };

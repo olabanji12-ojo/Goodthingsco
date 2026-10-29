@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
+import { onIdTokenChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 interface AdminAuthContextType {
@@ -12,17 +12,6 @@ interface AdminAuthContextType {
   clearError(): void;
 }
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
-const ADMIN_EMAILS = [
-  'olabanji@gmail.com',
-  'ojo@gmail.com',
-  'emmanuelojo291@gmail.com',
-  'tofunmieolabanji@gmail.com',
-];
-function checkIsAdmin(user: any, token: any): boolean {
-  if (token?.claims?.admin === true) return true;
-  const email = (user?.email || '').toLowerCase();
-  return ADMIN_EMAILS.includes(email);
-}
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -32,12 +21,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try { localStorage.removeItem('gtc_admin_auth'); } catch { /* Storage may be disabled. Firebase remains the authority. */ }
     let generation = 0;
-    const unsubscribe = onAuthStateChanged(auth, async (current: any) => {
+    const unsubscribe = onIdTokenChanged(auth, async (current: any) => {
       const version = ++generation;
       setUser(null); setAuthorized(false); setLoading(true);
       try {
         const token = current ? await current.getIdTokenResult() : null;
-        if (version === generation) { setUser(current); setAuthorized(checkIsAdmin(current, token)); }
+        if (version === generation) { setUser(current); setAuthorized(token?.claims.admin === true); }
       } catch { if (version === generation) setError('Please sign in again.'); }
       finally { if (version === generation) setLoading(false); }
     });
@@ -48,7 +37,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       const credential = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
       const token = await (credential.user as any).getIdTokenResult(true);
-      if (!checkIsAdmin(credential.user, token)) {
+      if (token.claims.admin !== true) {
         await signOut(auth);
         throw new Error('This account does not have administrator access. Contact the store owner.');
       }

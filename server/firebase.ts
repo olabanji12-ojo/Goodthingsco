@@ -42,7 +42,10 @@ export function getAdminApp() {
 const configured = new WeakSet<object>();
 export function getAdminFirestore() {
   const database = getFirestore(getAdminApp());
-  if (!configured.has(database)) { database.settings({ ignoreUndefinedProperties: true }); configured.add(database); }
+  if (!configured.has(database)) {
+    try { database.settings({ ignoreUndefinedProperties: true }); } catch { /* Already initialized */ }
+    configured.add(database);
+  }
   return database;
 }
 export const getAdminAuth = () => getAuth(getAdminApp());

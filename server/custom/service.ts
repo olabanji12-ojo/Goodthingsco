@@ -1,3 +1,4 @@
+import { authorizeAdmin } from '../auth/admin.js';
 import { getAdminAuth } from '../firebase.js';
 import { notificationService } from '../services/notificationService.js';
 import { settingsService } from '../settings/service.js';
@@ -39,25 +40,7 @@ export function createCustomManagement(dependencies: ServiceDependencies = {}) {
   const settings = dependencies.settings || settingsService;
   const now = dependencies.now || (() => new Date().toISOString());
 
-  async function requireAdmin(authorization?: string): Promise<AdminIdentity> {
-    if (!authorization || !/^Bearer \S{1,8192}$/.test(authorization)) {
-      throw new CustomHttpError(401, 'Administrator authentication required.');
-    }
-    const token = authorization.slice(7);
-    let identity: AdminIdentity;
-    try {
-      identity = await verify(token);
-    } catch {
-      throw new CustomHttpError(401, 'Invalid, revoked, or expired admin token.');
-    }
-
-    const isAllowed = identity.admin === true ||
-      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com', 'tofunmieolabanji@gmail.com'].includes(identity.email.toLowerCase()));
-    if (!isAllowed) {
-      throw new CustomHttpError(403, 'Administrator privilege required.');
-    }
-    return identity;
-  }
+  const requireAdmin = (authorization?: string) => authorizeAdmin(authorization, CustomHttpError, verify);
 
   function validateId(id: string): string {
     const clean = id?.trim();

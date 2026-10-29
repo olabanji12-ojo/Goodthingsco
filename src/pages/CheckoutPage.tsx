@@ -29,6 +29,7 @@ import {
   AlertCircle,
   ShoppingBag,
   Loader2,
+  CreditCard,
 } from 'lucide-react';
 import { initializeOrderPayment } from '../services/paymentService';
 import { GatewayNav } from '../components/gateway';
@@ -100,6 +101,7 @@ export const CheckoutPage: React.FC = () => {
   const [revalidationSummary, setRevalidationSummary] = useState<StockRevalidationSummary | null>(null);
   const [validatingOrder, setValidatingOrder] = useState<boolean>(false);
   const [initializingPayment, setInitializingPayment] = useState<boolean>(false);
+  const [paymentProvider, setPaymentProvider] = useState<'paystack' | 'flutterwave'>('paystack');
   const [preparedPayload, setPreparedPayload] = useState<ValidatedCheckoutPayload | null>(null);
   const [paymentNoticeOpen, setPaymentNoticeOpen] = useState<boolean>(false);
 
@@ -310,12 +312,13 @@ export const CheckoutPage: React.FC = () => {
         deliveryRequiresQuote: deliveryCalc.requiresQuote,
         validatedAt: new Date().toISOString(),
         checkoutSessionId: getStoredSessionId() || undefined,
+        paymentProvider,
       };
 
       setPreparedPayload(payload);
       setInitializingPayment(true);
 
-      const initResult = await initializeOrderPayment(payload);
+      const initResult = await initializeOrderPayment(payload, paymentProvider);
 
       if (!initResult.success || !initResult.authorizationUrl) {
         setErrors({
@@ -325,7 +328,7 @@ export const CheckoutPage: React.FC = () => {
         return;
       }
 
-      // Redirect to secure Paystack payment gateway
+      // Redirect to chosen secure payment gateway (Paystack or Flutterwave)
       window.location.href = initResult.authorizationUrl;
     } catch (err: any) {
       console.error('[CheckoutPage] Validation/Payment error:', err);
@@ -979,6 +982,66 @@ export const CheckoutPage: React.FC = () => {
                     </span>
                   </div>
 
+                  {/* Payment Gateway Selection */}
+                  <div className="pt-3 border-t border-brand-dark/10 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-sans text-xs font-semibold uppercase tracking-wider text-brand-dark flex items-center gap-1.5">
+                        <CreditCard size={14} className="text-gold-600" />
+                        Select Payment Method
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {/* Paystack Option */}
+                      <button
+                        type="button"
+                        id="payment-method-paystack"
+                        onClick={() => setPaymentProvider('paystack')}
+                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          paymentProvider === 'paystack'
+                            ? 'border-brand-dark bg-brand-dark/5 ring-1 ring-brand-dark shadow-xs'
+                            : 'border-brand-dark/15 hover:border-brand-dark/30 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="font-sans text-xs font-bold text-brand-dark">Paystack</span>
+                          <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                            paymentProvider === 'paystack' ? 'border-brand-dark bg-brand-dark' : 'border-brand-dark/30'
+                          }`}>
+                            {paymentProvider === 'paystack' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                        </div>
+                        <span className="font-sans text-[10px] text-brand-medium/80 leading-tight">
+                          Cards, Bank Transfer, USSD & Apple Pay
+                        </span>
+                      </button>
+
+                      {/* Flutterwave Option */}
+                      <button
+                        type="button"
+                        id="payment-method-flutterwave"
+                        onClick={() => setPaymentProvider('flutterwave')}
+                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          paymentProvider === 'flutterwave'
+                            ? 'border-brand-dark bg-brand-dark/5 ring-1 ring-brand-dark shadow-xs'
+                            : 'border-brand-dark/15 hover:border-brand-dark/30 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="font-sans text-xs font-bold text-brand-dark">Flutterwave</span>
+                          <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                            paymentProvider === 'flutterwave' ? 'border-brand-dark bg-brand-dark' : 'border-brand-dark/30'
+                          }`}>
+                            {paymentProvider === 'flutterwave' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                        </div>
+                        <span className="font-sans text-[10px] text-brand-medium/80 leading-tight">
+                          Cards, Transfer, USSD & Mobile Money
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Continue to Payment Button */}
                   <button
                     id="checkout-submit-button"
@@ -998,7 +1061,7 @@ export const CheckoutPage: React.FC = () => {
                     ) : initializingPayment ? (
                       <>
                         <Loader2 size={16} className="animate-spin text-gold-400" />
-                        <span>Connecting to Paystack...</span>
+                        <span>Connecting to {paymentProvider === 'flutterwave' ? 'Flutterwave' : 'Paystack'}...</span>
                       </>
                     ) : !deliveryCalc.enabled ? (
                       <span>Delivery Location Unavailable</span>
@@ -1006,7 +1069,7 @@ export const CheckoutPage: React.FC = () => {
                       <span>Shipping Quote Required</span>
                     ) : (
                       <>
-                        <span>Continue to Payment</span>
+                        <span>Pay with {paymentProvider === 'flutterwave' ? 'Flutterwave' : 'Paystack'}</span>
                         <span>→</span>
                       </>
                     )}
@@ -1044,7 +1107,7 @@ export const CheckoutPage: React.FC = () => {
                     Checkout Information Validated
                   </h3>
                   <p className="font-sans text-xs text-brand-light">
-                    Ready for the Paystack payment & order fulfillment phase.
+                    Ready for the {preparedPayload.paymentProvider === 'flutterwave' ? 'Flutterwave' : 'Paystack'} payment & order fulfillment phase.
                   </p>
                 </div>
               </div>

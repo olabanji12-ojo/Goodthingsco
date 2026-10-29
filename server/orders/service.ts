@@ -1,3 +1,4 @@
+import { authorizeAdmin } from '../auth/admin.js';
 import { createHash, randomBytes } from 'node:crypto';
 import type { OrderUpdateResult } from '../../src/types/orderManagement.js';
 import { getAdminAuth } from '../firebase.js';
@@ -19,18 +20,7 @@ export function createOrderManagement(dependencies: Partial<Dependencies> = {}) 
   const verify = dependencies.verify || (token => getAdminAuth().verifyIdToken(token, true));
   const notify = dependencies.notify || notificationService;
   const now = dependencies.now || (() => new Date().toISOString());
-  async function admin(authorization?: string) {
-    if (!authorization || !/^Bearer \S{1,8192}$/.test(authorization)) throw new OrderHttpError(401, 'Administrator sign-in required.');
-    let identity: Identity;
-    try { identity = await verify(authorization.slice(7)); } catch (error) {
-      if (error instanceof OrderHttpError && error.status === 503) throw error;
-      throw new OrderHttpError(401, 'Your session is invalid or expired. Please sign in again.');
-    }
-    const isAllowedAdmin = identity.admin === true ||
-      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com', 'tofunmieolabanji@gmail.com'].includes(identity.email.toLowerCase()));
-    if (!isAllowedAdmin) throw new OrderHttpError(403, 'Administrator permission required.');
-    return identity;
-  }
+  const admin = (authorization?: string) => authorizeAdmin(authorization, OrderHttpError, verify);
   function validId(id: string) {
     if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id)) throw new OrderHttpError(400, 'Invalid order ID.');
   }

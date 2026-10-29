@@ -1,3 +1,4 @@
+import { getStoredSessionToken } from './checkoutSessionService';
 /**
  * Good Things Co. — Client-Side Payment & Order API Client
  *
@@ -12,15 +13,18 @@ import { Order, PaystackInitResponse, PaystackVerifyResponse } from '../types/or
  * Initializes a pending order and Paystack payment on the server.
  */
 export async function initializeOrderPayment(
-  payload: ValidatedCheckoutPayload
+  payload: ValidatedCheckoutPayload,
+  provider: 'paystack' | 'flutterwave' = payload.paymentProvider || 'paystack'
 ): Promise<PaystackInitResponse> {
   try {
-    const response = await fetch('/api/paystack/initialize', {
+    const endpoint = provider === 'flutterwave' ? '/api/flutterwave/initialize' : '/api/paystack/initialize';
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${getStoredSessionToken() || ''}`, 
       },
-      body: JSON.stringify({ payload }),
+      body: JSON.stringify({ payload: { ...payload, paymentProvider: provider } }),
     });
 
     const text = await response.text();
@@ -73,15 +77,16 @@ export async function initializeOrderPayment(
  * Verifies a completed transaction reference with the secure server.
  */
 export async function verifyOrderPayment(
-  reference: string
+  reference: string,
+  transactionId?: string
 ): Promise<PaystackVerifyResponse> {
   try {
-    const response = await fetch('/api/paystack/verify', {
+    const response = await fetch('/api/payment/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ reference }),
+      body: JSON.stringify({ reference, transactionId }),
     });
 
     const text = await response.text();

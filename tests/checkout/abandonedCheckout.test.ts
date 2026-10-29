@@ -217,7 +217,7 @@ test('2. Debounced autosave safely updates session fields without overwriting st
       preferredDate: '2026-10-10',
     },
     giftMessage: 'With warmest wishes from Grace.',
-  });
+  }, init.resumeToken);
 
   assert.equal(updated.customer?.phone, '08099998888');
   assert.equal(updated.delivery?.address?.addressLine1, '14 Marina St');
@@ -546,4 +546,13 @@ test('14. Conversion by customer email marks all matching abandoned sessions con
 
   assert.equal(store.get(init1.sessionId)?.status, 'converted');
   assert.equal(store.get(init2.sessionId)?.status, 'converted');
+});
+
+test('session ownership blocks ID-only reads and updates', async () => {
+  const { service } = setupTest();
+  const init = await service.initOrUpdateSession({ customer: { email: 'owner@example.com' }, items: [sampleCartItem('prod-1', 'Box', 25000)] });
+  await assert.rejects(() => service.initOrUpdateSession({ sessionId: init.sessionId }), /verification required/);
+  await assert.rejects(() => service.autosaveSession(init.sessionId, { customer: { email: 'attacker@example.com' } }), /verification required/);
+  const updated = await service.autosaveSession(init.sessionId, { giftMessage: 'Owned update' }, init.resumeToken);
+  assert.equal(updated.giftMessage, 'Owned update');
 });

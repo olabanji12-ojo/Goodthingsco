@@ -31,6 +31,7 @@ import { ValidatedCheckoutPayload } from '../src/types/checkout.js';
 import {
   generateOrderNumber,
   generatePaystackReference,
+  generateFlutterwaveReference,
   nairaToKobo,
   mapCartItemToOrderItem,
 } from '../src/utils/orderUtils.js';
@@ -39,28 +40,15 @@ import {
   initializePaystackTransaction,
   verifyPaystackTransaction,
 } from './paystackService.js';
+import {
+  initializeFlutterwaveTransaction,
+  verifyFlutterwaveTransaction,
+} from './flutterwaveService.js';
 import { abandonedCheckoutService } from './checkout/service.js';
 import { settingsService } from './settings/service.js';
 
 export const ORDERS_COLLECTION = 'orders';
 export const PRODUCTS_COLLECTION = 'products';
-
-// In-memory fallback order storage for local development / testing when Firebase credentials are not yet configured
-export const inMemoryOrders = new Map<string, Order>();
-export const inMemoryOrdersByRef = new Map<string, Order>();
-
-export function isFirestoreAvailable(): boolean {
-  try {
-    if (typeof db === 'function') {
-      db();
-    } else if (!db) {
-      return false;
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export interface CreateOrderResult {
   success: boolean;
@@ -75,6 +63,7 @@ export interface CreateOrderResult {
 }
 
 export interface ConfirmOrderResult {
+  retryable?: boolean;
   success: boolean;
   orderNumber?: string;
   orderId?: string;
@@ -92,7 +81,8 @@ export interface ConfirmOrderResult {
  */
 export async function createPendingOrderServer(
   payload: ValidatedCheckoutPayload,
-  callbackOrigin: string
+  callbackOrigin: string,
+  checkoutToken?: string
 ): Promise<CreateOrderResult> {
   // A. Basic payload presence check
   if (!payload || !payload.customer || !payload.delivery || !Array.isArray(payload.items) || payload.items.length === 0) {
@@ -100,15 +90,34 @@ export async function createPendingOrderServer(
   }
 
   try {
-    const firestoreReady = isFirestoreAvailable();
+    let validSessionId: string | undefined = undefined;
+    if (payload.checkoutSessionId) {
+      try {
+        await abandonedCheckoutService.authorizeSession(payload.checkoutSessionId, checkoutToken);
+        validSessionId = payload.checkoutSessionId;
+      } catch (sessionErr) {
+        console.warn('[OrderService] Non-fatal: stale or expired checkoutSessionId, proceeding without session link:', sessionErr);
+      }
+    }
     let authoritativeSubtotal = 0;
     const verifiedOrderItems: OrderItem[] = [];
 
-    if (firestoreReady) {
+    {
       // B. Authoritative Inventory and Pricing Verification via Firestore
       for (const item of payload.items) {
-        const prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-        const prodSnap = await getDoc(prodRef);
+        let prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+        let prodSnap = await getDoc(prodRef);
+
+        if (!prodSnap.exists()) {
+          // Fallback: check if productId is a slug
+          const slugQ = query(collection(db, PRODUCTS_COLLECTION), where('slug', '==', item.productId), firestoreLimit(1));
+          const slugSnap = await getDocs(slugQ);
+          if (!slugSnap.empty) {
+            prodSnap = slugSnap.docs[0];
+            prodRef = doc(db, PRODUCTS_COLLECTION, prodSnap.id);
+            item.productId = prodSnap.id;
+          }
+        }
 
         if (!prodSnap.exists()) {
           return {
@@ -144,26 +153,14 @@ export async function createPendingOrderServer(
         }
 
         // Authoritative Price Calculation
-        const livePrice = typeof prodData.price === 'number' ? prodData.price : item.unitPrice;
+        if (!Number.isSafeInteger(item.quantity) || item.quantity < 1 || typeof prodData.price !== 'number' || !Number.isFinite(prodData.price) || prodData.price < 0) return { success: false, message: 'Invalid product price or quantity.' };
+        const livePrice = prodData.price;
         const itemSubtotal = livePrice * item.quantity;
         authoritativeSubtotal += itemSubtotal;
 
         verifiedOrderItems.push({
           ...mapCartItemToOrderItem(item),
           unitPrice: livePrice,
-          subtotal: itemSubtotal,
-        });
-      }
-    } else {
-      console.warn('[OrderService] Firebase Admin not configured. Operating in local memory fallback mode for items and pricing.');
-      for (const item of payload.items) {
-        const itemPrice = typeof item.unitPrice === 'number' && item.unitPrice >= 0 ? item.unitPrice : 0;
-        const itemSubtotal = itemPrice * item.quantity;
-        authoritativeSubtotal += itemSubtotal;
-
-        verifiedOrderItems.push({
-          ...mapCartItemToOrderItem(item),
-          unitPrice: itemPrice,
           subtotal: itemSubtotal,
         });
       }
@@ -174,7 +171,7 @@ export async function createPendingOrderServer(
       payload.delivery.address.country,
       payload.delivery.address.state
     );
-    let authoritativeDeliveryFee = payload.deliveryFee || 0;
+    let authoritativeDeliveryFee = 0;
     try {
       const shippingSettings = await settingsService.getEffectiveShipping();
       const deliveryCalc = getDeliveryFeeCalculation(resolvedZone, shippingSettings);
@@ -195,15 +192,18 @@ export async function createPendingOrderServer(
       }
       authoritativeDeliveryFee = deliveryCalc.fee;
     } catch {
-      // Use fallback delivery fee if settings service is unavailable
+      throw new Error('Delivery settings are temporarily unavailable. Please try again.');
     }
 
     const authoritativeTotal = authoritativeSubtotal + authoritativeDeliveryFee;
     const amountKobo = nairaToKobo(authoritativeTotal);
 
-    // D. Generate Unique Order Number and Paystack Reference
+    // D. Select Payment Gateway & Generate Unique References
+    const provider = payload.paymentProvider === 'flutterwave' ? 'flutterwave' : 'paystack';
     const orderNumber = generateOrderNumber();
-    const reference = generatePaystackReference(orderNumber);
+    const reference = provider === 'flutterwave'
+      ? generateFlutterwaveReference(orderNumber)
+      : generatePaystackReference(orderNumber);
 
     // E. Assemble Order Document
     const orderDocData: Omit<Order, 'id'> = {
@@ -242,36 +242,70 @@ export async function createPendingOrderServer(
       currency: 'NGN',
       payment: {
         status: 'pending',
-        provider: 'paystack',
+        provider,
         reference,
         currency: 'NGN',
         amountKobo,
       },
       orderStatus: 'pending-payment',
-      checkoutSessionId: payload.checkoutSessionId || undefined,
+      checkoutSessionId: validSessionId || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     // F. Save Pending Order to Firestore or In-Memory Store
     let orderId: string;
-    if (firestoreReady) {
+    {
       const ordersCol = collection(db, ORDERS_COLLECTION);
       const docRef = await addDoc(ordersCol, orderDocData);
       orderId = docRef.id;
-    } else {
-      orderId = `mem_ord_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-      const savedOrder: Order = { id: orderId, ...orderDocData };
-      inMemoryOrders.set(orderId, savedOrder);
-      inMemoryOrdersByRef.set(reference, savedOrder);
-      console.warn('[OrderService] Order saved to in-memory store:', orderNumber, `(${orderId})`);
     }
 
     // The order is already durable. Delivery failures are isolated by the notification layer.
     await notificationService.orderCreated({ id: orderId, ...orderDocData });
 
-    // G. Initialize with Paystack
+    // G. Initialize Payment with chosen Gateway
     const callbackUrl = `${callbackOrigin.replace(/\/$/, '')}/order-confirmation/${orderNumber}`;
+
+    if (provider === 'flutterwave') {
+      const flwResult = await initializeFlutterwaveTransaction({
+        email: orderDocData.customer.email,
+        amountNaira: authoritativeTotal,
+        reference,
+        callbackUrl,
+        customerName: orderDocData.customer.fullName,
+        customerPhone: orderDocData.customer.phone,
+        metadata: {
+          orderNumber,
+          orderId,
+          customerName: orderDocData.customer.fullName,
+        },
+      });
+
+      if (!flwResult.success) {
+        await notificationService.orderException({ id: orderId, ...orderDocData },
+          'Flutterwave payment initialization failed. The pending order is saved and may need assistance.',
+          `${orderNumber}:payment-initialization`);
+        return {
+          success: false,
+          orderNumber,
+          orderId,
+          reference,
+          total: authoritativeTotal,
+          message: flwResult.message || 'Failed to initialize payment with Flutterwave.',
+        };
+      }
+
+      return {
+        success: true,
+        orderNumber,
+        orderId,
+        reference,
+        authorizationUrl: flwResult.authorizationUrl,
+        total: authoritativeTotal,
+      };
+    }
+
     const paystackResult = await initializePaystackTransaction({
       email: orderDocData.customer.email,
       amountKobo,
@@ -309,7 +343,7 @@ export async function createPendingOrderServer(
     console.error('[OrderService.createPendingOrder] Exception:', error);
     return {
       success: false,
-      message: error?.message || 'Failed to create order on server.',
+      message: 'Checkout is temporarily unavailable. Please try again shortly.',
     };
   }
 }
@@ -320,19 +354,20 @@ export async function createPendingOrderServer(
  * Verifies Paystack transaction, checks idempotency, and atomically deducts stock.
  */
 export async function confirmPaidOrderServer(
-  reference: string
+  reference: string,
+  transactionId?: string
 ): Promise<ConfirmOrderResult> {
   if (!reference || typeof reference !== 'string') {
     return { success: false, message: 'Valid payment reference is required.' };
   }
 
   try {
-    const firestoreReady = isFirestoreAvailable();
+
     let existingOrder: Order | null = null;
     let orderId: string = '';
 
     // A. Locate the Order in Firestore by reference if available
-    if (firestoreReady) {
+    {
       try {
         const ordersCol = collection(db, ORDERS_COLLECTION);
         const q = query(ordersCol, where('payment.reference', '==', reference.trim()), firestoreLimit(1));
@@ -344,16 +379,7 @@ export async function confirmPaidOrderServer(
           existingOrder = { id: orderId, ...orderDocSnap.data() } as Order;
         }
       } catch (err) {
-        console.warn('[OrderService.confirmPaidOrder] Firestore query failed, falling back to in-memory store:', err);
-      }
-    }
-
-    // Fallback to in-memory store if not found in Firestore
-    if (!existingOrder) {
-      const memOrder = inMemoryOrdersByRef.get(reference.trim());
-      if (memOrder) {
-        existingOrder = memOrder;
-        orderId = memOrder.id || '';
+        throw err;
       }
     }
 
@@ -376,12 +402,15 @@ export async function confirmPaidOrderServer(
       };
     }
 
-    // C. Verify transaction with Paystack API
-    const verifyResult = await verifyPaystackTransaction(reference);
+    // C. Verify transaction with matching Gateway API
+    const isFlutterwave = existingOrder.payment?.provider === 'flutterwave' || reference.startsWith('flw_');
+    const verifyResult = isFlutterwave
+      ? await verifyFlutterwaveTransaction(reference, transactionId)
+      : await verifyPaystackTransaction(reference);
 
     if (!verifyResult.success || verifyResult.status !== 'success') {
       // Record payment failure on order record
-      if (firestoreReady) {
+      {
         try {
           const orderRef = doc(db, ORDERS_COLLECTION, orderId);
           await runTransaction(db, async (txn: Transaction) => {
@@ -394,9 +423,6 @@ export async function confirmPaidOrderServer(
         } catch {
           // ignore
         }
-      } else {
-        existingOrder.payment.status = 'failed';
-        existingOrder.payment.paymentException = verifyResult.message;
       }
 
       return {
@@ -430,7 +456,7 @@ export async function confirmPaidOrderServer(
     let finalOrderStatus: OrderStatus = 'confirmed';
     let paymentException: string | undefined = undefined;
 
-    if (firestoreReady) {
+    {
       let confirmedByAnotherRequest: Order | undefined;
       await runTransaction(db, async (txn: Transaction) => {
         // Verification endpoint and webhook can run concurrently. Only the transaction
@@ -449,8 +475,19 @@ export async function confirmPaidOrderServer(
         let isStockSufficient = true;
 
         for (const item of existingOrder!.items) {
-          const prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-          const prodSnap = await txn.get(prodRef);
+          let prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+          let prodSnap = await txn.get(prodRef);
+
+          if (!prodSnap.exists()) {
+            // Also check by slug if item.productId was saved as slug
+            const slugQ = query(collection(db, PRODUCTS_COLLECTION), where('slug', '==', item.productId), firestoreLimit(1));
+            const slugSnap = await getDocs(slugQ);
+            if (!slugSnap.empty) {
+              const matchedSnap = slugSnap.docs[0];
+              prodRef = doc(db, PRODUCTS_COLLECTION, matchedSnap.id);
+              prodSnap = await txn.get(prodRef);
+            }
+          }
 
           if (!prodSnap.exists()) {
             isStockSufficient = false;
@@ -509,15 +546,6 @@ export async function confirmPaidOrderServer(
         return { success: true, alreadyProcessed: true, orderNumber: existingOrder.orderNumber,
           orderId, order: confirmedByAnotherRequest, message: 'Payment was already verified and confirmed.' };
       }
-    } else {
-      existingOrder.payment.status = 'paid';
-      existingOrder.payment.paidAt = verifyResult.paidAt || new Date().toISOString();
-      existingOrder.payment.channel = verifyResult.channel;
-      existingOrder.payment.transactionId = verifyResult.transactionId;
-      existingOrder.orderStatus = finalOrderStatus;
-      existingOrder.updatedAt = new Date().toISOString();
-      inMemoryOrders.set(orderId, existingOrder);
-      inMemoryOrdersByRef.set(reference.trim(), existingOrder);
     }
 
     const updatedOrder: Order = {
@@ -560,43 +588,9 @@ export async function confirmPaidOrderServer(
     console.error('[OrderService.confirmPaidOrder] Exception:', error);
     return {
       success: false,
-      message: error?.message || 'Failed to complete order payment verification.',
+      retryable: true,
+      message: 'We could not finish checking your payment. If you have paid, do not pay again. Retry verification with the same reference or contact the store.',
     };
   }
 }
 
-/**
- * 3. GET ORDER BY HUMAN-READABLE NUMBER
- */
-export async function getOrderByNumberServer(orderNumber: string): Promise<Order | null> {
-  if (!orderNumber || typeof orderNumber !== 'string') return null;
-
-  try {
-    const firestoreReady = isFirestoreAvailable();
-    if (firestoreReady) {
-      const ordersCol = collection(db, ORDERS_COLLECTION);
-      const q = query(ordersCol, where('orderNumber', '==', orderNumber.trim()), firestoreLimit(1));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        const docSnap = snapshot.docs[0];
-        return {
-          id: docSnap.id,
-          ...docSnap.data(),
-        } as Order;
-      }
-    }
-
-    // Check in-memory store
-    for (const ord of inMemoryOrders.values()) {
-      if (ord.orderNumber === orderNumber.trim()) return ord;
-    }
-    return null;
-  } catch (err) {
-    for (const ord of inMemoryOrders.values()) {
-      if (ord.orderNumber === orderNumber.trim()) return ord;
-    }
-    console.error('[OrderService.getOrderByNumber] Error:', err);
-    return null;
-  }
-}

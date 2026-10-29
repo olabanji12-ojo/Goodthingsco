@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+const localTokenSecret = randomBytes(32).toString('hex');
 import type { AbandonedCheckoutSettings } from '../../src/types/settings.js';
 
 export interface AbandonedCheckoutConfig {
@@ -10,7 +12,10 @@ export interface AbandonedCheckoutConfig {
 
 export function getAbandonedCheckoutConfig(liveSettings?: AbandonedCheckoutSettings): AbandonedCheckoutConfig {
   const env = process.env;
-  const tokenSecret = env.CHECKOUT_TOKEN_SECRET || env.PAYSTACK_SECRET_KEY || 'goodthingsco-abandoned-checkout-secret';
+  const configuredSecret = env.CHECKOUT_TOKEN_SECRET?.trim();
+  if ((env.NODE_ENV === 'production' || env.VERCEL) && (!configuredSecret || configuredSecret.length < 32))
+    throw new Error('Configure a dedicated CHECKOUT_TOKEN_SECRET with at least 32 characters.');
+  const tokenSecret = configuredSecret || localTokenSecret;
 
   if (liveSettings) {
     return {

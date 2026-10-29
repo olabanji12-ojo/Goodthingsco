@@ -1,3 +1,4 @@
+import { authorizeAdmin } from '../auth/admin.js';
 /**
  * Good Things Co. — Corporate Requests Orchestration Service
  */
@@ -41,23 +42,7 @@ export function createCorporateManagement(dependencies: ServiceDependencies = {}
   const settings = dependencies.settings || settingsService;
   const getNow = dependencies.now || (() => new Date().toISOString());
 
-  async function requireAdmin(authorization?: string): Promise<AdminIdentity> {
-    if (!authorization || !/^Bearer \S{1,8192}$/.test(authorization)) {
-      throw new CorporateHttpError(401, 'Administrator authentication required.');
-    }
-    let identity: AdminIdentity;
-    try {
-      identity = await verify(authorization.slice(7));
-    } catch {
-      throw new CorporateHttpError(401, 'Admin session is invalid or expired. Please sign in again.');
-    }
-    const isAllowed = identity.admin === true ||
-      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com', 'tofunmieolabanji@gmail.com'].includes(identity.email.toLowerCase()));
-    if (!isAllowed) {
-      throw new CorporateHttpError(403, 'Administrator privileges required.');
-    }
-    return identity;
-  }
+  const requireAdmin = (authorization?: string) => authorizeAdmin(authorization, CorporateHttpError, verify);
 
   return {
     /**

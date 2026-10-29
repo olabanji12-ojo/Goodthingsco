@@ -23,6 +23,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.env.flutterwave
 
 # Temp
 _temp_assets/
@@ -32,3 +33,9 @@ temp_*.txt
 *adminsdk*.json
 service-account*.json
 *serviceAccount*.json
+
+# Personal / uploaded files
+*.pdf
+*.jpeg
+*.jpg
+compressed-slips/

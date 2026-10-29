@@ -72,9 +72,11 @@ export interface OrderDelivery {
   deliveryFee: number;
 }
 
+export type PaymentProvider = 'paystack' | 'flutterwave';
+
 export interface OrderPayment {
   status: PaymentStatus;
-  provider: 'paystack';
+  provider: PaymentProvider;
   reference: string;
   paidAt?: string;
   channel?: string;

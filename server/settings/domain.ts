@@ -86,6 +86,12 @@ export function toPublicSettings(settings: StoreSettings): PublicStoreSettings {
         notice: settings.shipping.international.notice,
       },
     },
+    packaging: settings.packaging || {
+      giftBoxFee: 0,
+      linenBagFee: 0,
+      woodenBoxFee: 0,
+      pouchFee: 0,
+    },
   };
 }
 
@@ -294,6 +300,23 @@ export function validateStoreSettingsUpdate(raw: any): StoreSettingsUpdateInput 
     }
   }
 
+  // 5. Packaging
+  if (raw.packaging && typeof raw.packaging === 'object') {
+    result.packaging = {};
+    if (raw.packaging.giftBoxFee !== undefined) {
+      result.packaging.giftBoxFee = Math.max(0, Number(raw.packaging.giftBoxFee) || 0);
+    }
+    if (raw.packaging.linenBagFee !== undefined) {
+      result.packaging.linenBagFee = Math.max(0, Number(raw.packaging.linenBagFee) || 0);
+    }
+    if (raw.packaging.woodenBoxFee !== undefined) {
+      result.packaging.woodenBoxFee = Math.max(0, Number(raw.packaging.woodenBoxFee) || 0);
+    }
+    if (raw.packaging.pouchFee !== undefined) {
+      result.packaging.pouchFee = Math.max(0, Number(raw.packaging.pouchFee) || 0);
+    }
+  }
+
   return result;
 }
 
@@ -321,6 +344,10 @@ export function applySettingsUpdate(
         ...current.shipping.international,
         ...update.shipping?.international,
       },
+    },
+    packaging: {
+      ...(current.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+      ...update.packaging,
     },
     abandonedCheckout: {
       ...current.abandonedCheckout,

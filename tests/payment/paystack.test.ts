@@ -51,7 +51,7 @@ describe('Paystack Integration & Key Safety Test Suite', () => {
 
       const check = validatePaystackKeySafety();
       assert.equal(check.valid, false);
-      assert.match(check.error || '', /TEST mode only/i);
+      assert.match(check.error || '', /PAYSTACK_MODE/i);
     });
 
     it('rejects mixed environment: pk_test_ with sk_live_', () => {
@@ -68,7 +68,7 @@ describe('Paystack Integration & Key Safety Test Suite', () => {
 
       const check = validatePaystackKeySafety();
       assert.equal(check.valid, false);
-      assert.match(check.error || '', /mismatch detected/i);
+      assert.match(check.error || '', /environments must match/i);
     });
 
     it('rejects malformed secret keys that do not start with sk_test_ or sk_live_', () => {
@@ -77,10 +77,13 @@ describe('Paystack Integration & Key Safety Test Suite', () => {
 
       const check = validatePaystackKeySafety();
       assert.equal(check.valid, false);
-      assert.match(check.error || '', /Invalid PAYSTACK_SECRET_KEY/i);
+      assert.match(check.error || '', /valid Paystack secret key/i);
     });
 
-    it('handles simulated/placeholder mode safely', () => {
+    it('allows explicitly selected local simulation', () => {
+      process.env.PAYSTACK_MODE = 'simulation';
+      process.env.NODE_ENV = 'test';
+      delete process.env.VERCEL;
       process.env.PAYSTACK_SECRET_KEY = 'sk_test_placeholder';
       process.env.VITE_PAYSTACK_PUBLIC_KEY = 'pk_test_placeholder';
 
@@ -89,6 +92,20 @@ describe('Paystack Integration & Key Safety Test Suite', () => {
     });
   });
 
+  it('rejects production simulation and missing credentials', () => {
+    process.env.PAYSTACK_MODE = 'simulation';
+    process.env.NODE_ENV = 'production';
+    assert.equal(validatePaystackKeySafety().valid, false);
+    process.env.PAYSTACK_MODE = 'test';
+    delete process.env.PAYSTACK_SECRET_KEY;
+    assert.equal(validatePaystackKeySafety().valid, false);
+  });
+  it('accepts matching live keys only when explicitly selected', () => {
+    process.env.PAYSTACK_MODE = 'live';
+    process.env.PAYSTACK_SECRET_KEY = mockLiveSecret;
+    process.env.VITE_PAYSTACK_PUBLIC_KEY = mockLivePublic;
+    assert.equal(validatePaystackKeySafety().valid, true);
+  });
   describe('2. Secret Key Isolation & Server Privacy', () => {
     it('PAYSTACK_SECRET_KEY does NOT have VITE_ prefix', () => {
       assert.equal(Object.prototype.hasOwnProperty.call(process.env, 'VITE_PAYSTACK_SECRET_KEY'), false);

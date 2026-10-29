@@ -1,3 +1,4 @@
+import { authorizeAdmin } from '../auth/admin.js';
 /**
  * Good Things Co. — Store Settings Orchestration Service
  */
@@ -34,25 +35,7 @@ export function createSettingsManagement(dependencies: ServiceDependencies = {})
   const verify = dependencies.verify || ((token) => getAdminAuth().verifyIdToken(token, true));
   const now = dependencies.now || (() => new Date().toISOString());
 
-  async function requireAdmin(authorization?: string): Promise<AdminIdentity> {
-    if (!authorization || !/^Bearer \S{1,8192}$/.test(authorization)) {
-      throw new SettingsHttpError(401, 'Administrator authentication required.');
-    }
-    const token = authorization.slice(7);
-    let identity: AdminIdentity;
-    try {
-      identity = await verify(token);
-    } catch {
-      throw new SettingsHttpError(401, 'Invalid, revoked, or expired admin token.');
-    }
-
-    const isAllowed = identity.admin === true ||
-      (typeof identity.email === 'string' && ['olabanji@gmail.com', 'ojo@gmail.com', 'emmanuelojo291@gmail.com', 'tofunmieolabanji@gmail.com'].includes(identity.email.toLowerCase()));
-    if (!isAllowed) {
-      throw new SettingsHttpError(403, 'Administrator privilege required.');
-    }
-    return identity;
-  }
+  const requireAdmin = (authorization?: string) => authorizeAdmin(authorization, SettingsHttpError, verify);
 
   return {
     /**

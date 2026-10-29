@@ -14,6 +14,7 @@ import {
   Settings,
   Truck,
   Building2,
+  Package,
   Clock,
   FileCheck,
   Save,
@@ -146,6 +147,12 @@ export default function AdminSettingsPage() {
             estimatedMaxDays: Number(formData.shipping.international.estimatedMaxDays) || 10,
             notice: formData.shipping.international.notice?.trim() || undefined,
           },
+        },
+        packaging: {
+          giftBoxFee: Math.max(0, Number(formData.packaging?.giftBoxFee) || 0),
+          linenBagFee: Math.max(0, Number(formData.packaging?.linenBagFee) || 0),
+          woodenBoxFee: Math.max(0, Number(formData.packaging?.woodenBoxFee) || 0),
+          pouchFee: Math.max(0, Number(formData.packaging?.pouchFee) || 0),
         },
         abandonedCheckout: {
           abandonedAfterMinutes: Math.max(5, Number(formData.abandonedCheckout.abandonedAfterMinutes) || 60),
@@ -767,7 +774,164 @@ export default function AdminSettingsPage() {
           </div>
         </section>
 
-        {/* ── Section 3: Abandoned Checkout Automation ── */}
+        {/* ── Section 3: Presentation Packaging Pricing & Upgrades ── */}
+        <section className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <Package size={18} />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Presentation Packaging Pricing & Upgrades</h2>
+                <p className="text-xs text-slate-500">
+                  Configure the add-on fees for gift boxes, linen bags, cedar crates, and keepsake pouches.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-5 sm:p-6 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {/* 1. Signature Gift Box */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-900">Signature Gift Box</span>
+                  <span className="text-[10px] uppercase font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full">
+                    Box
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Sturdy debossed ivory box with golden interior lining.
+                </p>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Upgrade Fee (₦)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={formData.packaging?.giftBoxFee ?? 0}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        packaging: {
+                          ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                          giftBoxFee: Math.max(0, Number(e.target.value) || 0),
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-slate-900 bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* 2. Textured Linen Bag */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-900">Textured Linen Bag</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-700 bg-slate-200/60 px-2 py-0.5 rounded-full">
+                    Bag
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Heavy natural cotton linen bag with hand-tied twill handles.
+                </p>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Upgrade Fee (₦)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={formData.packaging?.linenBagFee ?? 0}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        packaging: {
+                          ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                          linenBagFee: Math.max(0, Number(e.target.value) || 0),
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-slate-900 bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* 3. Artisan Wooden Crate */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-900">Artisan Wooden Crate</span>
+                  <span className="text-[10px] uppercase font-bold text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-full">
+                    Wood
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Handcrafted solid cedar keepsake box with sliding lid.
+                </p>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Upgrade Fee (₦)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={formData.packaging?.woodenBoxFee ?? 0}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        packaging: {
+                          ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                          woodenBoxFee: Math.max(0, Number(e.target.value) || 0),
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-slate-900 bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* 4. Silk Keepsake Pouch */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-900">Silk Keepsake Pouch</span>
+                  <span className="text-[10px] uppercase font-bold text-rose-700 bg-rose-100/60 px-2 py-0.5 rounded-full">
+                    Pouch
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Soft drawstring satin pouch for jewelry & daily objects.
+                </p>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Upgrade Fee (₦)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={formData.packaging?.pouchFee ?? 0}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        packaging: {
+                          ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                          pouchFee: Math.max(0, Number(e.target.value) || 0),
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-slate-900 bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Section 4: Abandoned Checkout Automation ── */}
         <section className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">

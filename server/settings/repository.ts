@@ -61,6 +61,12 @@ export const firestoreSettingsRepository: StoreSettingsRepository = {
             ...data.shipping?.international,
           },
         },
+        packaging: {
+          giftBoxFee: data.packaging?.giftBoxFee ?? DEFAULT_STORE_SETTINGS.packaging?.giftBoxFee ?? 0,
+          linenBagFee: data.packaging?.linenBagFee ?? DEFAULT_STORE_SETTINGS.packaging?.linenBagFee ?? 0,
+          woodenBoxFee: data.packaging?.woodenBoxFee ?? DEFAULT_STORE_SETTINGS.packaging?.woodenBoxFee ?? 0,
+          pouchFee: data.packaging?.pouchFee ?? DEFAULT_STORE_SETTINGS.packaging?.pouchFee ?? 0,
+        },
         abandonedCheckout: {
           ...DEFAULT_STORE_SETTINGS.abandonedCheckout,
           ...data.abandonedCheckout,
@@ -77,8 +83,7 @@ export const firestoreSettingsRepository: StoreSettingsRepository = {
       cacheExpiresAt = now + CACHE_TTL_MS;
       return structuredClone(merged);
     } catch (err) {
-      console.warn('[SettingsRepository] Failed to fetch settings from Firestore, using defaults:', err);
-      return structuredClone(DEFAULT_STORE_SETTINGS);
+      throw err;
     }
   },
 

@@ -5,11 +5,13 @@ import {
   RECIPIENT_OPTIONS,
   BUDGET_TIERS,
   LIFESTYLE_OPTIONS,
-  PACKAGING_OPTIONS,
+  getPackagingOptions,
+  PackagingOption,
   RIBBON_COLORS,
   GiftItem,
   BudgetTierId,
 } from '../../data/giftsData';
+import { getPublicStoreSettings } from '../../services/settingsService';
 import {
   getFilteredProducts,
   getActiveProducts,
@@ -77,7 +79,8 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
   // Personalisation Modal State (Same-page personalisation)
   const [personalisingProduct, setPersonalisingProduct] = useState<GiftItem | null>(null);
-  const [selectedPackaging, setSelectedPackaging] = useState(PACKAGING_OPTIONS[0]);
+  const [packagingList, setPackagingList] = useState<PackagingOption[]>(() => getPackagingOptions());
+  const [selectedPackaging, setSelectedPackaging] = useState<PackagingOption>(() => getPackagingOptions()[0]);
   const [selectedRibbon, setSelectedRibbon] = useState(RIBBON_COLORS[0]);
   const [giftMessage, setGiftMessage] = useState<string>('');
   const [hasMonogram, setHasMonogram] = useState<boolean>(false);
@@ -118,6 +121,24 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   useEffect(() => {
     loadFilteredProducts();
   }, [loadFilteredProducts]);
+
+  // Load live packaging settings from store settings
+  useEffect(() => {
+    let isMounted = true;
+    getPublicStoreSettings()
+      .then((settings) => {
+        if (!isMounted) return;
+        const opts = getPackagingOptions(settings?.packaging);
+        setPackagingList(opts);
+        setSelectedPackaging((prev) => opts.find((o) => o.id === prev.id) || opts[0]);
+      })
+      .catch((err) => {
+        console.warn('[ShopFlow] Failed to load store settings:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // ── 2. Filter Click Handlers with Auto-Progression (No "Next" buttons!) ──
   const handleSelectOccasion = (id: string) => {
@@ -167,7 +188,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   const handleOpenPersonalise = (product: Product | GiftItem) => {
     const item: GiftItem = 'rawProduct' in (product as any) ? (product as GiftItem) : adaptProductToGiftItem(product as Product);
     setPersonalisingProduct(item);
-    setSelectedPackaging(PACKAGING_OPTIONS[0]);
+    setSelectedPackaging(packagingList[0] || getPackagingOptions()[0]);
     setSelectedRibbon(RIBBON_COLORS[0]);
     setGiftMessage('');
     setHasMonogram(false);
@@ -694,7 +715,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   1. Presentation Packaging
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {PACKAGING_OPTIONS.map((pkg) => {
+                  {packagingList.map((pkg) => {
                     const isSelected = selectedPackaging.id === pkg.id;
                     return (
                       <button

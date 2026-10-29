@@ -244,29 +244,73 @@ export const PACKAGING_OPTIONS: PackagingOption[] = [
     id: 'gift-box',
     name: 'Signature Gift Box',
     description: 'Sturdy debossed ivory box with golden interior lining',
-    price: 3500,
-    badge: 'Most Popular',
+    price: 0,
+    badge: 'Complimentary',
   },
   {
     id: 'gift-bag',
     name: 'Textured Linen Bag',
     description: 'Heavy natural cotton linen bag with hand-tied twill handles',
-    price: 2500,
+    price: 0,
+    badge: 'Complimentary',
   },
   {
     id: 'wooden-box',
     name: 'Artisan Wooden Crate',
     description: 'Handcrafted solid cedar keepsake box with sliding lid',
-    price: 7500,
-    badge: 'Luxury',
+    price: 0,
   },
   {
     id: 'pouch',
     name: 'Silk Keepsake Pouch',
     description: 'Soft drawstring satin pouch for jewelry & daily objects',
-    price: 1500,
+    price: 0,
   },
 ];
+
+export function getPackagingOptions(packagingSettings?: {
+  giftBoxFee?: number;
+  linenBagFee?: number;
+  woodenBoxFee?: number;
+  pouchFee?: number;
+} | null): PackagingOption[] {
+  const fees = packagingSettings || {};
+  const giftBoxFee = typeof fees.giftBoxFee === 'number' ? fees.giftBoxFee : 0;
+  const linenBagFee = typeof fees.linenBagFee === 'number' ? fees.linenBagFee : 0;
+  const woodenBoxFee = typeof fees.woodenBoxFee === 'number' ? fees.woodenBoxFee : 0;
+  const pouchFee = typeof fees.pouchFee === 'number' ? fees.pouchFee : 0;
+
+  return [
+    {
+      id: 'gift-box',
+      name: 'Signature Gift Box',
+      description: 'Sturdy debossed ivory box with golden interior lining',
+      price: giftBoxFee,
+      badge: giftBoxFee === 0 ? 'Complimentary' : undefined,
+    },
+    {
+      id: 'gift-bag',
+      name: 'Textured Linen Bag',
+      description: 'Heavy natural cotton linen bag with hand-tied twill handles',
+      price: linenBagFee,
+      badge: linenBagFee === 0 ? 'Complimentary' : undefined,
+    },
+    {
+      id: 'wooden-box',
+      name: 'Artisan Wooden Crate',
+      description: 'Handcrafted solid cedar keepsake box with sliding lid',
+      price: woodenBoxFee,
+      badge: woodenBoxFee === 0 ? 'Complimentary' : undefined,
+    },
+    {
+      id: 'pouch',
+      name: 'Silk Keepsake Pouch',
+      description: 'Soft drawstring satin pouch for jewelry & daily objects',
+      price: pouchFee,
+      badge: pouchFee === 0 ? 'Complimentary' : undefined,
+    },
+  ];
+}
 
 // ── 5. Ribbon Colors ──
 export const RIBBON_COLORS: RibbonColorOption[] = [

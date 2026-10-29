@@ -50,16 +50,31 @@ export function createAbandonedCheckoutService(dependencies: ServiceDependencies
     }
   }
 
+  async function authorizeSession(sessionId: string, token?: string) {
+    const config = await resolveConfig();
+    const verification = verifyResumeToken(token || '', config.tokenSecret);
+    if (!verification.valid || verification.sessionId !== sessionId)
+      throw new CheckoutHttpError(403, 'Checkout session verification required.');
+    const session = await repo.getBySessionId(sessionId);
+    if (!session || session.resumeTokenHash !== hashResumeToken(token || ''))
+      throw new CheckoutHttpError(403, 'Checkout session verification required.');
+    if (session.status === 'converted' || session.status === 'expired' || session.expiresAt <= getNow())
+      throw new CheckoutHttpError(409, 'This checkout session is no longer active.');
+    return session;
+  }
+
   return {
+    authorizeSession,
     async initOrUpdateSession(
       input: CheckoutSessionInput,
-      origin: string = 'https://goodthingsco.ng'
+      origin: string = 'https://goodthingsco.ng',
+      token?: string
     ): Promise<{ session: AbandonedCheckoutSession; sessionId: string; resumeToken: string; resumeUrl: string }> {
       const config = await resolveConfig();
       let existing: AbandonedCheckoutSession | null = null;
 
       if (input.sessionId) {
-        existing = await repo.getBySessionId(input.sessionId);
+        existing = await authorizeSession(input.sessionId, token);
       }
 
       const sessionId = existing?.sessionId || generateSessionId();
@@ -88,13 +103,14 @@ export function createAbandonedCheckoutService(dependencies: ServiceDependencies
 
     async autosaveSession(
       sessionId: string,
-      input: CheckoutSessionInput
+      input: CheckoutSessionInput,
+      token?: string
     ): Promise<AbandonedCheckoutSession> {
       if (!sessionId || !sessionId.startsWith('ac_')) {
         throw new CheckoutHttpError(400, 'Invalid checkout session ID.');
       }
 
-      const existing = await repo.getBySessionId(sessionId);
+      const existing = await authorizeSession(sessionId, token);
       if (!existing) {
         throw new CheckoutHttpError(404, 'Checkout session not found.');
       }

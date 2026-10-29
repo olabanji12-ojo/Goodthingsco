@@ -93,4 +93,5 @@ export interface ValidatedCheckoutPayload {
   deliveryRequiresQuote: boolean;
   validatedAt: string;
   checkoutSessionId?: string;
+  paymentProvider?: 'paystack' | 'flutterwave';
 }

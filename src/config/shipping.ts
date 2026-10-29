@@ -30,7 +30,7 @@ export const DELIVERY_ZONES: Record<DeliveryZone, DeliveryZoneConfig> = {
     id: 'lagos',
     name: 'Lagos Delivery',
     description: 'Direct courier delivery across Lagos mainland and island',
-    baseFee: 3500, // Configurable placeholder for Lagos delivery
+    baseFee: 0, // Free shipping for testing
     requiresQuote: false,
     estimatedDeliveryTime: '1 - 2 Business Days',
   },
@@ -38,7 +38,7 @@ export const DELIVERY_ZONES: Record<DeliveryZone, DeliveryZoneConfig> = {
     id: 'other-nigeria',
     name: 'Other Nigerian States',
     description: 'Interstate courier dispatch to all states across Nigeria',
-    baseFee: 7500, // Configurable placeholder for interstate delivery
+    baseFee: 0, // Free shipping for testing
     requiresQuote: false,
     estimatedDeliveryTime: '3 - 5 Business Days',
   },

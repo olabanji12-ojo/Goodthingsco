@@ -79,72 +79,22 @@ export function getPaystackSecretKey(): string {
  * Checks if Paystack is running in placeholder/simulation test mode.
  */
 export function isPaystackSimulationMode(): boolean {
-  const key = getPaystackSecretKey();
-  return !key || key === 'sk_test_placeholder' || key.startsWith('sk_test_placeholder');
+  return process.env.PAYSTACK_MODE === 'simulation'
+    && ['development', 'test'].includes(process.env.NODE_ENV || '')
+    && !process.env.VERCEL;
 }
 
-/**
- * Validates Paystack environment configuration and prevents key mismatches.
- * Ensures strict test mode and rejects mixed environments (e.g. pk_test_ + sk_live_).
- * Never logs keys.
- */
 export function validatePaystackKeySafety(): { valid: boolean; error?: string } {
-  const secretKey = getPaystackSecretKey();
-  const publicKey = (
-    process.env.VITE_PAYSTACK_PUBLIC_KEY ||
-    process.env.PAYSTACK_PUBLIC_KEY ||
-    ''
-  ).trim();
-
-  // If unconfigured or running placeholder simulation
-  if (isPaystackSimulationMode()) {
-    return { valid: true };
-  }
-
-  const isSecretTest = secretKey.startsWith('sk_test_');
-  const isSecretLive = secretKey.startsWith('sk_live_');
-
-  if (!isSecretTest && !isSecretLive) {
-    return {
-      valid: false,
-      error: 'Invalid PAYSTACK_SECRET_KEY: key must start with "sk_test_" or "sk_live_".',
-    };
-  }
-
-  // Strictly enforce test mode — reject live secret key
-  if (isSecretLive) {
-    return {
-      valid: false,
-      error: 'PAYSTACK_SECRET_KEY is configured with a LIVE key (sk_live_...). The project is currently configured for Paystack TEST mode only.',
-    };
-  }
-
-  if (publicKey && publicKey !== 'pk_test_placeholder') {
-    const isPublicTest = publicKey.startsWith('pk_test_');
-    const isPublicLive = publicKey.startsWith('pk_live_');
-
-    if (!isPublicTest && !isPublicLive) {
-      return {
-        valid: false,
-        error: 'Invalid VITE_PAYSTACK_PUBLIC_KEY: key must start with "pk_test_" or "pk_live_".',
-      };
-    }
-
-    if (isPublicLive && isSecretTest) {
-      return {
-        valid: false,
-        error: 'Paystack environment mismatch detected: VITE_PAYSTACK_PUBLIC_KEY is live (pk_live_...) while PAYSTACK_SECRET_KEY is test (sk_test_...). Mixed environments are rejected.',
-      };
-    }
-
-    if (isPublicTest && isSecretLive) {
-      return {
-        valid: false,
-        error: 'Paystack environment mismatch detected: VITE_PAYSTACK_PUBLIC_KEY is test (pk_test_...) while PAYSTACK_SECRET_KEY is live (sk_live_...). Mixed environments are rejected.',
-      };
-    }
-  }
-
+  const mode = process.env.PAYSTACK_MODE || 'test';
+  if (mode === 'simulation') return isPaystackSimulationMode()
+    ? { valid: true } : { valid: false, error: 'Payment simulation is only available in local development or tests.' };
+  if (mode !== 'test' && mode !== 'live') return { valid: false, error: 'Invalid PAYSTACK_MODE.' };
+  const secret = getPaystackSecretKey();
+  const publicKey = (process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || '').trim();
+  if (!secret.startsWith('sk_' + mode + '_') || secret.includes('placeholder'))
+    return { valid: false, error: 'Configure a valid Paystack secret key matching PAYSTACK_MODE (' + mode + ').' };
+  if (publicKey && (!publicKey.startsWith('pk_' + mode + '_') || publicKey.includes('placeholder')))
+    return { valid: false, error: 'Paystack public and secret key environments must match.' };
   return { valid: true };
 }
 
@@ -247,7 +197,7 @@ export async function verifyPaystackTransaction(
   const secretKey = getPaystackSecretKey();
 
   // If in simulation test mode or reference contains simulated flag
-  if (isPaystackSimulationMode() || reference.includes('sim_')) {
+  if (isPaystackSimulationMode()) {
     console.log('[PaystackService] Verifying transaction in simulated test mode:', reference);
     return {
       success: true,
@@ -327,7 +277,7 @@ export function verifyWebhookSignature(rawBody: string, signatureHeader?: string
 
   try {
     const hash = crypto.createHmac('sha512', secretKey).update(rawBody).digest('hex');
-    return hash === signatureHeader;
+    return /^[a-f0-9]{128}$/i.test(signatureHeader) && crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(signatureHeader, 'hex'));
   } catch {
     return false;
   }

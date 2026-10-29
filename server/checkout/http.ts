@@ -78,8 +78,8 @@ export function createCheckoutHttp(service = abandonedCheckoutService) {
       // 1. POST /api/checkout/session (create or upsert session)
       if (path === '/api/checkout/session' && method === 'POST') {
         const body = await readJson(req);
-        const result = await service.initOrUpdateSession(body, origin);
-        send(200, { success: true, ...result });
+        const result = await service.initOrUpdateSession(body, origin, req.headers.authorization?.replace(/^Bearer /, ''));
+        send(200, { success: true, sessionId: result.sessionId, resumeToken: result.resumeToken, resumeUrl: result.resumeUrl });
         return true;
       }
 
@@ -88,14 +88,14 @@ export function createCheckoutHttp(service = abandonedCheckoutService) {
       if (sessionMatch && method === 'PATCH') {
         const sessionId = sessionMatch[1];
         const body = await readJson(req);
-        const session = await service.autosaveSession(sessionId, body);
-        send(200, { success: true, session });
+        const session = await service.autosaveSession(sessionId, body, req.headers.authorization?.replace(/^Bearer /, ''));
+        send(200, { success: true, sessionId: session.sessionId });
         return true;
       }
 
       // 3. GET /api/checkout/resume?token=... (resume saved checkout)
-      if (path === '/api/checkout/resume' && method === 'GET') {
-        const token = url.searchParams.get('token') || '';
+      if (path === '/api/checkout/resume' && method === 'POST') {
+        const { token } = await readJson(req);
         const payload = await service.resumeCheckout(token);
         send(200, { success: true, payload });
         return true;
@@ -104,10 +104,7 @@ export function createCheckoutHttp(service = abandonedCheckoutService) {
       // 4. POST /api/checkout/session/:sessionId/convert (mark converted upon successful payment)
       const convertMatch = path.match(/^\/api\/checkout\/session\/([a-zA-Z0-9_-]{1,128})\/convert$/);
       if (convertMatch && method === 'POST') {
-        const sessionId = convertMatch[1];
-        const body = await readJson(req);
-        await service.markConverted(sessionId, body.orderId || '', body.orderNumber || '');
-        send(200, { success: true, message: 'Session marked as converted.' });
+        send(403, { success: false, message: 'Conversion requires verified payment.' });
         return true;
       }
 

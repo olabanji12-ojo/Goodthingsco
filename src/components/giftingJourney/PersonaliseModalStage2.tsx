@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GiftItem,
-  PACKAGING_OPTIONS,
+  getPackagingOptions,
   RIBBON_COLORS,
   PackagingOption,
   RibbonColorOption,
 } from '../../data/giftsData';
+import { getPublicStoreSettings } from '../../services/settingsService';
 
 export interface PersonalisationDetails {
   gift: GiftItem;
@@ -32,8 +33,9 @@ export const PersonaliseModalStage2: React.FC<PersonaliseModalStage2Props> = ({
 }) => {
   if (!isOpen || !gift) return null;
 
+  const [packagingList, setPackagingList] = useState<PackagingOption[]>(() => getPackagingOptions());
   const [selectedPackaging, setSelectedPackaging] = useState<PackagingOption>(
-    PACKAGING_OPTIONS[0]
+    () => getPackagingOptions()[0]
   );
   const [selectedRibbon, setSelectedRibbon] = useState<RibbonColorOption>(
     RIBBON_COLORS[0]
@@ -41,6 +43,23 @@ export const PersonaliseModalStage2: React.FC<PersonaliseModalStage2Props> = ({
   const [message, setMessage] = useState<string>('Wishing you moments of quiet joy, celebration, and inspired living.');
   const [hasMonogram, setHasMonogram] = useState<boolean>(false);
   const [monogramText, setMonogramText] = useState<string>('GTC');
+
+  useEffect(() => {
+    let isMounted = true;
+    getPublicStoreSettings()
+      .then((settings) => {
+        if (!isMounted) return;
+        const opts = getPackagingOptions(settings?.packaging);
+        setPackagingList(opts);
+        setSelectedPackaging((prev) => opts.find((o) => o.id === prev.id) || opts[0]);
+      })
+      .catch((err) => {
+        console.warn('[PersonaliseModalStage2] Failed to load store settings:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Calculate live total
   const monogramCost = hasMonogram ? 3000 : 0;
@@ -126,7 +145,7 @@ export const PersonaliseModalStage2: React.FC<PersonaliseModalStage2Props> = ({
                 1. Select Packaging Finish
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {PACKAGING_OPTIONS.map((pkg) => {
+                {packagingList.map((pkg) => {
                   const isSelected = selectedPackaging.id === pkg.id;
                   return (
                     <div
@@ -143,7 +162,7 @@ export const PersonaliseModalStage2: React.FC<PersonaliseModalStage2Props> = ({
                           {pkg.name}
                         </span>
                         <span className="font-sans text-xs text-gold-700 font-semibold">
-                          +₦{pkg.price.toLocaleString()}
+                          {pkg.price === 0 ? 'Included' : `+₦${pkg.price.toLocaleString()}`}
                         </span>
                       </div>
                       <p className="font-sans text-[11px] text-brand-medium/80 leading-snug">

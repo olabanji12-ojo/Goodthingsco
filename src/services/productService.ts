@@ -40,6 +40,30 @@ import {
 export const PRODUCTS_COLLECTION = 'products';
 
 /**
+ * Recursively removes all undefined keys from objects and nested objects/arrays.
+ * Prevents Firestore updateDoc/addDoc "Unsupported field value: undefined" errors.
+ */
+export function removeUndefinedFields<T>(val: T): T {
+  if (val === null || val === undefined || typeof val !== 'object') {
+    return val;
+  }
+  // Preserve Date, Firestore Timestamp, or FieldValue objects
+  if (val instanceof Date || (val as any).toMillis || (val as any).toDate || (val as any)._methodName) {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val.map((item) => removeUndefinedFields(item)) as unknown as T;
+  }
+  const clean: Record<string, any> = {};
+  for (const [k, v] of Object.entries(val)) {
+    if (v !== undefined) {
+      clean[k] = removeUndefinedFields(v);
+    }
+  }
+  return clean as T;
+}
+
+/**
  * Helper to convert a Firestore DocumentSnapshot into a typed Product
  */
 /**
@@ -151,11 +175,12 @@ export async function createProduct(input: CreateProductInput): Promise<Product>
   };
 
   // E. Write to Firestore (with local fallback if permission-denied)
+  const sanitizedDocData = removeUndefinedFields(docData);
   try {
-    const docRef = await addDoc(productsRef, docData);
+    const docRef = await addDoc(productsRef, sanitizedDocData);
     return {
       id: docRef.id,
-      ...docData,
+      ...sanitizedDocData,
     };
   } catch (err: any) {
     if (err?.code === 'permission-denied') {
@@ -232,28 +257,27 @@ export async function getProducts(filters?: ProductFilterParams): Promise<Produc
     }
   }
 
-  // Merge with local session products
+  // Merge with local session products (live Firestore data ALWAYS takes precedence)
   const locals = getLocalFallbackProducts();
   if (locals.length > 0) {
-    const merged = [...products];
-    locals.forEach((local) => {
-      const idx = merged.findIndex((p) => p.id === local.id || p.slug === local.slug);
-      if (idx >= 0) {
-        merged[idx] = local;
-      } else {
-        merged.unshift(local);
-      }
-    });
+    const firestoreIds = new Set(products.map((p) => p.id));
+    const firestoreSlugs = new Set(products.map((p) => p.slug));
+    const unpersistedLocals = locals.filter(
+      (local) => !firestoreIds.has(local.id) && !firestoreSlugs.has(local.slug)
+    );
 
-    return merged.filter((p) => {
-      if (filters?.isArchived !== undefined && p.isArchived !== filters.isArchived) return false;
-      if (filters?.isAvailable !== undefined && p.isAvailable !== filters.isAvailable) return false;
-      if (filters?.category && p.category !== filters.category) return false;
-      if (filters?.budgetRange && p.budgetRange !== filters.budgetRange) return false;
-      if (filters?.occasion && !p.occasions.includes(filters.occasion)) return false;
-      if (filters?.recipient && !p.recipients.includes(filters.recipient)) return false;
-      return true;
-    });
+    if (unpersistedLocals.length > 0) {
+      const merged = [...products, ...unpersistedLocals];
+      return merged.filter((p) => {
+        if (filters?.isArchived !== undefined && p.isArchived !== filters.isArchived) return false;
+        if (filters?.isAvailable !== undefined && p.isAvailable !== filters.isAvailable) return false;
+        if (filters?.category && p.category !== filters.category) return false;
+        if (filters?.budgetRange && p.budgetRange !== filters.budgetRange) return false;
+        if (filters?.occasion && !p.occasions.includes(filters.occasion)) return false;
+        if (filters?.recipient && !p.recipients.includes(filters.recipient)) return false;
+        return true;
+      });
+    }
   }
 
   return products;
@@ -408,16 +432,19 @@ export async function updateProduct(
     }
   }
 
+  // Deeply strip any nested undefined values so Firestore does not reject the document
+  const sanitizedUpdates = removeUndefinedFields(cleanUpdates);
+
   // E. Execute update
   const updatedProduct = {
     ...existingProduct,
-    ...cleanUpdates,
+    ...sanitizedUpdates,
     id: productId,
   } as Product;
 
   try {
     const docRef = doc(db, PRODUCTS_COLLECTION, productId);
-    await updateDoc(docRef, cleanUpdates);
+    await updateDoc(docRef, sanitizedUpdates);
   } catch (err: any) {
     if (err?.code === 'permission-denied') {
       console.warn('[ProductService.updateProduct] Updating in local session.');

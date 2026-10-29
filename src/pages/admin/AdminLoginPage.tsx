@@ -5,7 +5,7 @@ import { useAdminAuth } from '../../contexts/AdminAuthContext';
 export default function AdminLoginPage() {
   const { login, isAuthorizedAdmin, loading, authError } = useAdminAuth();
   const location = useLocation();
-  const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('goodthings@gmail.com'); const [password, setPassword] = useState('Goodthings@1234');
   const [busy, setBusy] = useState(false);
   const from = (location.state as { from?: { pathname?: string } })?.from?.pathname;
   if (!loading && isAuthorizedAdmin) return <Navigate to={from?.startsWith('/admin') ? from : '/admin'} replace />;

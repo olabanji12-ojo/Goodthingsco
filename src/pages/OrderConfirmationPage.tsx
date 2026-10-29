@@ -36,13 +36,25 @@ export const OrderConfirmationPage: React.FC = () => {
   const navigate = useNavigate();
   const { clearCart } = useCart();
 
-  const reference = searchParams.get('reference') || searchParams.get('trxref');
+  const reference =
+    searchParams.get('reference') ||
+    searchParams.get('trxref') ||
+    searchParams.get('tx_ref') ||
+    searchParams.get('transaction_id');
+  const transactionId = searchParams.get('transaction_id') || undefined;
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [verifying, setVerifying] = useState<boolean>(Boolean(reference));
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [copiedOrderNumber, setCopiedOrderNumber] = useState<boolean>(false);
+
+  const isFlutterwave = Boolean(
+    (reference && reference.startsWith('flw_')) ||
+    searchParams.has('tx_ref') ||
+    order?.payment?.provider === 'flutterwave'
+  );
+  const gatewayName = isFlutterwave ? 'Flutterwave' : 'Paystack';
 
   useEffect(() => {
     let isMounted = true;
@@ -54,7 +66,7 @@ export const OrderConfirmationPage: React.FC = () => {
       if (reference) {
         setVerifying(true);
         try {
-          const verifyResult = await verifyOrderPayment(reference);
+          const verifyResult = await verifyOrderPayment(reference, transactionId);
 
           if (!isMounted) return;
 
@@ -135,7 +147,7 @@ export const OrderConfirmationPage: React.FC = () => {
                 Confirming Your Payment
               </h2>
               <p className="font-sans text-xs sm:text-sm text-brand-medium max-w-md mx-auto leading-relaxed">
-                We are securely verifying your transaction with Paystack and reserving your bespoke curations in the atelier...
+                We are securely verifying your transaction with {gatewayName} and reserving your bespoke curations in the atelier...
               </p>
             </div>
           )}
@@ -185,7 +197,7 @@ export const OrderConfirmationPage: React.FC = () => {
 
                 <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-sans text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                  <span>Verified Paystack Payment · Order Confirmed</span>
+                  <span>Verified {order.payment?.provider === 'flutterwave' ? 'Flutterwave' : 'Paystack'} Payment · Order Confirmed</span>
                 </div>
 
                 <h1 className="font-serif text-3xl sm:text-4xl text-brand-dark font-normal tracking-tight">
