@@ -198,12 +198,10 @@ export async function createPendingOrderServer(
     const authoritativeTotal = authoritativeSubtotal + authoritativeDeliveryFee;
     const amountKobo = nairaToKobo(authoritativeTotal);
 
-    // D. Select Payment Gateway & Generate Unique References
-    const provider = payload.paymentProvider === 'flutterwave' ? 'flutterwave' : 'paystack';
+    // D. Payment Gateway & Unique Reference (Flutterwave)
+    const provider = 'flutterwave';
     const orderNumber = generateOrderNumber();
-    const reference = provider === 'flutterwave'
-      ? generateFlutterwaveReference(orderNumber)
-      : generatePaystackReference(orderNumber);
+    const reference = generateFlutterwaveReference(orderNumber);
 
     // E. Assemble Order Document
     const orderDocData: Omit<Order, 'id'> = {
@@ -264,53 +262,16 @@ export async function createPendingOrderServer(
     // The order is already durable. Delivery failures are isolated by the notification layer.
     await notificationService.orderCreated({ id: orderId, ...orderDocData });
 
-    // G. Initialize Payment with chosen Gateway
+    // G. Initialize Payment with Flutterwave Gateway
     const callbackUrl = `${callbackOrigin.replace(/\/$/, '')}/order-confirmation/${orderNumber}`;
 
-    if (provider === 'flutterwave') {
-      const flwResult = await initializeFlutterwaveTransaction({
-        email: orderDocData.customer.email,
-        amountNaira: authoritativeTotal,
-        reference,
-        callbackUrl,
-        customerName: orderDocData.customer.fullName,
-        customerPhone: orderDocData.customer.phone,
-        metadata: {
-          orderNumber,
-          orderId,
-          customerName: orderDocData.customer.fullName,
-        },
-      });
-
-      if (!flwResult.success) {
-        await notificationService.orderException({ id: orderId, ...orderDocData },
-          'Flutterwave payment initialization failed. The pending order is saved and may need assistance.',
-          `${orderNumber}:payment-initialization`);
-        return {
-          success: false,
-          orderNumber,
-          orderId,
-          reference,
-          total: authoritativeTotal,
-          message: flwResult.message || 'Failed to initialize payment with Flutterwave.',
-        };
-      }
-
-      return {
-        success: true,
-        orderNumber,
-        orderId,
-        reference,
-        authorizationUrl: flwResult.authorizationUrl,
-        total: authoritativeTotal,
-      };
-    }
-
-    const paystackResult = await initializePaystackTransaction({
+    const flwResult = await initializeFlutterwaveTransaction({
       email: orderDocData.customer.email,
-      amountKobo,
+      amountNaira: authoritativeTotal,
       reference,
       callbackUrl,
+      customerName: orderDocData.customer.fullName,
+      customerPhone: orderDocData.customer.phone,
       metadata: {
         orderNumber,
         orderId,
@@ -318,15 +279,17 @@ export async function createPendingOrderServer(
       },
     });
 
-    if (!paystackResult.success) {
+    if (!flwResult.success) {
       await notificationService.orderException({ id: orderId, ...orderDocData },
-        'Payment initialization failed. The pending order is saved and may need assistance.',
+        'Flutterwave payment initialization failed. The pending order is saved and may need assistance.',
         `${orderNumber}:payment-initialization`);
       return {
         success: false,
         orderNumber,
         orderId,
-        message: paystackResult.message || 'Payment gateway initialization failed.',
+        reference,
+        total: authoritativeTotal,
+        message: flwResult.message || 'Failed to initialize payment with Flutterwave.',
       };
     }
 
@@ -335,8 +298,7 @@ export async function createPendingOrderServer(
       orderNumber,
       orderId,
       reference,
-      authorizationUrl: paystackResult.authorizationUrl,
-      accessCode: paystackResult.accessCode,
+      authorizationUrl: flwResult.authorizationUrl,
       total: authoritativeTotal,
     };
   } catch (error: any) {
@@ -402,11 +364,11 @@ export async function confirmPaidOrderServer(
       };
     }
 
-    // C. Verify transaction with matching Gateway API
-    const isFlutterwave = existingOrder.payment?.provider === 'flutterwave' || reference.startsWith('flw_');
-    const verifyResult = isFlutterwave
-      ? await verifyFlutterwaveTransaction(reference, transactionId)
-      : await verifyPaystackTransaction(reference);
+    // C. Verify transaction with Flutterwave API (with legacy Paystack fallback if needed)
+    const isPaystack = existingOrder.payment?.provider === 'paystack';
+    const verifyResult = isPaystack
+      ? await verifyPaystackTransaction(reference)
+      : await verifyFlutterwaveTransaction(reference, transactionId);
 
     if (!verifyResult.success || verifyResult.status !== 'success') {
       // Record payment failure on order record

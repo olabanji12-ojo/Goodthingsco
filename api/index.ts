@@ -70,30 +70,27 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
     const url = (req.url || '').split('?')[0];
     const method = (req.method || 'GET').toUpperCase();
 
-    // 2. Payment Initialization (Paystack, Flutterwave, or unified)
-    if ((url === '/api/paystack/initialize' || url === '/api/flutterwave/initialize' || url === '/api/payment/initialize') && method === 'POST') {
+    // 2. Payment Initialization (Flutterwave)
+    if ((url === '/api/flutterwave/initialize' || url === '/api/payment/initialize' || url === '/api/paystack/initialize') && method === 'POST') {
       const body = await parseBody(req);
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host || 'goodthingsco.ng';
       const origin = `${protocol}://${host}`;
 
-      const payload = { ...body.payload };
-      if (url === '/api/flutterwave/initialize') {
-        payload.paymentProvider = 'flutterwave';
-      }
+      const payload = { ...body.payload, paymentProvider: 'flutterwave' };
 
       const result = await createPendingOrderServer(payload, origin, req.headers.authorization?.replace(/^Bearer /, ''));
       return sendJson(res, result.success ? 200 : 400, result);
     }
 
-    // 3. Payment Verification (Paystack, Flutterwave, or unified)
-    if ((url === '/api/paystack/verify' || url === '/api/flutterwave/verify' || url === '/api/payment/verify') && method === 'POST') {
+    // 3. Payment Verification (Flutterwave)
+    if ((url === '/api/flutterwave/verify' || url === '/api/payment/verify' || url === '/api/paystack/verify') && method === 'POST') {
       const body = await parseBody(req);
       const reference = body.reference || body.tx_ref;
       if (!reference) {
         return sendJson(res, 400, { success: false, message: 'Missing transaction reference' });
       }
-      const result = await confirmPaidOrderServer(reference);
+      const result = await confirmPaidOrderServer(reference, body.transaction_id || body.transactionId);
       return sendJson(res, result.success ? 200 : result.retryable ? 503 : 400, result);
     }
 

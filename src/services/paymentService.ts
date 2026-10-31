@@ -2,29 +2,32 @@ import { getStoredSessionToken } from './checkoutSessionService';
 /**
  * Good Things Co. — Client-Side Payment & Order API Client
  *
- * Communicates with secure server-side payment endpoints.
- * Never handles or stores Paystack secret keys directly.
+ * Communicates with secure server-side payment endpoints for Flutterwave.
+ * Never handles or stores payment secret keys directly on client.
  */
 
 import { ValidatedCheckoutPayload } from '../types/checkout';
 import { Order, PaystackInitResponse, PaystackVerifyResponse } from '../types/order';
 
+export type FlutterwaveInitResponse = PaystackInitResponse;
+export type FlutterwaveVerifyResponse = PaystackVerifyResponse;
+
 /**
- * Initializes a pending order and Paystack payment on the server.
+ * Initializes a pending order and Flutterwave payment on the server.
  */
 export async function initializeOrderPayment(
   payload: ValidatedCheckoutPayload,
-  provider: 'paystack' | 'flutterwave' = payload.paymentProvider || 'paystack'
+  provider: 'flutterwave' | 'paystack' = 'flutterwave'
 ): Promise<PaystackInitResponse> {
   try {
-    const endpoint = provider === 'flutterwave' ? '/api/flutterwave/initialize' : '/api/paystack/initialize';
+    const endpoint = '/api/flutterwave/initialize';
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${getStoredSessionToken() || ''}`, 
       },
-      body: JSON.stringify({ payload: { ...payload, paymentProvider: provider } }),
+      body: JSON.stringify({ payload: { ...payload, paymentProvider: 'flutterwave' } }),
     });
 
     const text = await response.text();

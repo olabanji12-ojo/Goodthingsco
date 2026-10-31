@@ -72,7 +72,7 @@ export interface OrderDelivery {
   deliveryFee: number;
 }
 
-export type PaymentProvider = 'paystack' | 'flutterwave';
+export type PaymentProvider = 'flutterwave' | 'paystack';
 
 export interface OrderPayment {
   status: PaymentStatus;
@@ -148,3 +148,8 @@ export interface PaystackVerifyResponse {
   message: string;
   alreadyProcessed?: boolean;
 }
+
+export type FlutterwaveInitResponse = PaystackInitResponse;
+export type FlutterwaveVerifyResponse = PaystackVerifyResponse;
+export type PaymentInitResponse = PaystackInitResponse;
+export type PaymentVerifyResponse = PaystackVerifyResponse;

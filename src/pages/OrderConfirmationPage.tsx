@@ -52,9 +52,9 @@ export const OrderConfirmationPage: React.FC = () => {
   const isFlutterwave = Boolean(
     (reference && reference.startsWith('flw_')) ||
     searchParams.has('tx_ref') ||
-    order?.payment?.provider === 'flutterwave'
+    order?.payment?.provider !== 'paystack'
   );
-  const gatewayName = isFlutterwave ? 'Flutterwave' : 'Paystack';
+  const gatewayName = isFlutterwave ? 'Flutterwave' : 'Flutterwave';
 
   useEffect(() => {
     let isMounted = true;
@@ -139,7 +139,7 @@ export const OrderConfirmationPage: React.FC = () => {
             </div>
           )}
 
-          {/* ── State 1: Verifying with Paystack ── */}
+          {/* ── State 1: Verifying with Flutterwave ── */}
           {verifying && (
             <div className="p-10 sm:p-16 rounded-3xl bg-white border border-brand-dark/10 text-center space-y-4 shadow-sm my-8 animate-fade-in">
               <Loader2 size={36} className="animate-spin text-gold-600 mx-auto" />
@@ -197,7 +197,7 @@ export const OrderConfirmationPage: React.FC = () => {
 
                 <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-sans text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                  <span>Verified {order.payment?.provider === 'flutterwave' ? 'Flutterwave' : 'Paystack'} Payment · Order Confirmed</span>
+                  <span>Verified Flutterwave Payment · Order Confirmed</span>
                 </div>
 
                 <h1 className="font-serif text-3xl sm:text-4xl text-brand-dark font-normal tracking-tight">
