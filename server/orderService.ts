@@ -30,14 +30,12 @@ import { Order, OrderItem, OrderStatus } from '../src/types/order.js';
 import { ValidatedCheckoutPayload } from '../src/types/checkout.js';
 import {
   generateOrderNumber,
-  generatePaystackReference,
   generateFlutterwaveReference,
   nairaToKobo,
   mapCartItemToOrderItem,
 } from '../src/utils/orderUtils.js';
 import { resolveDeliveryZone, getDeliveryFeeCalculation } from '../src/config/shipping.js';
 import {
-  initializePaystackTransaction,
   verifyPaystackTransaction,
 } from './paystackService.js';
 import {

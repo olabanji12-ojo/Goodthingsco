@@ -101,7 +101,6 @@ export const CheckoutPage: React.FC = () => {
   const [revalidationSummary, setRevalidationSummary] = useState<StockRevalidationSummary | null>(null);
   const [validatingOrder, setValidatingOrder] = useState<boolean>(false);
   const [initializingPayment, setInitializingPayment] = useState<boolean>(false);
-  const paymentProvider = 'flutterwave' as const;
   const [preparedPayload, setPreparedPayload] = useState<ValidatedCheckoutPayload | null>(null);
   const [paymentNoticeOpen, setPaymentNoticeOpen] = useState<boolean>(false);
 

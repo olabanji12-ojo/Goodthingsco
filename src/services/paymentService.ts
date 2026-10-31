@@ -17,7 +17,7 @@ export type FlutterwaveVerifyResponse = PaystackVerifyResponse;
  */
 export async function initializeOrderPayment(
   payload: ValidatedCheckoutPayload,
-  provider: 'flutterwave' | 'paystack' = 'flutterwave'
+  _provider: 'flutterwave' | 'paystack' = 'flutterwave'
 ): Promise<PaystackInitResponse> {
   try {
     const endpoint = '/api/flutterwave/initialize';
