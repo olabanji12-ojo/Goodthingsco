@@ -208,6 +208,14 @@ export default function AdminSettingsPage() {
           linenBagFee: Math.max(0, Number(formData.packaging?.linenBagFee) || 0),
           woodenBoxFee: Math.max(0, Number(formData.packaging?.woodenBoxFee) || 0),
           pouchFee: Math.max(0, Number(formData.packaging?.pouchFee) || 0),
+          options: (formData.packaging?.options || []).map((opt) => ({
+            id: opt.id,
+            name: opt.name.trim(),
+            description: (opt.description || '').trim(),
+            price: Math.max(0, Number(opt.price) || 0),
+            badge: opt.badge?.trim() || undefined,
+            enabled: opt.enabled !== false,
+          })),
         },
         abandonedCheckout: {
           abandonedAfterMinutes: Math.max(5, Number(formData.abandonedCheckout.abandonedAfterMinutes) || 60),
@@ -223,7 +231,21 @@ export default function AdminSettingsPage() {
 
       const saved = await updateAdminStoreSettings(payload);
       if (saved) {
-        setFormData(saved);
+        const packaging = saved.packaging || DEFAULT_STORE_SETTINGS.packaging;
+        const options = packaging?.options && packaging.options.length > 0
+          ? packaging.options
+          : (payload.packaging?.options || DEFAULT_PACKAGING_OPTIONS);
+
+        setFormData({
+          ...saved,
+          packaging: {
+            giftBoxFee: packaging?.giftBoxFee ?? 0,
+            linenBagFee: packaging?.linenBagFee ?? 0,
+            woodenBoxFee: packaging?.woodenBoxFee ?? 0,
+            pouchFee: packaging?.pouchFee ?? 0,
+            options,
+          },
+        });
         setReminderDelaysInput(saved.abandonedCheckout.reminderDelaysHours.join(', '));
         setSuccess('Store settings and delivery rates saved successfully.');
         window.scrollTo({ top: 0, behavior: 'smooth' });
