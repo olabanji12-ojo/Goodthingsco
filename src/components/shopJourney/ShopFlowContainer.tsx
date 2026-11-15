@@ -79,6 +79,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
   // Personalisation Modal State (Same-page personalisation)
   const [personalisingProduct, setPersonalisingProduct] = useState<GiftItem | null>(null);
+  const [selectedModalImageIndex, setSelectedModalImageIndex] = useState<number>(0);
   const [packagingList, setPackagingList] = useState<PackagingOption[]>(() => getPackagingOptions());
   const [selectedPackaging, setSelectedPackaging] = useState<PackagingOption>(() => getPackagingOptions()[0]);
   const [ribbonList, setRibbonList] = useState<any[]>(() => RIBBON_COLORS);
@@ -231,6 +232,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     setSelectedPackaging(initialPkg);
     setSelectedRibbon(ribbonList[0] || RIBBON_COLORS[0]);
     setGiftMessage('');
+    setSelectedModalImageIndex(0);
   };
 
   const handleClosePersonalise = () => {
@@ -339,6 +341,16 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   );
   const displayProducts = hasActiveFilters ? exactMatches : (suggestions.length > 0 ? suggestions : allProducts);
   const isShowingSuggestions = exactMatches.length === 0 && !hasActiveFilters && suggestions.length > 0;
+
+  // Multi-image gallery for personalization modal
+  const modalImages = useMemo(() => {
+    if (!personalisingProduct) return [];
+    const raw = (personalisingProduct.rawProduct || personalisingProduct) as Product | undefined;
+    if (raw?.images && Array.isArray(raw.images) && raw.images.length > 0) {
+      return raw.images.map((img) => (typeof img === 'string' ? img : img.url));
+    }
+    return [personalisingProduct.image];
+  }, [personalisingProduct]);
 
   // Active filter count summary
   const activeFiltersCount = [
@@ -741,21 +753,50 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
             {/* Modal Scrollable Body */}
             <div className="p-6 overflow-y-auto space-y-6">
-              {/* Product Summary Row */}
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#FAF8F5] border border-brand-dark/10">
-                <img
-                  src={personalisingProduct.image}
-                  alt={personalisingProduct.title}
-                  className="w-16 h-16 rounded-xl object-cover shrink-0"
-                />
-                <div className="flex-1">
-                  <h4 className="font-serif text-base font-medium text-brand-dark">
-                    {personalisingProduct.title}
-                  </h4>
-                  <p className="font-sans text-xs text-brand-medium">
-                    Base: {personalisingProduct.formattedPrice}
-                  </p>
+              {/* Product Summary Row with Multi-Image View */}
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-brand-dark/10 space-y-3">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={modalImages[selectedModalImageIndex] || personalisingProduct.image}
+                    alt={personalisingProduct.title}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 border border-brand-dark/10 shadow-2xs"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-serif text-base font-medium text-brand-dark truncate">
+                      {personalisingProduct.title}
+                    </h4>
+                    <p className="font-sans text-xs text-brand-medium mt-0.5">
+                      Base: <strong className="text-brand-dark">{personalisingProduct.formattedPrice}</strong>
+                    </p>
+                    <p className="font-sans text-[11px] text-brand-light line-clamp-1 mt-0.5">
+                      {personalisingProduct.subtitle}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Additional View Thumbnails in Modal */}
+                {modalImages.length > 1 && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-brand-dark/5 overflow-x-auto">
+                    <span className="text-[10px] font-sans text-brand-light uppercase tracking-wider font-semibold mr-1 shrink-0">
+                      Views ({modalImages.length}):
+                    </span>
+                    {modalImages.map((imgUrl, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedModalImageIndex(idx)}
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                          selectedModalImageIndex === idx
+                            ? 'border-brand-dark ring-1 ring-brand-dark scale-105'
+                            : 'border-brand-dark/15 opacity-60 hover:opacity-100'
+                        }`}
+                        title={`View angle ${idx + 1}`}
+                      >
+                        <img src={imgUrl} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 1. Packaging Selection */}

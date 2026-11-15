@@ -13,6 +13,10 @@ import {
   Tag,
   DollarSign,
   Gift,
+  Star,
+  RefreshCw,
+  Trash2,
+  Camera,
 } from 'lucide-react';
 import {
   Product,
@@ -258,6 +262,50 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
 
   const handleRemoveImage = (index: number) => {
     setImages((prev) => removeImageFromList(prev, index));
+  };
+
+  const handleSetCoverImage = (fromIndex: number) => {
+    if (fromIndex <= 0 || fromIndex >= images.length) return;
+    setImages((prev) => {
+      const copy = [...prev];
+      const [target] = copy.splice(fromIndex, 1);
+      copy.unshift(target);
+      return copy;
+    });
+  };
+
+  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
+
+  const handleReplaceImage = async (index: number, e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const v = validateImageFile(file);
+    if (!v.isValid) {
+      setImageError(v.error || 'Invalid replacement file.');
+      return;
+    }
+
+    setReplacingIndex(index);
+    setImageError(null);
+    setUploadProgress(`Uploading replacement for image #${index + 1}...`);
+
+    try {
+      const [uploaded] = await uploadImages([file]);
+      if (uploaded) {
+        setImages((prev) => {
+          const copy = [...prev];
+          copy[index] = uploaded;
+          return copy;
+        });
+        setUploadProgress(`Image #${index + 1} successfully replaced!`);
+      }
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Replacement upload failed.');
+    } finally {
+      setReplacingIndex(null);
+      e.target.value = '';
+    }
   };
 
   const handleMoveImage = (fromIndex: number, direction: 'left' | 'right') => {
@@ -743,60 +791,33 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
       </div>
 
       {/* ======================================================== */}
-      {/* SECTION 3: CLOUDINARY PRODUCT IMAGES                     */}
+      {/* ======================================================== */}
+      {/* SECTION 3: PRODUCT IMAGES (MULTI-IMAGE GALLERY)          */}
       {/* ======================================================== */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UploadCloud size={18} color="#0f172a" />
-            <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0, color: '#0f172a' }}>Product Images</h2>
+            <Camera size={18} color="#0f172a" />
+            <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0, color: '#0f172a' }}>
+              Product Photography ({images.length} uploaded)
+            </h2>
           </div>
           <span style={{ fontSize: '12px', color: '#64748b' }}>
-            Cloudinary Unsigned Upload • Max 10MB each
+            Recommended: 2 to 3 photos • JPEG, PNG, WebP, AVIF
           </span>
         </div>
 
-        {/* Upload Button & Dropzone */}
-        <div
-          style={{
-            border: '2px dashed #cbd5e1',
-            borderRadius: '10px',
-            padding: '28px',
-            textAlign: 'center',
-            backgroundColor: '#f8fafc',
-            marginBottom: '20px',
-          }}
-        >
-          <UploadCloud size={32} color="#94a3b8" style={{ margin: '0 auto 12px auto' }} />
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
-            Select product photography to upload
+        {/* Curator Recommendation Banner */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px', backgroundColor: '#fdfbf7', border: '1px solid #ecdcb9', borderRadius: '8px', marginBottom: '18px', fontSize: '12px', color: '#785b2e', lineHeight: 1.5 }}>
+          <Sparkles size={16} color="#c5a880" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <strong>Curator Recommendation:</strong> Add <strong>2 to 3 photos</strong> for each curation so customers can explore every angle:
+            <span style={{ display: 'block', marginTop: '3px', color: '#926a31' }}>
+              • <strong>Photo #1:</strong> Main Cover / Box Closed & Ribbon &nbsp;|&nbsp;
+              • <strong>Photo #2:</strong> Inside Contents / Box Open &nbsp;|&nbsp;
+              • <strong>Photo #3:</strong> Packaging / Artisan Detail
+            </span>
           </div>
-          <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748b' }}>
-            Supports JPEG, PNG, WebP, AVIF. The first image will be used as the primary cover photo.
-          </p>
-
-          <label
-            style={{
-              display: 'inline-block',
-              padding: '10px 20px',
-              backgroundColor: '#0f172a',
-              color: '#ffffff',
-              borderRadius: '8px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: uploadingImages ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {uploadingImages ? 'Uploading to Cloudinary...' : 'Choose Images'}
-            <input
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,image/webp,image/avif"
-              onChange={handleImageFileSelect}
-              disabled={uploadingImages}
-              style={{ display: 'none' }}
-            />
-          </label>
         </div>
 
         {/* Progress & Errors */}
@@ -812,63 +833,163 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
           </div>
         )}
 
-        {/* Image Thumbnails Gallery */}
+        {/* Main Upload Dropzone (shown when no images) */}
+        {images.length === 0 && (
+          <div
+            style={{
+              border: '2px dashed #cbd5e1',
+              borderRadius: '10px',
+              padding: '36px 20px',
+              textAlign: 'center',
+              backgroundColor: '#f8fafc',
+              marginBottom: '20px',
+            }}
+          >
+            <UploadCloud size={36} color="#94a3b8" style={{ margin: '0 auto 12px auto' }} />
+            <div style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+              Upload Product Photography (2 to 3 images recommended)
+            </div>
+            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748b' }}>
+              Select front view, open box view, and packaging detail. The first image will be your main catalogue cover.
+            </p>
+
+            <label
+              style={{
+                display: 'inline-block',
+                padding: '10px 22px',
+                backgroundColor: '#0f172a',
+                color: '#ffffff',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: uploadingImages ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {uploadingImages ? 'Uploading to Cloudinary...' : 'Choose Images'}
+              <input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                onChange={handleImageFileSelect}
+                disabled={uploadingImages}
+                style={{ display: 'none' }}
+              />
+            </label>
+          </div>
+        )}
+
+        {/* Image Thumbnails & Management Gallery */}
         {images.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}>
             {images.map((img, idx) => {
               const url = getProductImageUrl(img);
               const isCover = idx === 0;
+              const slotLabel =
+                idx === 0
+                  ? 'Cover Photo'
+                  : idx === 1
+                  ? 'Inside Contents'
+                  : idx === 2
+                  ? 'Packaging Detail'
+                  : `Angle #${idx + 1}`;
+
+              const isReplacingThis = replacingIndex === idx;
 
               return (
                 <div
                   key={idx}
                   style={{
                     border: isCover ? '2px solid #c5a880' : '1px solid #e2e8f0',
-                    borderRadius: '8px',
+                    borderRadius: '10px',
                     overflow: 'hidden',
                     backgroundColor: '#ffffff',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
+                    boxShadow: isCover ? '0 2px 8px rgba(197, 168, 128, 0.25)' : 'none',
                   }}
                 >
-                  <div style={{ position: 'relative', height: '140px', backgroundColor: '#f1f5f9' }}>
+                  {/* Slot Title Bar */}
+                  <div
+                    style={{
+                      padding: '6px 10px',
+                      backgroundColor: isCover ? '#fbf8f3' : '#f8fafc',
+                      borderBottom: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '11px',
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, color: isCover ? '#926a31' : '#475569' }}>
+                      #{idx + 1} {slotLabel}
+                    </span>
+                    {!isCover && (
+                      <button
+                        type="button"
+                        onClick={() => handleSetCoverImage(idx)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#b8860b',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          padding: '2px 4px',
+                        }}
+                        title="Set this photo as primary cover"
+                      >
+                        <Star size={11} fill="#b8860b" />
+                        <span>Make Cover</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Image Viewport */}
+                  <div style={{ position: 'relative', height: '150px', backgroundColor: '#f1f5f9' }}>
                     <img
                       src={url}
                       alt={`Product view ${idx + 1}`}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
+
                     {isCover && (
                       <span
                         style={{
                           position: 'absolute',
-                          top: '6px',
-                          left: '6px',
+                          top: '8px',
+                          left: '8px',
                           backgroundColor: '#c5a880',
                           color: '#0f172a',
                           fontSize: '10px',
                           fontWeight: 700,
-                          padding: '2px 6px',
+                          padding: '3px 8px',
                           borderRadius: '4px',
                           letterSpacing: '0.04em',
                           textTransform: 'uppercase',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
                         }}
                       >
-                        Cover
+                        ★ Main Cover
                       </span>
                     )}
+
+                    {/* Delete button */}
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(idx)}
                       style={{
                         position: 'absolute',
-                        top: '6px',
-                        right: '6px',
-                        width: '24px',
-                        height: '24px',
+                        top: '8px',
+                        right: '8px',
+                        width: '26px',
+                        height: '26px',
                         borderRadius: '50%',
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: '#fff',
+                        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                        color: '#ffffff',
                         border: 'none',
                         cursor: 'pointer',
                         display: 'flex',
@@ -876,14 +997,42 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
                         justifyContent: 'center',
                         padding: 0,
                       }}
-                      title="Remove image"
+                      title="Remove this image"
                     >
-                      <X size={14} />
+                      <Trash2 size={13} />
                     </button>
+
+                    {isReplacingThis && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffffff',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Uploading...
+                      </div>
+                    )}
                   </div>
 
-                  {/* Move Left / Right Controls */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', borderTop: '1px solid #f1f5f9', backgroundColor: '#fafafa' }}>
+                  {/* Actions Toolbar: Move Left • Replace • Move Right */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 10px',
+                      borderTop: '1px solid #f1f5f9',
+                      backgroundColor: '#fafafa',
+                      fontSize: '11px',
+                    }}
+                  >
                     <button
                       type="button"
                       disabled={idx === 0}
@@ -893,15 +1042,43 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
                         border: 'none',
                         cursor: idx === 0 ? 'not-allowed' : 'pointer',
                         color: idx === 0 ? '#cbd5e1' : '#475569',
-                        padding: '2px 4px',
+                        padding: '4px',
                         display: 'flex',
                         alignItems: 'center',
                       }}
-                      title="Move left"
+                      title="Move photo earlier"
                     >
                       <ArrowLeft size={14} />
                     </button>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>#{idx + 1}</span>
+
+                    {/* Replace Image Button with File Input */}
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: '#334155',
+                        fontWeight: 600,
+                        fontSize: '11px',
+                        cursor: isReplacingThis ? 'not-allowed' : 'pointer',
+                      }}
+                      title="Swap this photo with a new one"
+                    >
+                      <RefreshCw size={11} className={isReplacingThis ? 'animate-spin' : ''} />
+                      <span>{isReplacingThis ? 'Replacing...' : 'Replace'}</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/avif"
+                        onChange={(e) => handleReplaceImage(idx, e)}
+                        disabled={isReplacingThis}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+
                     <button
                       type="button"
                       disabled={idx === images.length - 1}
@@ -911,11 +1088,11 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
                         border: 'none',
                         cursor: idx === images.length - 1 ? 'not-allowed' : 'pointer',
                         color: idx === images.length - 1 ? '#cbd5e1' : '#475569',
-                        padding: '2px 4px',
+                        padding: '4px',
                         display: 'flex',
                         alignItems: 'center',
                       }}
-                      title="Move right"
+                      title="Move photo later"
                     >
                       <ArrowRight size={14} />
                     </button>
@@ -923,6 +1100,60 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
                 </div>
               );
             })}
+
+            {/* "+ Add Another Photo" Slot Card */}
+            {images.length < 8 && (
+              <label
+                style={{
+                  border: '2px dashed #c5a880',
+                  borderRadius: '10px',
+                  backgroundColor: '#fdfbf7',
+                  minHeight: '230px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
+                  cursor: uploadingImages ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '50%',
+                    backgroundColor: '#f5ecdf',
+                    color: '#926a31',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '10px',
+                  }}
+                >
+                  <Plus size={22} />
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+                  + Add Another Photo
+                </div>
+                <span style={{ fontSize: '11px', color: '#926a31' }}>
+                  {images.length === 1
+                    ? 'Recommended: Add Inside View'
+                    : images.length === 2
+                    ? 'Recommended: Add Packaging View'
+                    : 'Add detail / close-up angle'}
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  onChange={handleImageFileSelect}
+                  disabled={uploadingImages}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            )}
           </div>
         )}
       </div>
