@@ -60,18 +60,18 @@ export const ProductDetailPage: React.FC = () => {
   }, []);
 
   const packagingList = useMemo(() => {
-    return getPackagingOptions(publicSettings?.packaging?.options);
-  }, [publicSettings?.packaging?.options]);
+    return getPackagingOptions(publicSettings?.packaging);
+  }, [publicSettings?.packaging]);
 
   const ribbonList = useMemo(() => {
     const fromSettings = publicSettings?.packaging?.ribbons;
     if (Array.isArray(fromSettings) && fromSettings.length > 0) {
       return fromSettings
-        .filter((r) => r.isActive !== false)
+        .filter((r) => r.enabled !== false)
         .map((r) => ({
+          id: r.id,
           name: r.name,
-          color: r.color,
-          bgClass: r.bgClass || 'bg-brand-dark',
+          hex: r.hex || '#C89D5C',
         }));
     }
     return RIBBON_COLORS;
@@ -448,14 +448,14 @@ export const ProductDetailPage: React.FC = () => {
                       {(product.ribbonColours && product.ribbonColours.length > 0
                         ? product.ribbonColours.map((r) => {
                             const found = ribbonList.find((rl) => rl.name.toLowerCase() === r.toLowerCase());
-                            return { name: r, color: found?.color || '#D4AF37' };
+                            return { id: r, name: r, hex: found?.hex || '#C89D5C' };
                           })
                         : ribbonList
                       ).map((rib) => {
                         const isSelected = selectedRibbon === rib.name;
                         return (
                           <button
-                            key={rib.name}
+                            key={rib.id || rib.name}
                             type="button"
                             onClick={() => setSelectedRibbon(rib.name)}
                             className={`px-3 py-1.5 rounded-xl border text-xs font-sans transition-all cursor-pointer flex items-center gap-2 ${
@@ -466,7 +466,7 @@ export const ProductDetailPage: React.FC = () => {
                           >
                             <span
                               className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10"
-                              style={{ backgroundColor: rib.color }}
+                              style={{ backgroundColor: rib.hex }}
                             />
                             <span>{rib.name}</span>
                           </button>
