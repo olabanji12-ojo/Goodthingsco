@@ -635,12 +635,10 @@ export async function getFilteredProducts(
 
     // 1. Occasion match
     if (occasion && occasion !== 'all') {
-      const matchOccasion = p.occasions?.some(
-        (o) =>
-          o.toLowerCase() === occasion ||
-          o.toLowerCase().includes(occasion) ||
-          occasion.includes(o.toLowerCase())
-      );
+      const matchOccasion = p.occasions?.some((o) => {
+        const cleanO = o.toLowerCase().trim();
+        return cleanO === occasion || cleanO.replace(/\s+/g, '-') === occasion;
+      });
       if (!matchOccasion) return false;
     }
 
@@ -658,22 +656,15 @@ export async function getFilteredProducts(
       if (!matchRecipient) return false;
     }
 
-    // 3. Budget Range match (with price-based check for legacy products)
+    // 3. Budget Range match (strictly enforced against numerical price)
     if (budgetRange) {
-      if (p.budgetRange === budgetRange) {
-        // Direct match
-      } else if ((p.budgetRange as any) === '100000-plus') {
-        const derived = (p.price || 0) >= 250000 ? '250000-plus' : '100000-250000';
-        if (derived !== budgetRange) return false;
-      } else if (!p.budgetRange && p.price !== undefined) {
-        let derived: BudgetRangeTier = '25000-50000';
-        if (p.price < 25000) derived = 'under-25000';
-        else if (p.price <= 50000) derived = '25000-50000';
-        else if (p.price <= 100000) derived = '50000-100000';
-        else if (p.price <= 250000) derived = '100000-250000';
-        else derived = '250000-plus';
-        if (derived !== budgetRange) return false;
-      } else {
+      if (typeof p.price === 'number') {
+        if (budgetRange === 'under-25000' && p.price >= 25000) return false;
+        if (budgetRange === '25000-50000' && (p.price < 25000 || p.price > 50000)) return false;
+        if (budgetRange === '50000-100000' && (p.price < 50000 || p.price > 100000)) return false;
+        if (budgetRange === '100000-250000' && (p.price < 100000 || p.price > 250000)) return false;
+        if (budgetRange === '250000-plus' && p.price < 250000) return false;
+      } else if (p.budgetRange && p.budgetRange !== budgetRange) {
         return false;
       }
     }
@@ -694,28 +685,24 @@ export async function getFilteredProducts(
   if (exactMatches.length === 0 && activeProducts.length > 0) {
     suggestions = activeProducts.filter((p) => {
       if (p.isArchived || !p.isAvailable) return false;
-      const matchOccasion =
-        occasion &&
-        p.occasions?.some(
-          (o) =>
-            o.toLowerCase() === occasion ||
-            o.toLowerCase().includes(occasion) ||
-            occasion.includes(o.toLowerCase())
-        );
-      const matchBudget = budgetRange && p.budgetRange === budgetRange;
-      const matchRecipient =
-        recipient &&
-        p.recipients?.some(
-          (r) =>
-            r.toLowerCase() === recipient ||
-            (specificRecipient && r.toLowerCase() === specificRecipient)
-        );
-      return matchOccasion || matchBudget || matchRecipient;
+      // Do not suggest items that contradict the chosen occasion
+      if (occasion && occasion !== 'all') {
+        const matchOccasion = p.occasions?.some((o) => {
+          const cleanO = o.toLowerCase().trim();
+          return cleanO === occasion || cleanO.replace(/\s+/g, '-') === occasion;
+        });
+        if (!matchOccasion) return false;
+      }
+      // Do not suggest items that wildly violate the chosen budget
+      if (budgetRange && typeof p.price === 'number') {
+        if (budgetRange === 'under-25000' && p.price >= 35000) return false;
+        if (budgetRange === '25000-50000' && (p.price < 20000 || p.price > 60000)) return false;
+        if (budgetRange === '50000-100000' && (p.price < 40000 || p.price > 120000)) return false;
+        if (budgetRange === '100000-250000' && (p.price < 80000 || p.price > 300000)) return false;
+        if (budgetRange === '250000-plus' && p.price < 200000) return false;
+      }
+      return true;
     });
-
-    if (suggestions.length === 0) {
-      suggestions = activeProducts.slice(0, 6);
-    }
   }
 
   return {

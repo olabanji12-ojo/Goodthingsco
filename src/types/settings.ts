@@ -133,6 +133,14 @@ export const DEFAULT_PACKAGING_OPTIONS: PackagingOptionItem[] = [
     price: 0,
     enabled: true,
   },
+  {
+    id: 'festive-box',
+    name: 'Festive Christmas Keepsake Box',
+    description: 'Holiday crimson & gold embossed keepsake box with seasonal botanical lining',
+    price: 0,
+    badge: 'Holiday Edition',
+    enabled: true,
+  },
 ];
 
 export const DEFAULT_RIBBON_OPTIONS: RibbonOptionItem[] = [

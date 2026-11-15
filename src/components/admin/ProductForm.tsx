@@ -39,6 +39,9 @@ export const STANDARD_OCCASIONS = [
   { value: 'birthday', label: 'Birthday' },
   { value: 'thank-you', label: 'Thank You' },
   { value: 'congratulations', label: 'Congratulations' },
+  { value: 'wedding', label: 'Wedding' },
+  { value: 'wedding-souvenirs', label: 'Wedding Souvenirs' },
+  { value: 'anniversary', label: 'Anniversary' },
   { value: 'just-because', label: 'Just Because' },
   { value: 'christmas', label: 'Christmas' },
   { value: 'valentines', label: "Valentine's" },
@@ -97,6 +100,7 @@ export const STANDARD_LIFESTYLES: { value: LifestyleCategory; label: string }[] 
 export const STANDARD_CATEGORIES = [
   'Gift Box',
   'Hamper',
+  'Wedding Souvenirs',
   'Desk & Executive',
   'Home & Living',
   'Sweet Treats',
@@ -107,11 +111,10 @@ export const STANDARD_CATEGORIES = [
 
 export const STANDARD_PACKAGING = [
   'Signature Gift Box',
-  'Gift Bag',
-  'Handcrafted Wooden Box',
-  'Keepsake Box',
-  'Silk Pouch',
-  'Velvet Pouch',
+  'Textured Linen Bag',
+  'Artisan Wooden Crate',
+  'Silk Keepsake Pouch',
+  'Festive Christmas Keepsake Box',
 ];
 
 export const STANDARD_RIBBONS = [

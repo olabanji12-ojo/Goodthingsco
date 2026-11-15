@@ -210,6 +210,22 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
         )
       );
       if (matched) initialPkg = matched;
+    } else {
+      // Prioritize Festive Christmas packaging for holiday items
+      const isChristmas =
+        selectedOccasion === 'christmas' ||
+        product.occasions?.some((o: string) => o.toLowerCase() === 'christmas') ||
+        raw?.occasions?.some((o: string) => o.toLowerCase() === 'christmas');
+      if (isChristmas) {
+        const festive = packagingList.find(
+          (p) =>
+            p.id.includes('festive') ||
+            p.id.includes('christmas') ||
+            p.name.toLowerCase().includes('festive') ||
+            p.name.toLowerCase().includes('christmas')
+        );
+        if (festive) initialPkg = festive;
+      }
     }
 
     setSelectedPackaging(initialPkg);
@@ -292,12 +308,37 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
       );
       if (filtered.length > 0) return filtered;
     }
-    return packagingList;
-  }, [personalisingProduct, packagingList]);
 
-  // Products to display
-  const displayProducts = exactMatches.length > 0 ? exactMatches : suggestions.length > 0 ? suggestions : allProducts;
-  const isShowingSuggestions = exactMatches.length === 0 && suggestions.length > 0;
+    // If Christmas, prioritize the festive holiday box
+    const isChristmas =
+      selectedOccasion === 'christmas' ||
+      personalisingProduct.occasions?.some((o: string) => o.toLowerCase() === 'christmas') ||
+      raw?.occasions?.some((o: string) => o.toLowerCase() === 'christmas');
+    if (isChristmas) {
+      const festive = packagingList.filter(
+        (p) =>
+          p.id.includes('festive') ||
+          p.id.includes('christmas') ||
+          p.name.toLowerCase().includes('festive') ||
+          p.name.toLowerCase().includes('christmas')
+      );
+      if (festive.length > 0) {
+        return [...festive, ...packagingList.filter((p) => !festive.some((f) => f.id === p.id))];
+      }
+    }
+
+    return packagingList;
+  }, [personalisingProduct, packagingList, selectedOccasion]);
+
+  // Products to display: when active filters exist, strictly respect exactMatches!
+  const hasActiveFilters = Boolean(
+    (selectedOccasion && selectedOccasion !== 'all') ||
+    selectedRecipient ||
+    selectedBudget ||
+    selectedLifestyle
+  );
+  const displayProducts = hasActiveFilters ? exactMatches : (suggestions.length > 0 ? suggestions : allProducts);
+  const isShowingSuggestions = exactMatches.length === 0 && !hasActiveFilters && suggestions.length > 0;
 
   // Active filter count summary
   const activeFiltersCount = [
@@ -598,11 +639,15 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                           {gift.badge}
                         </span>
                       )}
-                      {gift.occasions?.[0] && (
-                        <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-brand-dark text-[10px] font-sans font-semibold capitalize border border-black/5">
-                          {gift.occasions[0]}
-                        </span>
-                      )}
+                      {(() => {
+                        const matchedOccasion = selectedOccasion && gift.occasions?.find((o) => o.toLowerCase() === selectedOccasion.toLowerCase());
+                        const displayOccasion = matchedOccasion || gift.rawProduct?.category || gift.occasions?.[0];
+                        return displayOccasion ? (
+                          <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-brand-dark text-[10px] font-sans font-semibold capitalize border border-black/5">
+                            {displayOccasion.replace(/-/g, ' ')}
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
 
                     {/* Quick Add Overlay on Hover (Desktop) */}

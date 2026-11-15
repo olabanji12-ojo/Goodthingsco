@@ -116,6 +116,15 @@ export const ProductDetailPage: React.FC = () => {
           }
           if (item.packagingOptions && item.packagingOptions.length > 0) {
             setSelectedPackaging(item.packagingOptions[0]);
+          } else if (item.occasions?.some((o: string) => o.toLowerCase() === 'christmas')) {
+            const festive = packagingList.find(
+              (p) =>
+                p.id.includes('festive') ||
+                p.id.includes('christmas') ||
+                p.name.toLowerCase().includes('festive') ||
+                p.name.toLowerCase().includes('christmas')
+            );
+            setSelectedPackaging(festive ? festive.name : (packagingList[0]?.name || ''));
           } else if (packagingList.length > 0) {
             setSelectedPackaging(packagingList[0].name);
           }
