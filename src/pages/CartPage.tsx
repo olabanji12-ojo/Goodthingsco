@@ -52,6 +52,10 @@ export const CartPage: React.FC = () => {
 
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
+  const totalPackagingFees = useMemo(() => {
+    return items.reduce((sum, item) => sum + (item.packagingFee || 0) * item.quantity, 0);
+  }, [items]);
+
   // Trigger live stock revalidation on mount
   useEffect(() => {
     revalidateStock();
@@ -271,7 +275,16 @@ export const CartPage: React.FC = () => {
                               {item.packaging && (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#FAF8F5] border border-brand-dark/10 text-brand-dark">
                                   <Package size={11} className="text-gold-600" />
-                                  <span>Box: {item.packaging}</span>
+                                  <span>
+                                    Box: {item.packaging}
+                                    {item.packagingFee && item.packagingFee > 0 ? (
+                                      <span className="text-gold-700 font-medium ml-1">
+                                        (+{formatNaira(item.packagingFee)})
+                                      </span>
+                                    ) : (
+                                      <span className="text-brand-light ml-1">(Included)</span>
+                                    )}
+                                  </span>
                                 </span>
                               )}
 
@@ -414,10 +427,17 @@ export const CartPage: React.FC = () => {
                       <span>Merchandise Subtotal</span>
                       <span className="font-semibold text-brand-dark">{formatNaira(subtotal)}</span>
                     </div>
-                    <div className="flex justify-between text-brand-medium">
-                      <span>Signature Packaging</span>
-                      <span className="text-gold-700 font-medium">Complimentary</span>
-                    </div>
+                    {totalPackagingFees > 0 ? (
+                      <div className="flex justify-between text-brand-medium">
+                        <span>Packaging Upgrades (in Subtotal)</span>
+                        <span className="font-semibold text-gold-700">+{formatNaira(totalPackagingFees)}</span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between text-brand-medium">
+                        <span>Signature Packaging</span>
+                        <span className="text-gold-700 font-medium">Complimentary</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-brand-medium">
                       <span>Calligraphy Gift Card</span>
                       <span className="text-gold-700 font-medium">Complimentary</span>

@@ -169,6 +169,10 @@ export const CheckoutPage: React.FC = () => {
   const deliveryFee = deliveryCalc.fee;
   const orderTotal = subtotal + deliveryFee;
 
+  const totalPackagingFees = useMemo(() => {
+    return items.reduce((sum, item) => sum + (item.packagingFee || 0) * item.quantity, 0);
+  }, [items]);
+
   // Handle self-order recipient copy
   useEffect(() => {
     if (formData.recipient.isSelf) {
@@ -931,7 +935,18 @@ export const CheckoutPage: React.FC = () => {
                           </div>
                           {(item.packaging || item.ribbonColour) && (
                             <div className="text-[10px] text-brand-medium/80 truncate mt-0.5">
-                              {item.packaging && `Box: ${item.packaging}`}
+                              {item.packaging && (
+                                <span>
+                                  Box: {item.packaging}
+                                  {item.packagingFee && item.packagingFee > 0 ? (
+                                    <span className="text-gold-700 font-medium ml-1">
+                                      (+{formatNaira(item.packagingFee)})
+                                    </span>
+                                  ) : (
+                                    <span className="text-brand-light ml-1">(Included)</span>
+                                  )}
+                                </span>
+                              )}
                               {item.packaging && item.ribbonColour && ' • '}
                               {item.ribbonColour && `Ribbon: ${item.ribbonColour}`}
                             </div>
@@ -950,6 +965,13 @@ export const CheckoutPage: React.FC = () => {
                       <span>Merchandise Subtotal</span>
                       <span className="font-semibold text-brand-dark">{formatNaira(subtotal)}</span>
                     </div>
+
+                    {totalPackagingFees > 0 && (
+                      <div className="flex justify-between text-brand-medium">
+                        <span>Packaging Upgrades (in Subtotal)</span>
+                        <span className="font-semibold text-gold-700">+{formatNaira(totalPackagingFees)}</span>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-center text-brand-medium">
                       <span>Delivery Fee ({deliveryCalc.name})</span>

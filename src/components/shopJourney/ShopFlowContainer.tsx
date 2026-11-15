@@ -81,10 +81,9 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   const [personalisingProduct, setPersonalisingProduct] = useState<GiftItem | null>(null);
   const [packagingList, setPackagingList] = useState<PackagingOption[]>(() => getPackagingOptions());
   const [selectedPackaging, setSelectedPackaging] = useState<PackagingOption>(() => getPackagingOptions()[0]);
+  const [ribbonList, setRibbonList] = useState<any[]>(() => RIBBON_COLORS);
   const [selectedRibbon, setSelectedRibbon] = useState(RIBBON_COLORS[0]);
   const [giftMessage, setGiftMessage] = useState<string>('');
-  const [hasMonogram, setHasMonogram] = useState<boolean>(false);
-  const [monogramText, setMonogramText] = useState<string>('');
 
   // Cart Success Toast / Modal State
   const [cartNotice, setCartNotice] = useState<string | null>(null);
@@ -122,7 +121,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     loadFilteredProducts();
   }, [loadFilteredProducts]);
 
-  // Load live packaging settings from store settings
+  // Load live packaging & ribbon settings from store settings
   useEffect(() => {
     let isMounted = true;
     getPublicStoreSettings()
@@ -131,6 +130,14 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
         const opts = getPackagingOptions(settings?.packaging);
         setPackagingList(opts);
         setSelectedPackaging((prev) => opts.find((o) => o.id === prev.id) || opts[0]);
+
+        if (settings?.packaging?.ribbons && settings.packaging.ribbons.length > 0) {
+          const activeRibbons = settings.packaging.ribbons.filter((r: any) => r.enabled !== false);
+          if (activeRibbons.length > 0) {
+            setRibbonList(activeRibbons);
+            setSelectedRibbon((prev) => activeRibbons.find((r) => r.id === prev.id) || activeRibbons[0]);
+          }
+        }
       })
       .catch((err) => {
         console.warn('[ShopFlow] Failed to load store settings:', err);
@@ -206,10 +213,8 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     }
 
     setSelectedPackaging(initialPkg);
-    setSelectedRibbon(RIBBON_COLORS[0]);
+    setSelectedRibbon(ribbonList[0] || RIBBON_COLORS[0]);
     setGiftMessage('');
-    setHasMonogram(false);
-    setMonogramText('');
   };
 
   const handleClosePersonalise = () => {
@@ -238,8 +243,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
       : { url: personalisingProduct.image, alt: personalisingProduct.title };
 
     const packagingExtra = selectedPackaging.price || 0;
-    const monogramExtra = hasMonogram ? 2500 : 0;
-    const unitPrice = personalisingProduct.price + packagingExtra + monogramExtra;
+    const unitPrice = personalisingProduct.price + packagingExtra;
 
     const result = addItem({
       productId: raw?.id || personalisingProduct.id,
@@ -250,9 +254,9 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
       currentStock: stock,
       image: imagePayload,
       packaging: selectedPackaging.name,
+      packagingFee: packagingExtra,
       ribbonColour: selectedRibbon.name,
       giftMessage: giftMessage.trim() || undefined,
-      personalisationText: hasMonogram ? monogramText.trim() || undefined : undefined,
     });
 
     if (result.success) {
@@ -265,47 +269,10 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     }
   };
 
-  // Quick Add directly without personalisation
+  // Quick Add opens personalisation modal so customer chooses packaging & ribbons
   const handleQuickAdd = (product: Product | GiftItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    const item: GiftItem = 'rawProduct' in (product as any) ? (product as GiftItem) : adaptProductToGiftItem(product as Product);
-    const raw = item.rawProduct as Product | undefined;
-    const stock = raw?.stock !== undefined ? raw.stock : 999;
-
-    if (stock <= 0) {
-      setCartNotice(`"${item.title}" is currently out of stock.`);
-      setTimeout(() => setCartNotice(null), 3000);
-      return;
-    }
-
-    const firstImage = raw?.images?.[0];
-    const imagePayload = firstImage
-      ? {
-          url: typeof firstImage === 'string' ? firstImage : firstImage.url,
-          publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
-          alt: typeof firstImage === 'object' ? firstImage.alt : item.title,
-        }
-      : { url: item.image, alt: item.title };
-
-    const result = addItem({
-      productId: raw?.id || item.id,
-      slug: item.slug || raw?.slug || item.id,
-      name: item.title,
-      unitPrice: item.price,
-      quantity: 1,
-      currentStock: stock,
-      image: imagePayload,
-      packaging: 'Signature Gift Box',
-      ribbonColour: 'Champagne Gold',
-    });
-
-    if (result.success) {
-      setLastAddedTitle(item.title);
-      setAddedModalOpen(true);
-    } else {
-      setCartNotice(result.message);
-      setTimeout(() => setCartNotice(null), 3500);
-    }
+    handleOpenPersonalise(product);
   };
 
   // Filter packaging options for current product
@@ -788,11 +755,11 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   2. Satin Ribbon Finish
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {RIBBON_COLORS.map((ribbon) => {
-                    const isSelected = selectedRibbon.id === ribbon.id;
+                  {ribbonList.map((ribbon) => {
+                    const isSelected = selectedRibbon.id === ribbon.id || selectedRibbon.name === ribbon.name;
                     return (
                       <button
-                        key={ribbon.id}
+                        key={ribbon.id || ribbon.name}
                         type="button"
                         onClick={() => setSelectedRibbon(ribbon)}
                         className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-sans transition-all cursor-pointer ${
@@ -830,39 +797,6 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   className="w-full p-3.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
                 />
               </div>
-
-              {/* 4. Optional Monogram */}
-              <div className="p-4 rounded-xl border border-brand-dark/10 bg-[#FAF8F5] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-serif text-sm font-semibold text-brand-dark block">
-                      Custom Laser Monogram or Name (+₦2,500)
-                    </span>
-                    <span className="font-sans text-xs text-brand-medium">
-                      Debossed or laser-engraved onto gift box brass plaque
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={hasMonogram}
-                    onChange={(e) => setHasMonogram(e.target.checked)}
-                    className="w-4 h-4 rounded accent-brand-dark cursor-pointer"
-                  />
-                </div>
-
-                {hasMonogram && (
-                  <div className="pt-2">
-                    <input
-                      type="text"
-                      maxLength={24}
-                      value={monogramText}
-                      onChange={(e) => setMonogramText(e.target.value)}
-                      placeholder="e.g. O.A.B or Sophia"
-                      className="w-full sm:w-64 px-3.5 py-2 rounded-lg border border-brand-dark/20 text-xs font-sans uppercase tracking-widest font-semibold bg-white"
-                    />
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Modal Footer / Add to Gifting Cart */}
@@ -873,8 +807,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   ₦
                   {(
                     personalisingProduct.price +
-                    (selectedPackaging.price || 0) +
-                    (hasMonogram ? 2500 : 0)
+                    (selectedPackaging.price || 0)
                   ).toLocaleString()}
                 </span>
               </div>

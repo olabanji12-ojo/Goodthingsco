@@ -35,8 +35,8 @@ import {
   getAdminStoreSettings,
   updateAdminStoreSettings,
 } from '../../services/settingsService';
-import type { StoreSettings, StoreSettingsUpdateInput, PackagingOptionItem } from '../../types/settings';
-import { DEFAULT_STORE_SETTINGS, DEFAULT_PACKAGING_OPTIONS } from '../../types/settings';
+import type { StoreSettings, StoreSettingsUpdateInput, PackagingOptionItem, RibbonOptionItem } from '../../types/settings';
+import { DEFAULT_STORE_SETTINGS, DEFAULT_PACKAGING_OPTIONS, DEFAULT_RIBBON_OPTIONS } from '../../types/settings';
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -103,6 +103,10 @@ export default function AdminSettingsPage() {
               },
             ];
 
+        const ribbons = packaging.ribbons && packaging.ribbons.length > 0
+          ? packaging.ribbons
+          : DEFAULT_RIBBON_OPTIONS;
+
         setFormData({
           ...settings,
           packaging: {
@@ -111,6 +115,7 @@ export default function AdminSettingsPage() {
             woodenBoxFee: packaging.woodenBoxFee ?? 0,
             pouchFee: packaging.pouchFee ?? 0,
             options,
+            ribbons,
           },
         });
         setReminderDelaysInput(settings.abandonedCheckout.reminderDelaysHours.join(', '));
@@ -216,6 +221,12 @@ export default function AdminSettingsPage() {
             badge: opt.badge?.trim() || undefined,
             enabled: opt.enabled !== false,
           })),
+          ribbons: (formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS).map((r) => ({
+            id: r.id,
+            name: r.name.trim(),
+            hex: r.hex.trim() || '#C89D5C',
+            enabled: r.enabled !== false,
+          })),
         },
         abandonedCheckout: {
           abandonedAfterMinutes: Math.max(5, Number(formData.abandonedCheckout.abandonedAfterMinutes) || 60),
@@ -235,6 +246,9 @@ export default function AdminSettingsPage() {
         const options = packaging?.options && packaging.options.length > 0
           ? packaging.options
           : (payload.packaging?.options || DEFAULT_PACKAGING_OPTIONS);
+        const ribbons = packaging?.ribbons && packaging.ribbons.length > 0
+          ? packaging.ribbons
+          : (payload.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS);
 
         setFormData({
           ...saved,
@@ -244,6 +258,7 @@ export default function AdminSettingsPage() {
             woodenBoxFee: packaging?.woodenBoxFee ?? 0,
             pouchFee: packaging?.pouchFee ?? 0,
             options,
+            ribbons,
           },
         });
         setReminderDelaysInput(saved.abandonedCheckout.reminderDelaysHours.join(', '));
@@ -1057,6 +1072,128 @@ export default function AdminSettingsPage() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* ── Ribbon Finishes Management ── */}
+            <div className="pt-6 mt-8 border-t border-slate-200">
+              <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Satin Ribbon Finish Colours</h3>
+                  <p className="text-xs text-slate-500">
+                    Customise the satin ribbon colours customers can choose from during gift personalisation.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentRibbons = formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS;
+                    const newRibbon: RibbonOptionItem = {
+                      id: `ribbon-${Date.now()}`,
+                      name: 'New Ribbon Colour',
+                      hex: '#C89D5C',
+                      enabled: true,
+                    };
+                    setFormData({
+                      ...formData,
+                      packaging: {
+                        ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                        ribbons: [...currentRibbons, newRibbon],
+                      },
+                    });
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <Plus size={14} /> Add Ribbon Colour
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {(formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS).map((r, rIdx) => (
+                  <div
+                    key={r.id || rIdx}
+                    className="p-3 rounded-xl border border-slate-200 bg-white flex items-center gap-3 justify-between"
+                  >
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <div className="relative shrink-0">
+                        <input
+                          type="color"
+                          value={r.hex || '#C89D5C'}
+                          onChange={(e) => {
+                            const updated = [...(formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS)];
+                            updated[rIdx] = { ...updated[rIdx], hex: e.target.value };
+                            setFormData({
+                              ...formData,
+                              packaging: {
+                                ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                                ribbons: updated,
+                              },
+                            });
+                          }}
+                          className="w-7 h-7 rounded-full border border-slate-300 p-0 cursor-pointer overflow-hidden"
+                          title="Pick ribbon colour"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        value={r.name}
+                        onChange={(e) => {
+                          const updated = [...(formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS)];
+                          updated[rIdx] = { ...updated[rIdx], name: e.target.value };
+                          setFormData({
+                            ...formData,
+                            packaging: {
+                              ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                              ribbons: updated,
+                            },
+                          });
+                        }}
+                        placeholder="Ribbon Name"
+                        className="font-medium text-xs text-slate-900 px-2 py-1 rounded border border-transparent hover:border-slate-300 focus:border-slate-900 focus:bg-white bg-transparent w-full"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={r.enabled !== false}
+                          onChange={(e) => {
+                            const updated = [...(formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS)];
+                            updated[rIdx] = { ...updated[rIdx], enabled: e.target.checked };
+                            setFormData({
+                              ...formData,
+                              packaging: {
+                                ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                                ribbons: updated,
+                              },
+                            });
+                          }}
+                          className="w-3.5 h-3.5 rounded text-slate-900"
+                        />
+                        <span>Active</span>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS).filter((_, i) => i !== rIdx);
+                          setFormData({
+                            ...formData,
+                            packaging: {
+                              ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                              ribbons: updated,
+                            },
+                          });
+                        }}
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                        title="Delete ribbon colour"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>

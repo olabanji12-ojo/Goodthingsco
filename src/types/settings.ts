@@ -53,12 +53,20 @@ export interface PackagingOptionItem {
   enabled?: boolean;
 }
 
+export interface RibbonOptionItem {
+  id: string;
+  name: string;
+  hex: string;
+  enabled?: boolean;
+}
+
 export interface PackagingSettings {
   giftBoxFee: number;
   linenBagFee: number;
   woodenBoxFee: number;
   pouchFee: number;
   options?: PackagingOptionItem[];
+  ribbons?: RibbonOptionItem[];
 }
 
 export interface StoreSettings {
@@ -127,6 +135,14 @@ export const DEFAULT_PACKAGING_OPTIONS: PackagingOptionItem[] = [
   },
 ];
 
+export const DEFAULT_RIBBON_OPTIONS: RibbonOptionItem[] = [
+  { id: 'gold', name: 'Champagne Gold', hex: '#C89D5C', enabled: true },
+  { id: 'ivory', name: 'Warm Ivory', hex: '#F5F0E8', enabled: true },
+  { id: 'olive', name: 'Forest Olive', hex: '#3F4634', enabled: true },
+  { id: 'navy', name: 'Midnight Navy', hex: '#1C2638', enabled: true },
+  { id: 'terracotta', name: 'Earthy Terracotta', hex: '#A85741', enabled: true },
+];
+
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   business: {
     brandName: 'Good Things Co.',
@@ -165,6 +181,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
     woodenBoxFee: 0,
     pouchFee: 0,
     options: DEFAULT_PACKAGING_OPTIONS,
+    ribbons: DEFAULT_RIBBON_OPTIONS,
   },
   abandonedCheckout: {
     abandonedAfterMinutes: 60,

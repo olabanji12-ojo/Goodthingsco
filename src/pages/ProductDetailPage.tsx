@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -18,6 +18,9 @@ import { getProductImageUrl } from '../services/cloudinaryService';
 import { Product } from '../types/product';
 import { useCart } from '../contexts/CartContext';
 import { formatNaira } from '../utils/cartUtils';
+import { getPackagingOptions, RIBBON_COLORS } from '../data/giftsData';
+import { getPublicStoreSettings } from '../services/settingsService';
+import { PublicStoreSettings } from '../types/settings';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -40,6 +43,50 @@ export const ProductDetailPage: React.FC = () => {
   // Feedback State
   const [addedModalOpen, setAddedModalOpen] = useState(false);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
+
+  // Settings & Packaging / Ribbon Options
+  const [publicSettings, setPublicSettings] = useState<PublicStoreSettings | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getPublicStoreSettings()
+      .then((settings) => {
+        if (active && settings) setPublicSettings(settings);
+      })
+      .catch((err) => console.warn('[ProductDetailPage] Failed to load settings:', err));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const packagingList = useMemo(() => {
+    return getPackagingOptions(publicSettings?.packaging?.options);
+  }, [publicSettings?.packaging?.options]);
+
+  const ribbonList = useMemo(() => {
+    const fromSettings = publicSettings?.packaging?.ribbons;
+    if (Array.isArray(fromSettings) && fromSettings.length > 0) {
+      return fromSettings
+        .filter((r) => r.isActive !== false)
+        .map((r) => ({
+          name: r.name,
+          color: r.color,
+          bgClass: r.bgClass || 'bg-brand-dark',
+        }));
+    }
+    return RIBBON_COLORS;
+  }, [publicSettings?.packaging?.ribbons]);
+
+  const selectedPackagingOption = useMemo(() => {
+    if (!selectedPackaging) return undefined;
+    return packagingList.find(
+      (p) =>
+        p.name.toLowerCase() === selectedPackaging.toLowerCase() ||
+        p.id.toLowerCase() === selectedPackaging.toLowerCase()
+    );
+  }, [selectedPackaging, packagingList]);
+
+  const packagingUpgradeFee = selectedPackagingOption?.price || 0;
 
   useEffect(() => {
     async function fetchProduct() {
@@ -69,9 +116,13 @@ export const ProductDetailPage: React.FC = () => {
           }
           if (item.packagingOptions && item.packagingOptions.length > 0) {
             setSelectedPackaging(item.packagingOptions[0]);
+          } else if (packagingList.length > 0) {
+            setSelectedPackaging(packagingList[0].name);
           }
           if (item.ribbonColours && item.ribbonColours.length > 0) {
             setSelectedRibbon(item.ribbonColours[0]);
+          } else if (ribbonList.length > 0) {
+            setSelectedRibbon(ribbonList[0].name);
           }
         }
       } catch (err) {
@@ -120,16 +171,20 @@ export const ProductDetailPage: React.FC = () => {
         }
       : undefined;
 
+    const packagingExtra = packagingUpgradeFee;
+    const unitPrice = product.price + packagingExtra;
+
     const result = addItem({
       productId: product.id || product.slug,
       slug: product.slug,
       name: product.name,
-      unitPrice: product.price,
+      unitPrice,
       quantity,
       currentStock: product.stock,
       image: imagePayload,
       selectedVariants: Object.keys(selectedVariantOptions).length > 0 ? selectedVariantOptions : undefined,
       packaging: selectedPackaging || undefined,
+      packagingFee: packagingExtra,
       ribbonColour: selectedRibbon || undefined,
       giftMessage: giftMessage.trim() || undefined,
       personalisationText: personalisationText.trim() || undefined,
@@ -285,10 +340,15 @@ export const ProductDetailPage: React.FC = () => {
                     {product.name}
                   </h1>
 
-                  <div className="flex items-baseline gap-3">
+                  <div className="flex items-baseline gap-3 flex-wrap">
                     <span className="font-serif text-2xl sm:text-3xl font-bold text-brand-dark">
-                      {formatNaira(product.price)}
+                      {formatNaira(product.price + packagingUpgradeFee)}
                     </span>
+                    {packagingUpgradeFee > 0 && (
+                      <span className="font-sans text-xs text-gold-700 font-medium">
+                        (Includes {formatNaira(packagingUpgradeFee)} packaging upgrade)
+                      </span>
+                    )}
                     {product.compareAtPrice && (
                       <span className="font-sans text-sm text-brand-light line-through">
                         {formatNaira(product.compareAtPrice)}
@@ -344,9 +404,15 @@ export const ProductDetailPage: React.FC = () => {
                     <label className="font-sans text-xs font-bold uppercase tracking-wider text-brand-dark block">
                       Presentation Packaging:
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {product.packagingOptions.map((pkg) => {
                         const isSelected = selectedPackaging === pkg;
+                        const match = packagingList.find(
+                          (p) =>
+                            p.name.toLowerCase() === pkg.toLowerCase() ||
+                            p.id.toLowerCase() === pkg.toLowerCase()
+                        );
+                        const fee = match?.price || 0;
                         return (
                           <button
                             key={pkg}
@@ -358,7 +424,12 @@ export const ProductDetailPage: React.FC = () => {
                                 : 'bg-white text-brand-dark border-brand-dark/15 hover:border-brand-dark/40'
                             }`}
                           >
-                            <span>{pkg}</span>
+                            <div>
+                              <div className="font-medium">{pkg}</div>
+                              <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-gold-300' : 'text-gold-700'}`}>
+                                {fee > 0 ? `+${formatNaira(fee)}` : 'Included'}
+                              </div>
+                            </div>
                             {isSelected && <Check size={14} className="text-gold-400 shrink-0" />}
                           </button>
                         );
@@ -368,26 +439,36 @@ export const ProductDetailPage: React.FC = () => {
                 )}
 
                 {/* Ribbon Colours */}
-                {product.ribbonColours && product.ribbonColours.length > 0 && (
+                {((product.ribbonColours && product.ribbonColours.length > 0) || ribbonList.length > 0) && (
                   <div className="space-y-2 pt-2">
                     <label className="font-sans text-xs font-bold uppercase tracking-wider text-brand-dark block">
                       Silk Ribbon Finish:
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {product.ribbonColours.map((rib) => {
-                        const isSelected = selectedRibbon === rib;
+                      {(product.ribbonColours && product.ribbonColours.length > 0
+                        ? product.ribbonColours.map((r) => {
+                            const found = ribbonList.find((rl) => rl.name.toLowerCase() === r.toLowerCase());
+                            return { name: r, color: found?.color || '#D4AF37' };
+                          })
+                        : ribbonList
+                      ).map((rib) => {
+                        const isSelected = selectedRibbon === rib.name;
                         return (
                           <button
-                            key={rib}
+                            key={rib.name}
                             type="button"
-                            onClick={() => setSelectedRibbon(rib)}
-                            className={`px-3.5 py-1.5 rounded-lg border text-xs font-sans transition-all cursor-pointer ${
+                            onClick={() => setSelectedRibbon(rib.name)}
+                            className={`px-3 py-1.5 rounded-xl border text-xs font-sans transition-all cursor-pointer flex items-center gap-2 ${
                               isSelected
-                                ? 'bg-gold-600 text-white border-gold-600 font-semibold shadow-xs'
+                                ? 'bg-brand-dark text-white border-brand-dark font-semibold shadow-xs'
                                 : 'bg-white text-brand-dark border-brand-dark/15 hover:border-brand-dark/40'
                             }`}
                           >
-                            {rib} Ribbon
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10"
+                              style={{ backgroundColor: rib.color }}
+                            />
+                            <span>{rib.name}</span>
                           </button>
                         );
                       })}

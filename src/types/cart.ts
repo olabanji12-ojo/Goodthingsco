@@ -23,6 +23,7 @@ export interface CartItem {
   // Configuration options
   selectedVariants?: Record<string, string>;
   packaging?: string;
+  packagingFee?: number;
   ribbonColour?: string;
   giftMessage?: string;
   personalisationText?: string;

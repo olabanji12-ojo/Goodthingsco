@@ -92,6 +92,7 @@ export function toPublicSettings(settings: StoreSettings): PublicStoreSettings {
       woodenBoxFee: 0,
       pouchFee: 0,
       options: [],
+      ribbons: [],
     },
   };
 }
@@ -327,6 +328,16 @@ export function validateStoreSettingsUpdate(raw: any): StoreSettingsUpdateInput 
           enabled: opt.enabled !== false,
         }))
         .filter((opt: any) => opt.name.length > 0);
+    }
+    if (raw.packaging.ribbons !== undefined && Array.isArray(raw.packaging.ribbons)) {
+      result.packaging.ribbons = raw.packaging.ribbons
+        .map((r: any) => ({
+          id: sanitizeText(r.id || String(Date.now()), 50),
+          name: sanitizeText(r.name, 100),
+          hex: sanitizeText(r.hex || '#C89D5C', 20),
+          enabled: r.enabled !== false,
+        }))
+        .filter((r: any) => r.name.length > 0);
     }
   }
 
