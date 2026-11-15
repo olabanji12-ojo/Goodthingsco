@@ -26,6 +26,7 @@ import {
 import type {
   ContentPageId,
   HomePageContent,
+  GatewaysPageContent,
   ShopPageContent,
   CorporatePageContent,
   CreatePageContent,
@@ -45,6 +46,7 @@ export default function AdminContentPage() {
 
   // Form states per tab
   const [homeData, setHomeData] = useState<HomePageContent>(DEFAULT_PAGE_CONTENTS.home);
+  const [gatewaysData, setGatewaysData] = useState<GatewaysPageContent>(DEFAULT_PAGE_CONTENTS.gateways);
   const [shopData, setShopData] = useState<ShopPageContent>(DEFAULT_PAGE_CONTENTS.shop);
   const [corporateData, setCorporateData] = useState<CorporatePageContent>(DEFAULT_PAGE_CONTENTS.corporate);
   const [createData, setCreateData] = useState<CreatePageContent>(DEFAULT_PAGE_CONTENTS.create);
@@ -67,6 +69,9 @@ export default function AdminContentPage() {
         switch (pageId) {
           case 'home':
             setHomeData(result.content as HomePageContent);
+            break;
+          case 'gateways':
+            setGatewaysData(result.content as GatewaysPageContent);
             break;
           case 'shop':
             setShopData(result.content as ShopPageContent);
@@ -106,6 +111,9 @@ export default function AdminContentPage() {
         case 'home':
           payload = homeData;
           break;
+        case 'gateways':
+          payload = gatewaysData;
+          break;
         case 'shop':
           payload = shopData;
           break;
@@ -141,6 +149,9 @@ export default function AdminContentPage() {
         case 'home':
           setHomeData(DEFAULT_PAGE_CONTENTS.home);
           break;
+        case 'gateways':
+          setGatewaysData(DEFAULT_PAGE_CONTENTS.gateways);
+          break;
         case 'shop':
           setShopData(DEFAULT_PAGE_CONTENTS.shop);
           break;
@@ -163,6 +174,8 @@ export default function AdminContentPage() {
   const getPreviewUrl = (pageId: ContentPageId): string => {
     switch (pageId) {
       case 'home':
+        return '/';
+      case 'gateways':
         return '/';
       case 'shop':
         return '/shop';
@@ -375,7 +388,400 @@ export default function AdminContentPage() {
               </div>
             )}
 
-            {/* 2. SHOP TAB */}
+            {/* 2. GATEWAYS TAB (Homepage Cards & Expanded Details) */}
+            {activeTab === 'gateways' && (
+              <div className="space-y-8">
+                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/60 text-xs font-sans text-amber-900 leading-relaxed">
+                  <p className="font-semibold mb-1">Homepage 4-Gateway Showcase</p>
+                  <p className="text-amber-800">
+                    These fields control the 4 primary entrance cards displayed directly on your homepage. 
+                    Changes update both the collapsed card previews and the expanded &quot;DETAILS&quot; views.
+                  </p>
+                </div>
+
+                {/* ── CARD 1: SHOP ── */}
+                <div className="p-6 rounded-2xl border border-brand-dark/10 bg-[#FCFBF9] space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-brand-dark/10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                      <h3 className="font-serif text-base font-semibold text-brand-dark">Card 1: Shop</h3>
+                    </div>
+                    <span className="text-[11px] font-sans font-medium text-brand-medium uppercase tracking-wider">
+                      Individual Gifting
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Audience Tagline Badge
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.shopTargetAudience}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, shopTargetAudience: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. For individuals"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Card Headline
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.shopHeadline}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, shopHeadline: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark font-serif text-sm"
+                        placeholder="e.g. Find a gift."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                      Short Preview Description (Shown on Card)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={gatewaysData.shopShortDesc}
+                      onChange={(e) => setGatewaysData({ ...gatewaysData, shopShortDesc: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
+                      placeholder="Brief teaser shown directly on the homepage card"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                      Expanded Details Narrative (Shown when &quot;DETAILS&quot; is clicked)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={gatewaysData.shopDescription}
+                      onChange={(e) => setGatewaysData({ ...gatewaysData, shopDescription: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
+                      placeholder="Full paragraph shown when customer opens the card modal"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Journey Steps (Comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.shopJourneySteps}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, shopJourneySteps: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Occasion, Recipient, Gift, Checkout"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Button Label
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.shopCtaText}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, shopCtaText: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Enter Shop"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── CARD 2: CORPORATE ── */}
+                <div className="p-6 rounded-2xl border border-brand-dark/10 bg-[#FCFBF9] space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-brand-dark/10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
+                      <h3 className="font-serif text-base font-semibold text-brand-dark">Card 2: Corporate</h3>
+                    </div>
+                    <span className="text-[11px] font-sans font-medium text-brand-medium uppercase tracking-wider">
+                      Business & Scale
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Audience Tagline Badge
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.corporateTargetAudience}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, corporateTargetAudience: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. For organisations"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Card Headline
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.corporateHeadline}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, corporateHeadline: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark font-serif text-sm"
+                        placeholder="e.g. Gift at scale."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                      Short Preview Description (Shown on Card)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={gatewaysData.corporateShortDesc}
+                      onChange={(e) => setGatewaysData({ ...gatewaysData, corporateShortDesc: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
+                      placeholder="Brief teaser shown directly on the homepage card"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                      Expanded Details Narrative (Shown when &quot;DETAILS&quot; is clicked)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={gatewaysData.corporateDescription}
+                      onChange={(e) => setGatewaysData({ ...gatewaysData, corporateDescription: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
+                      placeholder="Full paragraph shown when customer opens the card modal"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Journey Steps (Comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.corporateJourneySteps}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, corporateJourneySteps: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Build campaign, Customise, Upload recipients, Approve, Pay, Track"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Button Label
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.corporateCtaText}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, corporateCtaText: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Explore Corporate"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── CARD 3: CREATE ── */}
+                <div className="p-6 rounded-2xl border border-brand-dark/10 bg-[#FCFBF9] space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-brand-dark/10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                      <h3 className="font-serif text-base font-semibold text-brand-dark">Card 3: Create</h3>
+                    </div>
+                    <span className="text-[11px] font-sans font-medium text-brand-medium uppercase tracking-wider">
+                      Custom & Bespoke
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Audience Tagline Badge
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.createTargetAudience}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, createTargetAudience: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Custom & bespoke"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Card Headline
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.createHeadline}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, createHeadline: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark font-serif text-sm"
+                        placeholder="e.g. Create something unique."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                      Short Preview Description (Shown on Card)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={gatewaysData.createShortDesc}
+                      onChange={(e) => setGatewaysData({ ...gatewaysData, createShortDesc: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
+                      placeholder="Brief teaser shown directly on the homepage card"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                      Expanded Details Narrative (Shown when &quot;DETAILS&quot; is clicked)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={gatewaysData.createDescription}
+                      onChange={(e) => setGatewaysData({ ...gatewaysData, createDescription: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
+                      placeholder="Full paragraph shown when customer opens the card modal"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Journey Steps (Comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.createJourneySteps}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, createJourneySteps: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Ideate & Consult, Material Selection, Handcrafted Delivery"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Button Label
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.createCtaText}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, createCtaText: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Start Custom Order"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── CARD 4: ABOUT ── */}
+                <div className="p-6 rounded-2xl border border-brand-dark/10 bg-[#FCFBF9] space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-brand-dark/10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" />
+                      <h3 className="font-serif text-base font-semibold text-brand-dark">Card 4: About</h3>
+                    </div>
+                    <span className="text-[11px] font-sans font-medium text-brand-medium uppercase tracking-wider">
+                      Philosophy & Story
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Audience Tagline Badge
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.aboutTargetAudience}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, aboutTargetAudience: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Our philosophy"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Card Headline
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.aboutHeadline}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, aboutHeadline: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark font-serif text-sm"
+                        placeholder="e.g. The art of thoughtful living."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                      Short Preview Description (Shown on Card)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={gatewaysData.aboutShortDesc}
+                      onChange={(e) => setGatewaysData({ ...gatewaysData, aboutShortDesc: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
+                      placeholder="Brief teaser shown directly on the homepage card"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                      Expanded Details Narrative (Shown when &quot;DETAILS&quot; is clicked)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={gatewaysData.aboutDescription}
+                      onChange={(e) => setGatewaysData({ ...gatewaysData, aboutDescription: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
+                      placeholder="Full paragraph shown when customer opens the card modal"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Journey Steps (Comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.aboutJourneySteps}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, aboutJourneySteps: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Curated Intentionality, Artisanal Packaging, Lasting Memory"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Button Label
+                      </label>
+                      <input
+                        type="text"
+                        value={gatewaysData.aboutCtaText}
+                        onChange={(e) => setGatewaysData({ ...gatewaysData, aboutCtaText: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        placeholder="e.g. Discover Our Story"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. SHOP TAB */}
             {activeTab === 'shop' && (
               <div className="space-y-5">
                 <div>

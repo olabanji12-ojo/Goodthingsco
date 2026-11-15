@@ -206,7 +206,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
           setAvailablePackaging(opts);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
   const [ribbonColours, setRibbonColours] = useState<string[]>(
     initialProduct?.ribbonColours || ['Gold', 'White']
@@ -439,11 +439,11 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
       variants,
       personalisation: personalisationEnabled
         ? {
-            enabled: true,
-            messageAllowed,
-            customTextAllowed,
-            ...(customTextAllowed ? { maxTextLength: parseInt(maxTextLength, 10) || 24 } : {}),
-          }
+          enabled: true,
+          messageAllowed,
+          customTextAllowed,
+          ...(customTextAllowed ? { maxTextLength: parseInt(maxTextLength, 10) || 24 } : {}),
+        }
         : { enabled: false },
     };
 
@@ -888,10 +888,10 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
                 idx === 0
                   ? 'Cover Photo'
                   : idx === 1
-                  ? 'Inside Contents'
-                  : idx === 2
-                  ? 'Packaging Detail'
-                  : `Angle #${idx + 1}`;
+                    ? 'Inside Contents'
+                    : idx === 2
+                      ? 'Packaging Detail'
+                      : `Angle #${idx + 1}`;
 
               const isReplacingThis = replacingIndex === idx;
 
@@ -1141,8 +1141,8 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
                   {images.length === 1
                     ? 'Recommended: Add Inside View'
                     : images.length === 2
-                    ? 'Recommended: Add Packaging View'
-                    : 'Add detail / close-up angle'}
+                      ? 'Recommended: Add Packaging View'
+                      : 'Add detail / close-up angle'}
                 </span>
                 <input
                   type="file"

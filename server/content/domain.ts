@@ -14,7 +14,7 @@ export class ContentHttpError extends Error {
   }
 }
 
-export const VALID_PAGE_IDS: ContentPageId[] = ['home', 'shop', 'corporate', 'create', 'about', 'footer'];
+export const VALID_PAGE_IDS: ContentPageId[] = ['home', 'gateways', 'shop', 'corporate', 'create', 'about', 'footer'];
 
 export function isValidPageId(page: unknown): page is ContentPageId {
   return typeof page === 'string' && VALID_PAGE_IDS.includes(page as ContentPageId);
@@ -43,6 +43,35 @@ export const DEFAULT_PAGE_CONTENTS: PageContentMap = {
     curatedDescription: 'Every box is meticulously assembled using premium keepsakes, rich ribbons, and handwritten calligraphed cards.',
     conciergeHeading: 'Private Client & Corporate Concierge',
     conciergeText: 'Partner with our atelier for tailored celebrations, milestone achievements, and bespoke volume shipments.',
+  },
+  gateways: {
+    shopTargetAudience: 'For individuals',
+    shopHeadline: 'Find a gift.',
+    shopShortDesc: 'Curated gifts for life’s meaningful moments, delivered with hand-tied satin ribbons.',
+    shopDescription: 'Curated collections for life’s meaningful moments, delivered with hand-tied satin ribbons, keepsake packaging, and handwritten card messages.',
+    shopJourneySteps: 'Occasion, Recipient, Gift, Checkout',
+    shopCtaText: 'Enter Shop',
+
+    corporateTargetAudience: 'For organisations',
+    corporateHeadline: 'Gift at scale.',
+    corporateShortDesc: 'Executive hampers, client appreciation suites, and team celebration gifts.',
+    corporateDescription: 'Executive hampers, client appreciation suites, and team celebration gifts finished with metallic foil debossing of your corporate mark.',
+    corporateJourneySteps: 'Build campaign, Customise, Upload recipients, Approve, Pay, Track',
+    corporateCtaText: 'Explore Corporate',
+
+    createTargetAudience: 'Custom & bespoke',
+    createHeadline: 'Create something unique.',
+    createShortDesc: 'Commission bespoke packaging, custom keepsake engravings, and tailored concepts.',
+    createDescription: 'Collaborate directly with our atelier to commission bespoke packaging, custom keepsake engravings, and tailored gift concepts for your event.',
+    createJourneySteps: 'Ideate & Consult, Material Selection, Handcrafted Delivery',
+    createCtaText: 'Start Custom Order',
+
+    aboutTargetAudience: 'Our philosophy',
+    aboutHeadline: 'The art of thoughtful living.',
+    aboutShortDesc: 'Restoring care, craft, and emotional clarity to the art of giving.',
+    aboutDescription: 'Good Things Co. exists to elevate everyday rituals into memorable moments through discerning craftsmanship, generous details, and sincere care.',
+    aboutJourneySteps: 'Curated Intentionality, Artisanal Packaging, Lasting Memory',
+    aboutCtaText: 'Discover Our Story',
   },
   shop: {
     headerTitle: 'The Gift Discovery Studio',

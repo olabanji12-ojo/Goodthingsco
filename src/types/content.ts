@@ -2,10 +2,11 @@
  * Good Things Co. — Website Content CMS Types & Schemas
  */
 
-export type ContentPageId = 'home' | 'shop' | 'corporate' | 'create' | 'about' | 'footer';
+export type ContentPageId = 'home' | 'gateways' | 'shop' | 'corporate' | 'create' | 'about' | 'footer';
 
 export const CONTENT_PAGES: { id: ContentPageId; label: string; description: string }[] = [
-  { id: 'home', label: 'Home Page', description: 'Hero banner, introductory narrative, and featured concierge messaging' },
+  { id: 'home', label: 'Home Page', description: 'Hero banner, brand title, and introductory narrative' },
+  { id: 'gateways', label: 'Homepage Gateway Cards', description: 'Titles, target audience badges, preview text, and expanded details for Shop, Corporate, Create, and About cards' },
   { id: 'shop', label: 'Shop & Discovery', description: 'Catalog header, announcement banner, and curation instructions' },
   { id: 'corporate', label: 'Corporate Gifting', description: 'Enterprise messaging, concierge headlines, and volume copy' },
   { id: 'create', label: 'Create / Bespoke', description: 'Bespoke box builder headlines, step guides, and artisan notes' },
@@ -72,8 +73,39 @@ export interface FooterContent {
   atelierAddress: string;
 }
 
+export interface GatewaysPageContent {
+  shopTargetAudience: string;
+  shopHeadline: string;
+  shopShortDesc: string;
+  shopDescription: string;
+  shopJourneySteps: string;
+  shopCtaText: string;
+
+  corporateTargetAudience: string;
+  corporateHeadline: string;
+  corporateShortDesc: string;
+  corporateDescription: string;
+  corporateJourneySteps: string;
+  corporateCtaText: string;
+
+  createTargetAudience: string;
+  createHeadline: string;
+  createShortDesc: string;
+  createDescription: string;
+  createJourneySteps: string;
+  createCtaText: string;
+
+  aboutTargetAudience: string;
+  aboutHeadline: string;
+  aboutShortDesc: string;
+  aboutDescription: string;
+  aboutJourneySteps: string;
+  aboutCtaText: string;
+}
+
 export interface PageContentMap {
   home: HomePageContent;
+  gateways: GatewaysPageContent;
   shop: ShopPageContent;
   corporate: CorporatePageContent;
   create: CreatePageContent;

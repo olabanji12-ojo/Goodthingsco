@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { fetchPageContent } from '../../services/contentService';
+import { DEFAULT_PAGE_CONTENTS } from '../../data/defaultContent';
+import type { GatewaysPageContent } from '../../types/content';
 
 // High-resolution image assets from existing repository
 import shopImg from '../../assets/gift-hero.png';
@@ -26,6 +29,37 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
   // Mobile expanded accordion state — defaults to null so no section is open on load
   const [mobileExpandedTab, setMobileExpandedTab] = useState<GatewayTabId | null>(null);
 
+  // Dynamic CMS gateway card copy
+  const [gatewayContent, setGatewayContent] = useState<GatewaysPageContent>(DEFAULT_PAGE_CONTENTS.gateways);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchPageContent('gateways')
+      .then((data) => {
+        if (isMounted && data) {
+          setGatewayContent({
+            ...DEFAULT_PAGE_CONTENTS.gateways,
+            ...data,
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('[PrimaryEntryGateway] Using default gateway copy:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const parseSteps = (stepsStr?: string, fallbackStr: string = '') => {
+    const target = stepsStr && stepsStr.trim().length > 0 ? stepsStr : fallbackStr;
+    return target
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
   const handleTabChange = (tab: GatewayTabId | null) => {
     setInternalTab(tab);
     if (onSelectTab) {
@@ -38,13 +72,12 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
     shop: {
       id: 'shop' as GatewayTabId,
       label: 'Shop',
-      targetAudience: 'For individuals',
-      headline: 'Find a gift.',
-      shortDesc: 'Curated gifts for life’s meaningful moments, delivered with hand-tied satin ribbons.',
-      description:
-        'Curated collections for life’s meaningful moments, delivered with hand-tied satin ribbons, keepsake packaging, and handwritten card messages.',
-      journeySteps: ['Occasion', 'Recipient', 'Gift', 'Checkout'],
-      ctaText: 'Enter Shop',
+      targetAudience: gatewayContent.shopTargetAudience || DEFAULT_PAGE_CONTENTS.gateways.shopTargetAudience,
+      headline: gatewayContent.shopHeadline || DEFAULT_PAGE_CONTENTS.gateways.shopHeadline,
+      shortDesc: gatewayContent.shopShortDesc || DEFAULT_PAGE_CONTENTS.gateways.shopShortDesc,
+      description: gatewayContent.shopDescription || DEFAULT_PAGE_CONTENTS.gateways.shopDescription,
+      journeySteps: parseSteps(gatewayContent.shopJourneySteps, DEFAULT_PAGE_CONTENTS.gateways.shopJourneySteps),
+      ctaText: gatewayContent.shopCtaText || DEFAULT_PAGE_CONTENTS.gateways.shopCtaText,
       ctaHref: '/shop',
       image: shopImg,
       imageAlt: 'Curated gift hamper and luxury keepsake',
@@ -53,20 +86,12 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
     corporate: {
       id: 'corporate' as GatewayTabId,
       label: 'Corporate',
-      targetAudience: 'For organisations',
-      headline: 'Gift at scale.',
-      shortDesc: 'Executive hampers, client appreciation suites, and team celebration gifts.',
-      description:
-        'Executive hampers, client appreciation suites, and team celebration gifts finished with metallic foil debossing of your corporate mark.',
-      journeySteps: [
-        'Build campaign',
-        'Customise',
-        'Upload recipients',
-        'Approve',
-        'Pay',
-        'Track',
-      ],
-      ctaText: 'Explore Corporate',
+      targetAudience: gatewayContent.corporateTargetAudience || DEFAULT_PAGE_CONTENTS.gateways.corporateTargetAudience,
+      headline: gatewayContent.corporateHeadline || DEFAULT_PAGE_CONTENTS.gateways.corporateHeadline,
+      shortDesc: gatewayContent.corporateShortDesc || DEFAULT_PAGE_CONTENTS.gateways.corporateShortDesc,
+      description: gatewayContent.corporateDescription || DEFAULT_PAGE_CONTENTS.gateways.corporateDescription,
+      journeySteps: parseSteps(gatewayContent.corporateJourneySteps, DEFAULT_PAGE_CONTENTS.gateways.corporateJourneySteps),
+      ctaText: gatewayContent.corporateCtaText || DEFAULT_PAGE_CONTENTS.gateways.corporateCtaText,
       ctaHref: '/corporate',
       image: corporateImg,
       imageAlt: 'Corporate leather folio and debossed packaging',
@@ -75,13 +100,12 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
     create: {
       id: 'create' as GatewayTabId,
       label: 'Create',
-      targetAudience: 'Custom & bespoke',
-      headline: 'Create something unique.',
-      shortDesc: 'Commission bespoke packaging, custom keepsake engravings, and tailored concepts.',
-      description:
-        'Collaborate directly with our atelier to commission bespoke packaging, custom keepsake engravings, and tailored gift concepts for your event.',
-      journeySteps: ['Ideate & Consult', 'Material Selection', 'Handcrafted Delivery'],
-      ctaText: 'Start Custom Order',
+      targetAudience: gatewayContent.createTargetAudience || DEFAULT_PAGE_CONTENTS.gateways.createTargetAudience,
+      headline: gatewayContent.createHeadline || DEFAULT_PAGE_CONTENTS.gateways.createHeadline,
+      shortDesc: gatewayContent.createShortDesc || DEFAULT_PAGE_CONTENTS.gateways.createShortDesc,
+      description: gatewayContent.createDescription || DEFAULT_PAGE_CONTENTS.gateways.createDescription,
+      journeySteps: parseSteps(gatewayContent.createJourneySteps, DEFAULT_PAGE_CONTENTS.gateways.createJourneySteps),
+      ctaText: gatewayContent.createCtaText || DEFAULT_PAGE_CONTENTS.gateways.createCtaText,
       ctaHref: '/create',
       image: createImg,
       imageAlt: 'Custom unboxing design and bespoke packaging',
@@ -90,13 +114,12 @@ export const PrimaryEntryGateway: React.FC<PrimaryEntryGatewayProps> = ({
     about: {
       id: 'about' as GatewayTabId,
       label: 'About',
-      targetAudience: 'Our philosophy',
-      headline: 'The art of thoughtful living.',
-      shortDesc: 'Restoring care, craft, and emotional clarity to the art of giving.',
-      description:
-        'Good Things Co. exists to elevate everyday rituals into memorable moments through discerning craftsmanship, generous details, and sincere care.',
-      journeySteps: ['Curated Intentionality', 'Artisanal Packaging', 'Lasting Memory'],
-      ctaText: 'Discover Our Story',
+      targetAudience: gatewayContent.aboutTargetAudience || DEFAULT_PAGE_CONTENTS.gateways.aboutTargetAudience,
+      headline: gatewayContent.aboutHeadline || DEFAULT_PAGE_CONTENTS.gateways.aboutHeadline,
+      shortDesc: gatewayContent.aboutShortDesc || DEFAULT_PAGE_CONTENTS.gateways.aboutShortDesc,
+      description: gatewayContent.aboutDescription || DEFAULT_PAGE_CONTENTS.gateways.aboutDescription,
+      journeySteps: parseSteps(gatewayContent.aboutJourneySteps, DEFAULT_PAGE_CONTENTS.gateways.aboutJourneySteps),
+      ctaText: gatewayContent.aboutCtaText || DEFAULT_PAGE_CONTENTS.gateways.aboutCtaText,
       ctaHref: '/about',
       image: aboutImg,
       imageAlt: 'The art of thoughtful living lifestyle editorial',
