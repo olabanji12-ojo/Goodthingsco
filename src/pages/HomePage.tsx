@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   GatewayNav,
   PrimaryEntryGateway,
@@ -6,6 +6,8 @@ import {
 } from '../components/gateway';
 import { HeroObject } from '../components/homepage/HeroObject';
 import { Footer } from '../components/homepage/footer/Footer';
+import { fetchPageContent } from '../services/contentService';
+import { DEFAULT_PAGE_CONTENTS } from '../data/defaultContent';
 
 /**
  * HomePage — Good Things Co.
@@ -19,6 +21,21 @@ import { Footer } from '../components/homepage/footer/Footer';
  */
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<GatewayTabId | null>(null);
+  const [homeContent, setHomeContent] = useState(DEFAULT_PAGE_CONTENTS.home);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchPageContent('home')
+      .then((res) => {
+        if (isMounted && res?.content) {
+          setHomeContent(res.content);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
@@ -31,12 +48,12 @@ export default function HomePage() {
         <main className="w-full py-4 sm:py-6 md:py-8 flex flex-col items-center justify-center text-center">
           {/* Main Brand Statement (Single unbroken line on desktop) */}
           <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-[3.15rem] xl:text-[3.45rem] font-normal text-brand-dark tracking-tight leading-tight whitespace-normal md:whitespace-nowrap mb-2.5 animate-fade-in">
-            Thoughtful gifts for inspired living
+            {homeContent.heroTitle || 'Thoughtful gifts for inspired living'}
           </h1>
 
           {/* Short, focused supporting copy */}
           <p className="font-sans text-xs sm:text-sm md:text-base text-brand-medium/85 max-w-xl mx-auto leading-relaxed mb-4 sm:mb-6 animate-fade-in">
-            Curated gifts crafted with intention. Find an inspired gesture for someone special, or coordinate distinguished gifts at scale.
+            {homeContent.heroSubtitle || 'Curated gifts crafted with intention. Find an inspired gesture for someone special, or coordinate distinguished gifts at scale.'}
           </p>
 
           {/* ── Hero Signature Gift Box (Dominant Visual Anchor) ── */}

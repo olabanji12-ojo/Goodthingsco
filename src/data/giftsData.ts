@@ -122,6 +122,7 @@ export interface PackagingOption {
   description: string;
   price: number;
   badge?: string;
+  enabled?: boolean;
 }
 
 export interface RibbonColorOption {
@@ -273,7 +274,21 @@ export function getPackagingOptions(packagingSettings?: {
   linenBagFee?: number;
   woodenBoxFee?: number;
   pouchFee?: number;
+  options?: PackagingOption[];
 } | null): PackagingOption[] {
+  if (packagingSettings?.options && Array.isArray(packagingSettings.options) && packagingSettings.options.length > 0) {
+    return packagingSettings.options
+      .filter((opt) => opt.enabled !== false)
+      .map((opt) => ({
+        id: opt.id,
+        name: opt.name,
+        description: opt.description,
+        price: typeof opt.price === 'number' ? opt.price : 0,
+        badge: opt.badge || (opt.price === 0 ? 'Complimentary' : undefined),
+        enabled: opt.enabled !== false,
+      }));
+  }
+
   const fees = packagingSettings || {};
   const giftBoxFee = typeof fees.giftBoxFee === 'number' ? fees.giftBoxFee : 0;
   const linenBagFee = typeof fees.linenBagFee === 'number' ? fees.linenBagFee : 0;

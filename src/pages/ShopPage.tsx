@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GatewayNav } from '../components/gateway';
 import { ShopFlowContainer } from '../components/shopJourney';
 import { Footer } from '../components/homepage/footer/Footer';
+import { fetchPageContent } from '../services/contentService';
+import { DEFAULT_PAGE_CONTENTS } from '../data/defaultContent';
 
 /**
  * ShopPage — Good Things Co.
@@ -21,6 +23,22 @@ import { Footer } from '../components/homepage/footer/Footer';
  * Rendered inside ONE guided multi-step container to eliminate excessive scrolling.
  */
 export const ShopPage: React.FC = () => {
+  const [shopContent, setShopContent] = useState(DEFAULT_PAGE_CONTENTS.shop);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchPageContent('shop')
+      .then((res) => {
+        if (isMounted && res?.content) {
+          setShopContent(res.content);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       {/* Container wrapper for consistent margins */}
@@ -33,10 +51,10 @@ export const ShopPage: React.FC = () => {
           {/* Small Shop Eyebrow & Intro */}
           <div className="text-center max-w-2xl mx-auto mb-6 sm:mb-8">
             <h1 className="font-serif text-3xl sm:text-4xl text-brand-dark font-normal tracking-tight mb-2">
-              Find a Thoughtful Gift
+              {shopContent.headerTitle || 'Find a Thoughtful Gift'}
             </h1>
             <p className="font-sans text-xs sm:text-sm text-brand-medium/85 leading-relaxed">
-              Answer a few simple questions to discover hand-curated gifts, beautifully packaged and delivered with personal care.
+              {shopContent.headerSubtitle || 'Answer a few simple questions to discover hand-curated gifts, beautifully packaged and delivered with personal care.'}
             </p>
           </div>
 

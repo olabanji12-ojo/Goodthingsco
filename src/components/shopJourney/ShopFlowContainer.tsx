@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   OCCASIONS,
@@ -188,7 +188,24 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   const handleOpenPersonalise = (product: Product | GiftItem) => {
     const item: GiftItem = 'rawProduct' in (product as any) ? (product as GiftItem) : adaptProductToGiftItem(product as Product);
     setPersonalisingProduct(item);
-    setSelectedPackaging(packagingList[0] || getPackagingOptions()[0]);
+
+    const raw = (item.rawProduct || item) as Product | undefined;
+    const allowed = raw?.packagingOptions;
+    let initialPkg = packagingList[0] || getPackagingOptions()[0];
+    if (Array.isArray(allowed) && allowed.length > 0) {
+      const matched = packagingList.find((pkg) =>
+        allowed.some(
+          (a) =>
+            a.toLowerCase() === pkg.id.toLowerCase() ||
+            a.toLowerCase() === pkg.name.toLowerCase() ||
+            pkg.name.toLowerCase().includes(a.toLowerCase()) ||
+            a.toLowerCase().includes(pkg.name.toLowerCase())
+        )
+      );
+      if (matched) initialPkg = matched;
+    }
+
+    setSelectedPackaging(initialPkg);
     setSelectedRibbon(RIBBON_COLORS[0]);
     setGiftMessage('');
     setHasMonogram(false);
@@ -290,6 +307,26 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
       setTimeout(() => setCartNotice(null), 3500);
     }
   };
+
+  // Filter packaging options for current product
+  const activePackagingForProduct = useMemo(() => {
+    if (!personalisingProduct) return packagingList;
+    const raw = (personalisingProduct.rawProduct || personalisingProduct) as Product | undefined;
+    const allowed = raw?.packagingOptions;
+    if (Array.isArray(allowed) && allowed.length > 0) {
+      const filtered = packagingList.filter((pkg) =>
+        allowed.some(
+          (a) =>
+            a.toLowerCase() === pkg.id.toLowerCase() ||
+            a.toLowerCase() === pkg.name.toLowerCase() ||
+            pkg.name.toLowerCase().includes(a.toLowerCase()) ||
+            a.toLowerCase().includes(pkg.name.toLowerCase())
+        )
+      );
+      if (filtered.length > 0) return filtered;
+    }
+    return packagingList;
+  }, [personalisingProduct, packagingList]);
 
   // Products to display
   const displayProducts = exactMatches.length > 0 ? exactMatches : suggestions.length > 0 ? suggestions : allProducts;
@@ -715,7 +752,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   1. Presentation Packaging
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {packagingList.map((pkg) => {
+                  {activePackagingForProduct.map((pkg) => {
                     const isSelected = selectedPackaging.id === pkg.id;
                     return (
                       <button

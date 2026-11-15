@@ -1,7 +1,9 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { gsap, prefersReducedMotion } from '../../../lib/gsap';
 import logoWhiteImg from '../../../assets/branding/logo-white.png';
+import { fetchPageContent } from '../../../services/contentService';
+import { DEFAULT_PAGE_CONTENTS } from '../../../data/defaultContent';
 
 /**
  * Footer — Good Things Co.
@@ -18,6 +20,21 @@ import logoWhiteImg from '../../../assets/branding/logo-white.png';
 export const Footer: React.FC<{ className?: string }> = ({ className = '' }) => {
   const currentYear = new Date().getFullYear();
   const footerRef = useRef<HTMLElement>(null);
+  const [footerContent, setFooterContent] = useState(DEFAULT_PAGE_CONTENTS.footer);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchPageContent('footer')
+      .then((res) => {
+        if (isMounted && res?.content) {
+          setFooterContent(res.content);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const navLinks = [
     { label: 'Track Order', href: '/track-order' },
@@ -81,10 +98,10 @@ export const Footer: React.FC<{ className?: string }> = ({ className = '' }) => 
           </Link>
 
           <p className="font-serif text-xl sm:text-2xl text-[#F5F0E8] font-normal tracking-tight mb-2 leading-snug">
-            Thoughtful gifts for inspired living.
+            {footerContent.tagline || 'Thoughtful gifts for inspired living.'}
           </p>
           <p className="font-sans text-xs sm:text-sm text-[#CFC7B8] leading-relaxed max-w-sm mx-auto">
-            Curated gifts crafted with intention for individuals and organisations.
+            {footerContent.newsletterSubtext || 'Curated gifts crafted with intention for individuals and organisations.'}
           </p>
         </div>
 

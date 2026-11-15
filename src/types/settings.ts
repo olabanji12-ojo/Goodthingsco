@@ -44,11 +44,21 @@ export interface QuoteDefaultsSettings {
   customDefaultValidityDays: number;
 }
 
+export interface PackagingOptionItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  badge?: string;
+  enabled?: boolean;
+}
+
 export interface PackagingSettings {
   giftBoxFee: number;
   linenBagFee: number;
   woodenBoxFee: number;
   pouchFee: number;
+  options?: PackagingOptionItem[];
 }
 
 export interface StoreSettings {
@@ -83,6 +93,39 @@ export interface PublicStoreSettings {
   };
   packaging?: PackagingSettings;
 }
+
+export const DEFAULT_PACKAGING_OPTIONS: PackagingOptionItem[] = [
+  {
+    id: 'gift-box',
+    name: 'Signature Gift Box',
+    description: 'Sturdy debossed ivory box with golden interior lining',
+    price: 0,
+    badge: 'Complimentary',
+    enabled: true,
+  },
+  {
+    id: 'gift-bag',
+    name: 'Textured Linen Bag',
+    description: 'Heavy natural cotton linen bag with hand-tied twill handles',
+    price: 0,
+    badge: 'Complimentary',
+    enabled: true,
+  },
+  {
+    id: 'wooden-box',
+    name: 'Artisan Wooden Crate',
+    description: 'Handcrafted solid cedar keepsake box with sliding lid',
+    price: 0,
+    enabled: true,
+  },
+  {
+    id: 'pouch',
+    name: 'Silk Keepsake Pouch',
+    description: 'Soft drawstring satin pouch for jewelry & daily objects',
+    price: 0,
+    enabled: true,
+  },
+];
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   business: {
@@ -121,6 +164,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
     linenBagFee: 0,
     woodenBoxFee: 0,
     pouchFee: 0,
+    options: DEFAULT_PACKAGING_OPTIONS,
   },
   abandonedCheckout: {
     abandonedAfterMinutes: 60,

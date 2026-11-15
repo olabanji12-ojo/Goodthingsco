@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   UploadCloud,
@@ -31,6 +31,8 @@ import {
 } from '../../services/cloudinaryService';
 import { slugify } from '../../utils/slugify';
 import { validateCreateProduct } from '../../utils/productValidation';
+import { getPublicStoreSettings } from '../../services/settingsService';
+import { getPackagingOptions, PackagingOption } from '../../data/giftsData';
 
 // Standard Taxonomy Options
 export const STANDARD_OCCASIONS = [
@@ -180,9 +182,25 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
   );
 
   // Packaging & Ribbons
-  const [packagingOptions, setPackagingOptions] = useState<string[]>(
-    initialProduct?.packagingOptions || ['Signature Gift Box', 'Gift Bag']
-  );
+  const [availablePackaging, setAvailablePackaging] = useState<PackagingOption[]>(() => getPackagingOptions());
+  const [packagingOptions, setPackagingOptions] = useState<string[]>(() => {
+    if (initialProduct?.packagingOptions && initialProduct.packagingOptions.length > 0) {
+      return initialProduct.packagingOptions;
+    }
+    return getPackagingOptions().map((o) => o.name);
+  });
+  const [customPackagingInput, setCustomPackagingInput] = useState<string>('');
+
+  useEffect(() => {
+    getPublicStoreSettings()
+      .then((settings) => {
+        if (settings?.packaging) {
+          const opts = getPackagingOptions(settings.packaging);
+          setAvailablePackaging(opts);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [ribbonColours, setRibbonColours] = useState<string[]>(
     initialProduct?.ribbonColours || ['Gold', 'White']
   );
@@ -290,10 +308,14 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
   };
 
   // Packaging & Ribbon Toggles
-  const togglePackaging = (val: string) => {
-    setPackagingOptions((prev) =>
-      prev.includes(val) ? prev.filter((p) => p !== val) : [...prev, val]
-    );
+  const togglePackaging = (val: string, id?: string) => {
+    setPackagingOptions((prev) => {
+      const match = prev.find(
+        (p) => p.toLowerCase() === val.toLowerCase() || (id && p.toLowerCase() === id.toLowerCase())
+      );
+      if (match) return prev.filter((p) => p !== match);
+      return [...prev, val];
+    });
   };
 
   const toggleRibbon = (val: string) => {
@@ -1184,31 +1206,91 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
         {/* Packaging Options */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
-            Supported Packaging Options
+            Supported Packaging Options (Select which packaging is offered for this product)
           </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {STANDARD_PACKAGING.map((pkg) => {
-              const selected = packagingOptions.includes(pkg);
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+            {availablePackaging.map((pkg) => {
+              const selected =
+                packagingOptions.includes(pkg.name) ||
+                packagingOptions.includes(pkg.id) ||
+                packagingOptions.some((p) => p.toLowerCase() === pkg.name.toLowerCase() || p.toLowerCase() === pkg.id.toLowerCase());
               return (
                 <button
-                  key={pkg}
+                  key={pkg.id}
                   type="button"
-                  onClick={() => togglePackaging(pkg)}
+                  onClick={() => togglePackaging(pkg.name, pkg.id)}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: selected ? '1px solid #0f172a' : '1px solid #cbd5e1',
-                    backgroundColor: selected ? 'rgba(15, 23, 42, 0.08)' : '#ffffff',
-                    color: selected ? '#0f172a' : '#475569',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: selected ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+                    backgroundColor: selected ? '#0f172a' : '#ffffff',
+                    color: selected ? '#ffffff' : '#475569',
                     fontSize: '12px',
                     fontWeight: selected ? 600 : 400,
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  {pkg}
+                  {selected && <Check size={14} />}
+                  <span>{pkg.name}</span>
+                  <span style={{ fontSize: '10px', opacity: selected ? 0.85 : 0.65 }}>
+                    ({pkg.price === 0 ? 'Free' : `+₦${pkg.price.toLocaleString()}`})
+                  </span>
                 </button>
               );
             })}
+          </div>
+
+          {/* Add custom packaging on the fly */}
+          <div style={{ display: 'flex', gap: '8px', maxWidth: '360px', marginTop: '6px' }}>
+            <input
+              type="text"
+              value={customPackagingInput}
+              onChange={(e) => setCustomPackagingInput(e.target.value)}
+              placeholder="e.g. Leather Hamper, Acrylic Box"
+              style={{
+                flex: 1,
+                padding: '6px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '12px',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const trimmed = customPackagingInput.trim();
+                if (trimmed && !packagingOptions.includes(trimmed)) {
+                  setPackagingOptions((prev) => [...prev, trimmed]);
+                  if (!availablePackaging.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
+                    setAvailablePackaging((prev) => [
+                      ...prev,
+                      {
+                        id: `pkg-${Date.now()}`,
+                        name: trimmed,
+                        description: 'Custom presentation packaging',
+                        price: 0,
+                        enabled: true,
+                      },
+                    ]);
+                  }
+                  setCustomPackagingInput('');
+                }
+              }}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 500,
+              }}
+            >
+              Add Packaging
+            </button>
           </div>
         </div>
 

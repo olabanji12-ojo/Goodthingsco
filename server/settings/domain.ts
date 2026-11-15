@@ -91,6 +91,7 @@ export function toPublicSettings(settings: StoreSettings): PublicStoreSettings {
       linenBagFee: 0,
       woodenBoxFee: 0,
       pouchFee: 0,
+      options: [],
     },
   };
 }
@@ -314,6 +315,18 @@ export function validateStoreSettingsUpdate(raw: any): StoreSettingsUpdateInput 
     }
     if (raw.packaging.pouchFee !== undefined) {
       result.packaging.pouchFee = Math.max(0, Number(raw.packaging.pouchFee) || 0);
+    }
+    if (raw.packaging.options !== undefined && Array.isArray(raw.packaging.options)) {
+      result.packaging.options = raw.packaging.options
+        .map((opt: any) => ({
+          id: sanitizeText(opt.id || String(Date.now()), 50),
+          name: sanitizeText(opt.name, 100),
+          description: sanitizeText(opt.description, 300),
+          price: Math.max(0, Number(opt.price) || 0),
+          badge: opt.badge ? sanitizeText(opt.badge, 50) : undefined,
+          enabled: opt.enabled !== false,
+        }))
+        .filter((opt: any) => opt.name.length > 0);
     }
   }
 

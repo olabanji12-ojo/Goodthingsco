@@ -7,8 +7,8 @@ import type { PageContentMap } from '../types/content';
 export const DEFAULT_PAGE_CONTENTS: PageContentMap = {
   home: {
     heroTagline: 'Considered Curation & Bespoke Gifting',
-    heroTitle: 'Thoughtfully Curated, Distinctly Yours',
-    heroSubtitle: 'Luxury gift boxes, artisanal souvenirs, and corporate presentations crafted with intention in Lagos, Nigeria.',
+    heroTitle: 'Thoughtful gifts for inspired living',
+    heroSubtitle: 'Curated gifts crafted with intention. Find an inspired gesture for someone special, or coordinate distinguished gifts at scale.',
     heroCtaText: 'Explore Curated Gifts',
     curatedHeading: 'The Art of Considered Giving',
     curatedDescription: 'Every box is meticulously assembled using premium keepsakes, rich ribbons, and handwritten calligraphed cards.',
@@ -16,8 +16,8 @@ export const DEFAULT_PAGE_CONTENTS: PageContentMap = {
     conciergeText: 'Partner with our atelier for tailored celebrations, milestone achievements, and bespoke volume shipments.',
   },
   shop: {
-    headerTitle: 'The Gift Discovery Studio',
-    headerSubtitle: 'Select your occasion, recipient, and budget to view perfectly matched bespoke presentations.',
+    headerTitle: 'Find a Thoughtful Gift',
+    headerSubtitle: 'Answer a few simple questions to discover hand-curated gifts, beautifully packaged and delivered with personal care.',
     announcementText: 'Complimentary handwriting on all signature wax-sealed note cards.',
     searchPlaceholder: 'Search gift boxes, artisanal elements, occasions...',
     emptyResultsMessage: 'No gift boxes match your specific filter selection. Adjust your parameters or contact our concierge for a bespoke curation.',
