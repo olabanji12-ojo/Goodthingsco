@@ -43,25 +43,34 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   const { addItem, totalQuantity } = useCart();
   const [searchParams] = useSearchParams();
 
-  // Filter Selection States (Saved immediately on click)
-  const [selectedOccasion, setSelectedOccasion] = useState<string | null>(() => {
-    return searchParams.get('occasion') || 'birthday';
+  // Filter Selection States (Multi-select enabled: multiple occasions, recipients, budgets, and lifestyles)
+  const [selectedOccasions, setSelectedOccasions] = useState<string[]>(() => {
+    const raw = searchParams.get('occasions') || searchParams.get('occasion');
+    if (raw) {
+      return raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+    }
+    return ['birthday'];
   });
-  const [selectedRecipient, setSelectedRecipient] = useState<string | null>(() => {
-    return searchParams.get('recipient') || null;
+  const [selectedRecipients, setSelectedRecipients] = useState<string[]>(() => {
+    const raw = searchParams.get('recipients') || searchParams.get('recipient');
+    if (raw) {
+      return raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+    }
+    return [];
   });
-  const [selectedBudget, setSelectedBudget] = useState<BudgetTierId | null>(null);
-  const [selectedLifestyle, setSelectedLifestyle] = useState<LifestyleCategory | null>(null);
-
-  // Progressive Disclosure Stage: which sections are currently unlocked/active
-  // 1: Occasion active
-  // 2: Recipient active
-  // 3: Budget active
-  // 4: Lifestyle active
-  const [unlockedStage, setUnlockedStage] = useState<number>(() => {
-    if (searchParams.get('recipient')) return 3;
-    if (searchParams.get('occasion')) return 2;
-    return 2; // Default occasion is selected ('birthday'), so recipient is active
+  const [selectedBudgets, setSelectedBudgets] = useState<BudgetTierId[]>(() => {
+    const raw = searchParams.get('budgets') || searchParams.get('budget');
+    if (raw) {
+      return raw.split(',').map((s) => s.trim() as BudgetTierId).filter(Boolean);
+    }
+    return [];
+  });
+  const [selectedLifestyles, setSelectedLifestyles] = useState<LifestyleCategory[]>(() => {
+    const raw = searchParams.get('lifestyles') || searchParams.get('lifestyle');
+    if (raw) {
+      return raw.split(',').map((s) => s.trim() as LifestyleCategory).filter(Boolean);
+    }
+    return [];
   });
 
   // Section DOM refs for smooth focus transition
@@ -98,11 +107,10 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     try {
       const [filterResult, fullList] = await Promise.all([
         getFilteredProducts({
-          occasion: selectedOccasion || undefined,
-          recipient: selectedRecipient || undefined,
-          specificRecipient: selectedRecipient || undefined,
-          budgetRange: selectedBudget || undefined,
-          lifestyle: selectedLifestyle || undefined,
+          occasions: selectedOccasions.length > 0 ? selectedOccasions : undefined,
+          recipients: selectedRecipients.length > 0 ? selectedRecipients : undefined,
+          budgetRanges: selectedBudgets.length > 0 ? selectedBudgets : undefined,
+          lifestyles: selectedLifestyles.length > 0 ? selectedLifestyles : undefined,
         }),
         getActiveProducts(true),
       ]);
@@ -116,7 +124,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedOccasion, selectedRecipient, selectedBudget, selectedLifestyle]);
+  }, [selectedOccasions, selectedRecipients, selectedBudgets, selectedLifestyles]);
 
   useEffect(() => {
     loadFilteredProducts();
@@ -148,48 +156,36 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     };
   }, []);
 
-  // ── 2. Filter Click Handlers with Auto-Progression (No "Next" buttons!) ──
-  const handleSelectOccasion = (id: string) => {
-    setSelectedOccasion(id);
-    if (unlockedStage < 2) setUnlockedStage(2);
-    // Smoothly draw attention to Recipient
-    setTimeout(() => {
-      recipientRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 120);
+  // ── 2. Filter Click Handlers (Multi-Select Toggles) ──
+  const handleToggleOccasion = (id: string) => {
+    setSelectedOccasions((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
-  const handleSelectRecipient = (id: string) => {
-    setSelectedRecipient(id);
-    if (unlockedStage < 3) setUnlockedStage(3);
-    // Smoothly draw attention to Budget
-    setTimeout(() => {
-      budgetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 120);
+  const handleToggleRecipient = (id: string) => {
+    setSelectedRecipients((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
-  const handleSelectBudget = (tierId: BudgetTierId) => {
-    setSelectedBudget(tierId);
-    if (unlockedStage < 4) setUnlockedStage(4);
-    // Smoothly draw attention to Lifestyle
-    setTimeout(() => {
-      lifestyleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 120);
+  const handleToggleBudget = (tierId: BudgetTierId) => {
+    setSelectedBudgets((prev) =>
+      prev.includes(tierId) ? prev.filter((item) => item !== tierId) : [...prev, tierId]
+    );
   };
 
-  const handleSelectLifestyle = (catId: LifestyleCategory) => {
-    setSelectedLifestyle((prev) => (prev === catId ? null : catId));
-    // Smoothly draw attention to Results
-    setTimeout(() => {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 120);
+  const handleToggleLifestyle = (catId: LifestyleCategory) => {
+    setSelectedLifestyles((prev) =>
+      prev.includes(catId) ? prev.filter((item) => item !== catId) : [...prev, catId]
+    );
   };
 
   const handleResetFilters = () => {
-    setSelectedOccasion('birthday');
-    setSelectedRecipient(null);
-    setSelectedBudget(null);
-    setSelectedLifestyle(null);
-    setUnlockedStage(2);
+    setSelectedOccasions(['birthday']);
+    setSelectedRecipients([]);
+    setSelectedBudgets([]);
+    setSelectedLifestyles([]);
   };
 
   // ── 3. Same-Page Personalisation Handlers ──
@@ -214,7 +210,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     } else {
       // Prioritize Festive Christmas packaging for holiday items
       const isChristmas =
-        selectedOccasion === 'christmas' ||
+        selectedOccasions.some((o) => o.toLowerCase() === 'christmas') ||
         product.occasions?.some((o: string) => o.toLowerCase() === 'christmas') ||
         raw?.occasions?.some((o: string) => o.toLowerCase() === 'christmas');
       if (isChristmas) {
@@ -313,7 +309,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
     // If Christmas, prioritize the festive holiday box
     const isChristmas =
-      selectedOccasion === 'christmas' ||
+      selectedOccasions.some((o) => o.toLowerCase() === 'christmas') ||
       personalisingProduct.occasions?.some((o: string) => o.toLowerCase() === 'christmas') ||
       raw?.occasions?.some((o: string) => o.toLowerCase() === 'christmas');
     if (isChristmas) {
@@ -330,14 +326,14 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     }
 
     return packagingList;
-  }, [personalisingProduct, packagingList, selectedOccasion]);
+  }, [personalisingProduct, packagingList, selectedOccasions]);
 
   // Products to display: when active filters exist, strictly respect exactMatches!
   const hasActiveFilters = Boolean(
-    (selectedOccasion && selectedOccasion !== 'all') ||
-    selectedRecipient ||
-    selectedBudget ||
-    selectedLifestyle
+    (selectedOccasions.length > 0 && !(selectedOccasions.length === 1 && selectedOccasions[0] === 'all')) ||
+    selectedRecipients.length > 0 ||
+    selectedBudgets.length > 0 ||
+    selectedLifestyles.length > 0
   );
   const displayProducts = hasActiveFilters ? exactMatches : (suggestions.length > 0 ? suggestions : allProducts);
   const isShowingSuggestions = exactMatches.length === 0 && !hasActiveFilters && suggestions.length > 0;
@@ -353,12 +349,11 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   }, [personalisingProduct]);
 
   // Active filter count summary
-  const activeFiltersCount = [
-    Boolean(selectedOccasion),
-    Boolean(selectedRecipient),
-    Boolean(selectedBudget),
-    Boolean(selectedLifestyle),
-  ].filter(Boolean).length;
+  const activeFiltersCount =
+    (selectedOccasions.length > 0 ? selectedOccasions.length : 0) +
+    selectedRecipients.length +
+    selectedBudgets.length +
+    selectedLifestyles.length;
 
   return (
     <div className={`w-full max-w-5xl mx-auto flex flex-col items-center text-center ${className}`}>
@@ -416,18 +411,18 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
               What is the Occasion?
             </h2>
             <p className="font-sans text-xs text-brand-medium/80 mt-0.5">
-              Select an everyday celebration or seasonal milestone
+              Select one or more occasions (tap to toggle)
             </p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto pt-2">
             {OCCASIONS.map((occ) => {
-              const isSelected = selectedOccasion === occ.id;
+              const isSelected = selectedOccasions.includes(occ.id);
               return (
                 <button
                   key={occ.id}
                   type="button"
-                  onClick={() => handleSelectOccasion(occ.id)}
+                  onClick={() => handleToggleOccasion(occ.id)}
                   className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${
                     isSelected
                       ? 'bg-brand-dark text-brand-ivory font-semibold shadow-xs ring-1 ring-brand-dark'
@@ -446,9 +441,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
         {/* ── FILTER GROUP 2: RECIPIENT ── */}
         <div
           ref={recipientRef}
-          className={`pt-6 border-t border-brand-dark/10 text-center transition-all duration-300 ${
-            unlockedStage < 2 ? 'opacity-40 pointer-events-none' : 'opacity-100'
-          }`}
+          className="pt-6 border-t border-brand-dark/10 text-center transition-all duration-300 opacity-100"
         >
           <div className="mb-3">
             <span className="text-[11px] font-sans font-bold uppercase tracking-[0.2em] text-gold-700 block mb-1">
@@ -458,18 +451,18 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
               Who is the Gift For?
             </h2>
             <p className="font-sans text-xs text-brand-medium/80 mt-0.5">
-              Choose the recipient to refine suitable curations
+              Choose one or more recipients (tap to toggle)
             </p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto pt-2">
             {RECIPIENT_OPTIONS.map((rec) => {
-              const isSelected = selectedRecipient === rec.id;
+              const isSelected = selectedRecipients.includes(rec.id);
               return (
                 <button
                   key={rec.id}
                   type="button"
-                  onClick={() => handleSelectRecipient(rec.id)}
+                  onClick={() => handleToggleRecipient(rec.id)}
                   className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${
                     isSelected
                       ? 'bg-brand-dark text-brand-ivory font-semibold shadow-xs ring-1 ring-brand-dark'
@@ -488,9 +481,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
         {/* ── FILTER GROUP 3: BUDGET ── */}
         <div
           ref={budgetRef}
-          className={`pt-6 mt-8 border-t border-brand-dark/10 text-center transition-all duration-300 ${
-            unlockedStage < 3 ? 'opacity-40 pointer-events-none' : 'opacity-100'
-          }`}
+          className="pt-6 mt-8 border-t border-brand-dark/10 text-center transition-all duration-300 opacity-100"
         >
           <div className="mb-3">
             <span className="text-[11px] font-sans font-bold uppercase tracking-[0.2em] text-gold-700 block mb-1">
@@ -500,18 +491,18 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
               Select Your Budget
             </h2>
             <p className="font-sans text-xs text-brand-medium/80 mt-0.5">
-              Anticipated investment for this thoughtful gesture
+              Select one or more budget ranges (tap to toggle)
             </p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-2.5 max-w-2xl mx-auto pt-2">
             {BUDGET_TIERS.map((tier) => {
-              const isSelected = selectedBudget === tier.id;
+              const isSelected = selectedBudgets.includes(tier.id);
               return (
                 <button
                   key={tier.id}
                   type="button"
-                  onClick={() => handleSelectBudget(tier.id)}
+                  onClick={() => handleToggleBudget(tier.id)}
                   className={`px-5 py-2.5 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-2 ${
                     isSelected
                       ? 'bg-brand-dark text-brand-ivory font-semibold shadow-xs ring-1 ring-brand-dark'
@@ -530,9 +521,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
         {/* ── FILTER GROUP 4: LIFESTYLE ── */}
         <div
           ref={lifestyleRef}
-          className={`pt-6 mt-8 border-t border-brand-dark/10 text-center transition-all duration-300 ${
-            unlockedStage < 4 ? 'opacity-40 pointer-events-none' : 'opacity-100'
-          }`}
+          className="pt-6 mt-8 border-t border-brand-dark/10 text-center transition-all duration-300 opacity-100"
         >
           <div className="mb-3">
             <span className="text-[11px] font-sans font-bold uppercase tracking-[0.2em] text-gold-700 block mb-1">
@@ -542,18 +531,18 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
               Explore by Lifestyle
             </h2>
             <p className="font-sans text-xs text-brand-medium/80 mt-0.5">
-              Tailor gifts to their unique passions and aesthetic living
+              Tailor gifts to their unique passions (tap to toggle)
             </p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto pt-2">
             {LIFESTYLE_OPTIONS.map((ls) => {
-              const isSelected = selectedLifestyle === ls.id;
+              const isSelected = selectedLifestyles.includes(ls.id);
               return (
                 <button
                   key={ls.id}
                   type="button"
-                  onClick={() => handleSelectLifestyle(ls.id)}
+                  onClick={() => handleToggleLifestyle(ls.id)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${
                     isSelected
                       ? 'bg-gold-600 text-white font-semibold shadow-xs'
@@ -574,6 +563,107 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
       {/* 2. DYNAMIC LIVE GIFT RESULTS (ON SAME PAGE)             */}
       {/* ======================================================== */}
       <section ref={resultsRef} className="w-full text-center">
+        {/* Active Filter Chips / Pills Bar */}
+        {hasActiveFilters && (
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-2 max-w-3xl mx-auto animate-fade-in">
+            <span className="text-[11px] font-sans font-semibold text-brand-medium uppercase tracking-wider mr-1">
+              Active filters:
+            </span>
+
+            {/* Occasion Tags */}
+            {selectedOccasions.map((occId) => {
+              const label = OCCASIONS.find((o) => o.id === occId)?.label || occId;
+              return (
+                <span
+                  key={`occ-${occId}`}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-brand-dark/5 border border-brand-dark/15 text-xs font-sans text-brand-dark"
+                >
+                  <span>{label}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleOccasion(occId)}
+                    className="hover:text-red-600 transition-colors cursor-pointer"
+                    title={`Remove ${label}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              );
+            })}
+
+            {/* Recipient Tags */}
+            {selectedRecipients.map((recId) => {
+              const label = RECIPIENT_OPTIONS.find((r) => r.id === recId)?.label || recId;
+              return (
+                <span
+                  key={`rec-${recId}`}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-brand-dark/5 border border-brand-dark/15 text-xs font-sans text-brand-dark"
+                >
+                  <span>For: {label}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRecipient(recId)}
+                    className="hover:text-red-600 transition-colors cursor-pointer"
+                    title={`Remove ${label}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              );
+            })}
+
+            {/* Budget Tags */}
+            {selectedBudgets.map((tierId) => {
+              const label = BUDGET_TIERS.find((t) => t.id === tierId)?.label || tierId;
+              return (
+                <span
+                  key={`bgt-${tierId}`}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gold-50 border border-gold-200 text-xs font-sans text-gold-900 font-medium"
+                >
+                  <span>{label}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleBudget(tierId)}
+                    className="hover:text-red-600 transition-colors cursor-pointer"
+                    title={`Remove ${label}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              );
+            })}
+
+            {/* Lifestyle Tags */}
+            {selectedLifestyles.map((lsId) => {
+              const label = LIFESTYLE_OPTIONS.find((l) => l.id === lsId)?.label || lsId;
+              return (
+                <span
+                  key={`ls-${lsId}`}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs font-sans text-amber-900"
+                >
+                  <span>{label}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleLifestyle(lsId)}
+                    className="hover:text-red-600 transition-colors cursor-pointer"
+                    title={`Remove ${label}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="text-xs font-sans text-brand-medium hover:text-red-600 underline ml-2 transition-colors cursor-pointer"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
         {/* Results Header */}
         <div className="mb-8">
           <span className="font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-gold-700 block mb-1">
@@ -652,7 +742,9 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                         </span>
                       )}
                       {(() => {
-                        const matchedOccasion = selectedOccasion && gift.occasions?.find((o) => o.toLowerCase() === selectedOccasion.toLowerCase());
+                        const matchedOccasion = selectedOccasions.length > 0
+                          ? gift.occasions?.find((o) => selectedOccasions.some((so) => so.toLowerCase() === o.toLowerCase()))
+                          : undefined;
                         const displayOccasion = matchedOccasion || gift.rawProduct?.category || gift.occasions?.[0];
                         return displayOccasion ? (
                           <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-brand-dark text-[10px] font-sans font-semibold capitalize border border-black/5">

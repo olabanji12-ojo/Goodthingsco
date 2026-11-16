@@ -584,10 +584,14 @@ export async function getProductsByBudget(budgetRange: BudgetRangeTier): Promise
 
 export interface ShopFilterCriteria {
   occasion?: string;
+  occasions?: string[];
   recipient?: string;
+  recipients?: string[];
   specificRecipient?: string;
   budgetRange?: BudgetRangeTier | string;
+  budgetRanges?: (BudgetRangeTier | string)[];
   lifestyle?: LifestyleCategory | string;
+  lifestyles?: (LifestyleCategory | string)[];
 }
 
 export interface FilteredProductsResult {
@@ -607,15 +611,25 @@ export function normalizeBudgetTier(budget?: string): BudgetRangeTier | undefine
   return budget as BudgetRangeTier;
 }
 
+function matchesSingleBudgetTier(price: number, tier: BudgetRangeTier): boolean {
+  if (tier === 'under-25000') return price < 25000;
+  if (tier === '25000-50000') return price >= 25000 && price <= 50000;
+  if (tier === '50000-100000') return price >= 50000 && price <= 100000;
+  if (tier === '100000-250000') return price >= 100000 && price <= 250000;
+  if (tier === '250000-plus') return price >= 250000;
+  return true;
+}
+
 /**
  * 13. GET FILTERED PRODUCTS FOR SHOP JOURNEY
  *
  * Powers the customer-facing guided concierge flow:
- * Occasion -> Recipient -> Budget -> Lifestyle
+ * Occasion(s) -> Recipient(s) -> Budget(s) -> Lifestyle(s)
  *
+ * Supports single-select or multi-select at each stage.
  * 1. Fetches active, available products from Firestore.
  * 2. Filters strictly for exact matches on all active criteria.
- * 3. If exact matches are empty, generates smart related suggestions (same occasion, budget, or lifestyle)
+ * 3. If exact matches are empty, generates smart related suggestions
  *    so the customer is never left facing a dead-end.
  */
 export async function getFilteredProducts(
@@ -623,57 +637,112 @@ export async function getFilteredProducts(
 ): Promise<FilteredProductsResult> {
   const activeProducts = await getActiveProducts(true);
 
-  const occasion = criteria.occasion?.trim().toLowerCase();
-  const recipient = criteria.recipient?.trim().toLowerCase();
-  const specificRecipient = criteria.specificRecipient?.trim().toLowerCase();
-  const budgetRange = normalizeBudgetTier(criteria.budgetRange);
-  const lifestyle = criteria.lifestyle?.trim().toLowerCase();
+  // 1. Resolve Occasions (support single or multiple)
+  const rawOccasions = [
+    ...(criteria.occasions || []),
+    ...(criteria.occasion ? [criteria.occasion] : []),
+  ];
+  const activeOccasions = Array.from(
+    new Set(
+      rawOccasions
+        .map((o) => o?.trim().toLowerCase())
+        .filter((o): o is string => Boolean(o && o !== 'all'))
+    )
+  );
+
+  // 2. Resolve Recipients (support single or multiple)
+  const rawRecipients = [
+    ...(criteria.recipients || []),
+    ...(criteria.recipient ? [criteria.recipient] : []),
+    ...(criteria.specificRecipient ? [criteria.specificRecipient] : []),
+  ];
+  const activeRecipients = Array.from(
+    new Set(
+      rawRecipients
+        .map((r) => r?.trim().toLowerCase())
+        .filter((r): r is string => Boolean(r && r !== 'all'))
+    )
+  );
+
+  // 3. Resolve Budget Tiers (support single or multiple)
+  const rawBudgets = [
+    ...(criteria.budgetRanges || []),
+    ...(criteria.budgetRange ? [criteria.budgetRange] : []),
+  ];
+  const activeBudgetTiers = Array.from(
+    new Set(
+      rawBudgets
+        .map((b) => normalizeBudgetTier(b))
+        .filter((b): b is BudgetRangeTier => Boolean(b))
+    )
+  );
+
+  // 4. Resolve Lifestyles (support single or multiple)
+  const rawLifestyles = [
+    ...(criteria.lifestyles || []),
+    ...(criteria.lifestyle ? [criteria.lifestyle] : []),
+  ];
+  const activeLifestyles = Array.from(
+    new Set(
+      rawLifestyles
+        .map((l) => l?.trim().toLowerCase())
+        .filter((l): l is string => Boolean(l && l !== 'all'))
+    )
+  );
 
   const exactMatches = activeProducts.filter((p) => {
     // Must be unarchived and available
     if (p.isArchived || !p.isAvailable) return false;
 
-    // 1. Occasion match
-    if (occasion && occasion !== 'all') {
+    // 1. Occasion match (OR logic: match ANY of the selected occasions)
+    if (activeOccasions.length > 0) {
       const matchOccasion = p.occasions?.some((o) => {
         const cleanO = o.toLowerCase().trim();
-        return cleanO === occasion || cleanO.replace(/\s+/g, '-') === occasion;
+        const slugO = cleanO.replace(/\s+/g, '-');
+        return activeOccasions.some(
+          (target) =>
+            cleanO === target ||
+            slugO === target ||
+            cleanO.replace(/-/g, ' ') === target.replace(/-/g, ' ')
+        );
       });
       if (!matchOccasion) return false;
     }
 
-    // 2. Recipient match (matches either top-level or specific recipient)
-    if (recipient && recipient !== 'all') {
-      const targetRecipients = [recipient, specificRecipient].filter(Boolean) as string[];
-      const matchRecipient = p.recipients?.some((r) =>
-        targetRecipients.some(
+    // 2. Recipient match (OR logic: match ANY of the selected recipients)
+    if (activeRecipients.length > 0) {
+      const matchRecipient = p.recipients?.some((r) => {
+        const cleanR = r.toLowerCase().trim();
+        return activeRecipients.some(
           (target) =>
-            r.toLowerCase() === target ||
-            r.toLowerCase().includes(target) ||
-            target.includes(r.toLowerCase())
-        )
-      );
+            cleanR === target ||
+            cleanR.includes(target) ||
+            target.includes(cleanR)
+        );
+      });
       if (!matchRecipient) return false;
     }
 
-    // 3. Budget Range match (strictly enforced against numerical price)
-    if (budgetRange) {
+    // 3. Budget Range match (OR logic: strictly checked against numerical price)
+    if (activeBudgetTiers.length > 0) {
       if (typeof p.price === 'number') {
-        if (budgetRange === 'under-25000' && p.price >= 25000) return false;
-        if (budgetRange === '25000-50000' && (p.price < 25000 || p.price > 50000)) return false;
-        if (budgetRange === '50000-100000' && (p.price < 50000 || p.price > 100000)) return false;
-        if (budgetRange === '100000-250000' && (p.price < 100000 || p.price > 250000)) return false;
-        if (budgetRange === '250000-plus' && p.price < 250000) return false;
-      } else if (p.budgetRange && p.budgetRange !== budgetRange) {
+        const matchBudget = activeBudgetTiers.some((tier) =>
+          matchesSingleBudgetTier(p.price, tier)
+        );
+        if (!matchBudget) return false;
+      } else if (p.budgetRange && !activeBudgetTiers.includes(p.budgetRange)) {
         return false;
       }
     }
 
-    // 4. Lifestyle match
-    if (lifestyle && lifestyle !== 'all') {
+    // 4. Lifestyle match (OR logic: match ANY of the selected lifestyles)
+    if (activeLifestyles.length > 0) {
       const matchLifestyle = p.lifestyles?.some((l) => {
         const cleanL = l.toLowerCase().trim();
-        return cleanL === lifestyle || cleanL.replace(/\s+/g, '-') === lifestyle;
+        const slugL = cleanL.replace(/\s+/g, '-');
+        return activeLifestyles.some(
+          (target) => cleanL === target || slugL === target
+        );
       });
       if (!matchLifestyle) return false;
     }
@@ -685,21 +754,31 @@ export async function getFilteredProducts(
   if (exactMatches.length === 0 && activeProducts.length > 0) {
     suggestions = activeProducts.filter((p) => {
       if (p.isArchived || !p.isAvailable) return false;
-      // Do not suggest items that contradict the chosen occasion
-      if (occasion && occasion !== 'all') {
+      // Do not suggest items that contradict the chosen occasions
+      if (activeOccasions.length > 0) {
         const matchOccasion = p.occasions?.some((o) => {
           const cleanO = o.toLowerCase().trim();
-          return cleanO === occasion || cleanO.replace(/\s+/g, '-') === occasion;
+          const slugO = cleanO.replace(/\s+/g, '-');
+          return activeOccasions.some(
+            (target) =>
+              cleanO === target ||
+              slugO === target ||
+              cleanO.replace(/-/g, ' ') === target.replace(/-/g, ' ')
+          );
         });
         if (!matchOccasion) return false;
       }
-      // Do not suggest items that wildly violate the chosen budget
-      if (budgetRange && typeof p.price === 'number') {
-        if (budgetRange === 'under-25000' && p.price >= 35000) return false;
-        if (budgetRange === '25000-50000' && (p.price < 20000 || p.price > 60000)) return false;
-        if (budgetRange === '50000-100000' && (p.price < 40000 || p.price > 120000)) return false;
-        if (budgetRange === '100000-250000' && (p.price < 80000 || p.price > 300000)) return false;
-        if (budgetRange === '250000-plus' && p.price < 200000) return false;
+      // Relaxed budget check across selected tiers
+      if (activeBudgetTiers.length > 0 && typeof p.price === 'number') {
+        const matchRelaxed = activeBudgetTiers.some((tier) => {
+          if (tier === 'under-25000') return p.price < 35000;
+          if (tier === '25000-50000') return p.price >= 20000 && p.price <= 60000;
+          if (tier === '50000-100000') return p.price >= 40000 && p.price <= 120000;
+          if (tier === '100000-250000') return p.price >= 80000 && p.price <= 300000;
+          if (tier === '250000-plus') return p.price >= 200000;
+          return true;
+        });
+        if (!matchRelaxed) return false;
       }
       return true;
     });
