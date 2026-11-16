@@ -5,7 +5,7 @@ import logoImg from '../../assets/branding/logo.png';
 import { useCart } from '../../contexts/CartContext';
 
 interface GatewayNavProps {
-  activePath?: 'shop' | 'corporate' | 'create' | 'about';
+  activePath?: 'shop' | 'corporate' | 'create' | 'about' | 'christmas';
   onSelectTab?: (tab: 'shop' | 'corporate' | 'create' | 'about') => void;
   className?: string;
 }
@@ -23,21 +23,22 @@ export const GatewayNav: React.FC<GatewayNavProps> = ({
     { id: 'corporate', label: 'Corporate', href: '/corporate' },
   ];
 
-  const rightNavLinks: { id: 'create' | 'about'; label: string; href: string }[] = [
+  const rightNavLinks: { id: 'create' | 'about' | 'christmas'; label: string; href: string }[] = [
     { id: 'create', label: 'Create', href: '/create' },
     { id: 'about', label: 'About', href: '/about' },
+    { id: 'christmas', label: '🎄 Christmas', href: '/christmas' },
   ];
 
   const allNavLinks = [...leftNavLinks, ...rightNavLinks];
 
-  const handleNavClick = (id: 'shop' | 'corporate' | 'create' | 'about') => {
-    if (onSelectTab && id !== 'about') {
+  const handleNavClick = (id: 'shop' | 'corporate' | 'create' | 'about' | 'christmas') => {
+    if (onSelectTab && id !== 'about' && id !== 'christmas') {
       onSelectTab(id);
     }
     setMobileMenuOpen(false);
   };
 
-  const renderNavLink = (link: { id: 'shop' | 'corporate' | 'create' | 'about'; label: string; href: string }) => {
+  const renderNavLink = (link: { id: 'shop' | 'corporate' | 'create' | 'about' | 'christmas'; label: string; href: string }) => {
     const isActive = activePath === link.id;
     return (
       <Link

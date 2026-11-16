@@ -29,6 +29,7 @@ import CreatePage from './pages/CreatePage';
 import EditPage from './pages/EditPage';
 import ArticleDetailPage from './pages/ArticleDetailPage';
 import AboutPage from './pages/AboutPage';
+import ChristmasPage from './pages/ChristmasPage';
 
 import { ResumeCheckoutPage } from './pages/ResumeCheckoutPage';
 
@@ -74,6 +75,8 @@ function AppRoutes() {
         <Route path="/lookbook" element={<LookbookPage />} />
         <Route path="/horizontal" element={<LookbookPage />} />
         <Route path="/shop" element={<ShopPage />} />
+        <Route path="/christmas" element={<ChristmasPage />} />
+        <Route path="/holiday" element={<ChristmasPage />} />
         <Route path="/shop/product/:slug" element={<ProductDetailPage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />

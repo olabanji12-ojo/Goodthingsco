@@ -24,6 +24,7 @@ export const HeroNav: React.FC<HeroNavProps> = ({ className = '', activeItem }) 
     { label: 'Corporate', href: '/corporate' },
     { label: 'Create', href: '/create' },
     { label: 'About', href: '/about' },
+    { label: '🎄 Christmas', href: '/christmas' },
   ];
 
   const shopCategories = [
