@@ -190,6 +190,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
 
   // Packaging & Ribbons
   const [availablePackaging, setAvailablePackaging] = useState<PackagingOption[]>(() => getPackagingOptions());
+  const [packagingIncluded, setPackagingIncluded] = useState<boolean>(initialProduct?.packagingIncluded ?? false);
   const [packagingOptions, setPackagingOptions] = useState<string[]>(() => {
     if (initialProduct?.packagingOptions && initialProduct.packagingOptions.length > 0) {
       return initialProduct.packagingOptions;
@@ -435,6 +436,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
       lifestyles: lifestyles || [],
       images,
       packagingOptions,
+      packagingIncluded,
       ribbonColours,
       variants,
       personalisation: personalisationEnabled
@@ -1437,10 +1439,39 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
           )}
         </div>
 
+        {/* Packaging Configuration: Inbuilt vs Additional Selection */}
+        <div style={{ marginBottom: '20px', padding: '16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+            Packaging Pricing Mode
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: packagingIncluded ? '#065f46' : '#475569', fontWeight: packagingIncluded ? 600 : 400 }}>
+              <input
+                type="radio"
+                name="packagingIncluded"
+                checked={packagingIncluded}
+                onChange={() => setPackagingIncluded(true)}
+                style={{ width: '16px', height: '16px', accentColor: '#0f172a', cursor: 'pointer' }}
+              />
+              <span>🎁 <strong>Packaging Included in Price (Inbuilt)</strong> — No extra packaging fee charged to customer (e.g. Hampers, pre-boxed gift sets)</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: !packagingIncluded ? '#0f172a' : '#475569', fontWeight: !packagingIncluded ? 600 : 400 }}>
+              <input
+                type="radio"
+                name="packagingIncluded"
+                checked={!packagingIncluded}
+                onChange={() => setPackagingIncluded(false)}
+                style={{ width: '16px', height: '16px', accentColor: '#0f172a', cursor: 'pointer' }}
+              />
+              <span>📦 <strong>Selectable Packaging / Add-On</strong> — Customer chooses presentation box & packaging upgrade fee applies</span>
+            </label>
+          </div>
+        </div>
+
         {/* Packaging Options */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
-            Supported Packaging Options (Select which packaging is offered for this product)
+            Supported Packaging Options {packagingIncluded ? '(Available presentation styles — Fee will display as Included)' : '(Select which packaging is offered for this product)'}
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
             {availablePackaging.map((pkg) => {

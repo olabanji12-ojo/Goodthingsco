@@ -86,7 +86,8 @@ export const ProductDetailPage: React.FC = () => {
     );
   }, [selectedPackaging, packagingList]);
 
-  const packagingUpgradeFee = selectedPackagingOption?.price || 0;
+  const isPackagingIncluded = Boolean(product?.packagingIncluded);
+  const packagingUpgradeFee = isPackagingIncluded ? 0 : (selectedPackagingOption?.price || 0);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -192,7 +193,7 @@ export const ProductDetailPage: React.FC = () => {
       currentStock: product.stock,
       image: imagePayload,
       selectedVariants: Object.keys(selectedVariantOptions).length > 0 ? selectedVariantOptions : undefined,
-      packaging: selectedPackaging || undefined,
+      packaging: isPackagingIncluded ? `${selectedPackaging} (Included)` : (selectedPackaging || undefined),
       packagingFee: packagingExtra,
       ribbonColour: selectedRibbon || undefined,
       giftMessage: giftMessage.trim() || undefined,
@@ -353,10 +354,16 @@ export const ProductDetailPage: React.FC = () => {
                     <span className="font-serif text-2xl sm:text-3xl font-bold text-brand-dark">
                       {formatNaira(product.price + packagingUpgradeFee)}
                     </span>
-                    {packagingUpgradeFee > 0 && (
-                      <span className="font-sans text-xs text-gold-700 font-medium">
-                        (Includes {formatNaira(packagingUpgradeFee)} packaging upgrade)
+                    {isPackagingIncluded ? (
+                      <span className="font-sans text-xs text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-semibold">
+                        ✓ Packaging Included in Price
                       </span>
+                    ) : (
+                      packagingUpgradeFee > 0 && (
+                        <span className="font-sans text-xs text-gold-700 font-medium">
+                          (Includes {formatNaira(packagingUpgradeFee)} packaging upgrade)
+                        </span>
+                      )
                     )}
                     {product.compareAtPrice && (
                       <span className="font-sans text-sm text-brand-light line-through">
@@ -436,7 +443,7 @@ export const ProductDetailPage: React.FC = () => {
                             <div>
                               <div className="font-medium">{pkg}</div>
                               <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-gold-300' : 'text-gold-700'}`}>
-                                {fee > 0 ? `+${formatNaira(fee)}` : 'Included'}
+                                {isPackagingIncluded ? 'Included in Price' : (fee > 0 ? `+${formatNaira(fee)}` : 'Included')}
                               </div>
                             </div>
                             {isSelected && <Check size={14} className="text-gold-400 shrink-0" />}

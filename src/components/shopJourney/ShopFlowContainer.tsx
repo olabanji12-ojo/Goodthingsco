@@ -256,7 +256,8 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
         }
       : { url: personalisingProduct.image, alt: personalisingProduct.title };
 
-    const packagingExtra = selectedPackaging.price || 0;
+    const isPackagingIncluded = Boolean((raw as any)?.packagingIncluded || (personalisingProduct as any)?.packagingIncluded);
+    const packagingExtra = isPackagingIncluded ? 0 : (selectedPackaging.price || 0);
     const unitPrice = personalisingProduct.price + packagingExtra;
 
     const result = addItem({
@@ -267,7 +268,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
       quantity: 1,
       currentStock: stock,
       image: imagePayload,
-      packaging: selectedPackaging.name,
+      packaging: isPackagingIncluded ? `${selectedPackaging.name} (Included)` : selectedPackaging.name,
       packagingFee: packagingExtra,
       ribbonColour: selectedRibbon.name,
       giftMessage: giftMessage.trim() || undefined,
@@ -893,38 +894,52 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
               {/* 1. Packaging Selection */}
               <div>
-                <label className="block font-sans text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                  1. Presentation Packaging
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {activePackagingForProduct.map((pkg) => {
-                    const isSelected = selectedPackaging.id === pkg.id;
-                    return (
-                      <button
-                        key={pkg.id}
-                        type="button"
-                        onClick={() => setSelectedPackaging(pkg)}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                          isSelected
-                            ? 'border-brand-dark bg-[#FAF8F5] ring-1 ring-brand-dark shadow-2xs'
-                            : 'border-brand-dark/15 hover:border-brand-dark/30'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-serif text-sm font-semibold text-brand-dark">
-                            {pkg.name}
+                {(() => {
+                  const isPackagingIncluded = Boolean((personalisingProduct?.rawProduct as any)?.packagingIncluded || (personalisingProduct as any)?.packagingIncluded);
+                  return (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block font-sans text-xs font-bold uppercase tracking-wider text-brand-dark">
+                          1. Presentation Packaging
+                        </label>
+                        {isPackagingIncluded && (
+                          <span className="text-[11px] font-sans font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            ✓ Packaging Included in Price
                           </span>
-                          <span className="font-sans text-xs text-gold-700 font-semibold">
-                            {pkg.price === 0 ? 'Included' : `+₦${pkg.price.toLocaleString()}`}
-                          </span>
-                        </div>
-                        <span className="font-sans text-[11px] text-brand-medium">
-                          {pkg.description}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {activePackagingForProduct.map((pkg) => {
+                          const isSelected = selectedPackaging.id === pkg.id;
+                          return (
+                            <button
+                              key={pkg.id}
+                              type="button"
+                              onClick={() => setSelectedPackaging(pkg)}
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                                isSelected
+                                  ? 'border-brand-dark bg-[#FAF8F5] ring-1 ring-brand-dark shadow-2xs'
+                                  : 'border-brand-dark/15 hover:border-brand-dark/30'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-serif text-sm font-semibold text-brand-dark">
+                                  {pkg.name}
+                                </span>
+                                <span className={`font-sans text-xs font-semibold ${isPackagingIncluded ? 'text-emerald-700' : 'text-gold-700'}`}>
+                                  {isPackagingIncluded ? 'Included' : (pkg.price === 0 ? 'Included' : `+₦${pkg.price.toLocaleString()}`)}
+                                </span>
+                              </div>
+                              <span className="font-sans text-[11px] text-brand-medium">
+                                {pkg.description}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* 2. Ribbon Selection */}
@@ -983,10 +998,13 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                 <span className="font-sans text-[11px] text-brand-medium block">Total Price:</span>
                 <span className="font-serif text-xl font-bold text-brand-dark">
                   ₦
-                  {(
-                    personalisingProduct.price +
-                    (selectedPackaging.price || 0)
-                  ).toLocaleString()}
+                  {(() => {
+                    const isPackagingIncluded = Boolean((personalisingProduct?.rawProduct as any)?.packagingIncluded || (personalisingProduct as any)?.packagingIncluded);
+                    return (
+                      personalisingProduct.price +
+                      (isPackagingIncluded ? 0 : (selectedPackaging.price || 0))
+                    ).toLocaleString();
+                  })()}
                 </span>
               </div>
 

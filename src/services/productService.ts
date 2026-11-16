@@ -89,6 +89,7 @@ function mapDocToProduct(id: string, data: DocumentData): Product {
     variants: data.variants ?? [],
     personalisation: data.personalisation,
     packagingOptions: data.packagingOptions ?? [],
+    packagingIncluded: data.packagingIncluded ?? false,
     ribbonColours: data.ribbonColours ?? [],
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
@@ -169,6 +170,7 @@ export async function createProduct(input: CreateProductInput): Promise<Product>
     variants: input.variants ?? [],
     personalisation: input.personalisation,
     packagingOptions: input.packagingOptions ?? [],
+    packagingIncluded: input.packagingIncluded ?? false,
     ribbonColours: input.ribbonColours ?? [],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -423,6 +425,7 @@ export async function updateProduct(
     'variants',
     'personalisation',
     'packagingOptions',
+    'packagingIncluded',
     'ribbonColours',
   ];
 

@@ -82,6 +82,7 @@ export interface Product {
   variants?: ProductVariant[];
   personalisation?: ProductPersonalisation;
   packagingOptions?: string[]; // e.g. ['Gift Box', 'Gift Bag', 'Wooden Box', 'Pouch']
+  packagingIncluded?: boolean; // If true, product already includes inbuilt packaging (no additional fee)
   ribbonColours?: string[]; // e.g. ['Gold', 'White', 'Midnight Navy', 'Olive']
   /** Lifestyle categories for shop discovery filtering. Safe default: [] */
   lifestyles?: LifestyleCategory[];
@@ -110,6 +111,7 @@ export interface CreateProductInput {
   variants?: ProductVariant[];
   personalisation?: ProductPersonalisation;
   packagingOptions?: string[];
+  packagingIncluded?: boolean;
   ribbonColours?: string[];
   lifestyles?: LifestyleCategory[];
 }
