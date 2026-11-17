@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
 import { GatewayNav } from '../components/gateway';
 import { ShopFlowContainer } from '../components/shopJourney';
 import { Footer } from '../components/homepage/footer/Footer';
@@ -61,15 +60,15 @@ export const ShopPage: React.FC = () => {
           </div>
 
           {/* ── Direct Christmas Shortcut Banner ── */}
-          <div className="w-full max-w-5xl mx-auto mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-white flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md border border-emerald-800 animate-fade-in">
+          <div className="w-full max-w-5xl mx-auto mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-white flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md border border-emerald-800 animate-fade-in">
             <div className="flex items-center gap-3 text-left">
               <span className="text-2xl shrink-0">🎄</span>
               <div>
                 <h3 className="font-serif text-sm sm:text-base font-semibold text-gold-300">
-                  Looking for our 2026 Festive Christmas Hampers?
+                  Season for Good Things.
                 </h3>
                 <p className="font-sans text-xs text-white/80">
-                  Skip the discovery questions and browse our direct holiday collection immediately.
+                  Gift sets curated with joy for the people you cherish.
                 </p>
               </div>
             </div>
@@ -77,8 +76,7 @@ export const ShopPage: React.FC = () => {
               to="/christmas"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-brand-dark font-sans text-xs font-bold uppercase tracking-wider transition-colors shrink-0 shadow-sm"
             >
-              <span>Explore Christmas Hampers</span>
-              <ArrowRight size={14} />
+              <span>BE MERRY. EXPLORE OUR GIFT SETS →</span>
             </Link>
           </div>
 

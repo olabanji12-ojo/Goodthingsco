@@ -4,7 +4,6 @@ import { GatewayNav } from '../components/gateway';
 import { Footer } from '../components/homepage/footer/Footer';
 import { getActiveProducts } from '../services/productService';
 import {
-  GIFTS_CATALOG,
   getPackagingOptions,
   PackagingOption,
   RIBBON_COLORS,
@@ -81,32 +80,37 @@ export default function ChristmasPage() {
           }
         }
 
-        // Filter for Christmas products from live Firestore
+        // Filter for Christmas products strictly from live Firestore (created through Admin)
         const liveChristmas = liveProducts
           .filter((p) => {
-            const occMatch = p.occasions?.some((o) => o.toLowerCase() === 'christmas' || o.toLowerCase() === 'seasonal');
-            const catMatch = p.category?.toLowerCase().includes('christmas') || p.category?.toLowerCase().includes('festive');
-            return occMatch || catMatch;
+            const occMatch = p.occasions?.some((o) => {
+              const lo = o.toLowerCase();
+              return lo === 'christmas' || lo === 'seasonal' || lo === 'holiday' || lo === 'festive' || lo === 'xmas';
+            });
+            const catMatch = typeof p.category === 'string' && (
+              p.category.toLowerCase().includes('christmas') ||
+              p.category.toLowerCase().includes('festive')
+            );
+            const nameMatch = typeof p.name === 'string' && (
+              p.name.toLowerCase().includes('christmas') ||
+              p.name.toLowerCase().includes('festive')
+            );
+            return Boolean(occMatch || catMatch || nameMatch);
           })
           .map((p) => adaptProductToGiftItem(p));
 
-        // Curated Christmas products from local catalog
-        const localChristmas = GIFTS_CATALOG.filter((g: GiftItem) =>
-          g.occasions?.some((o: string) => o === 'christmas' || o === 'seasonal')
-        );
-
-        // Deduplicate by ID and slug
+        // Deduplicate by ID
         const seenIds = new Set<string>();
-        const combined: GiftItem[] = [];
+        const adminChristmas: GiftItem[] = [];
 
-        for (const item of [...liveChristmas, ...localChristmas]) {
+        for (const item of liveChristmas) {
           if (!seenIds.has(item.id)) {
             seenIds.add(item.id);
-            combined.push(item);
+            adminChristmas.push(item);
           }
         }
 
-        setProducts(combined);
+        setProducts(adminChristmas);
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -165,10 +169,10 @@ export default function ChristmasPage() {
     const firstImage = raw?.images?.[0];
     const imagePayload = firstImage
       ? {
-          url: typeof firstImage === 'string' ? firstImage : firstImage.url,
-          publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
-          alt: typeof firstImage === 'object' ? firstImage.alt : personalisingProduct.title,
-        }
+        url: typeof firstImage === 'string' ? firstImage : firstImage.url,
+        publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
+        alt: typeof firstImage === 'object' ? firstImage.alt : personalisingProduct.title,
+      }
       : { url: personalisingProduct.image, alt: personalisingProduct.title };
 
     const isPackagingIncluded = Boolean((raw as any)?.packagingIncluded || (personalisingProduct as any)?.packagingIncluded);
@@ -228,16 +232,26 @@ export default function ChristmasPage() {
         <header className="w-full text-center py-8 sm:py-12 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs font-sans font-semibold mb-4 animate-fade-in shadow-2xs">
             <Sparkles size={14} className="text-emerald-600 animate-pulse" />
-            <span>2026 Festive Atelier Edit · Direct Holiday Catalogue</span>
+            <span>2026 Festive Atelier Edit</span>
           </div>
 
           <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-brand-dark font-normal tracking-tight mb-4">
-            The Christmas Collection
+            Season for Good Things.
           </h1>
 
           <p className="font-sans text-xs sm:text-sm text-brand-medium/90 max-w-xl mx-auto leading-relaxed mb-6">
-            Handcrafted holiday hampers, gourmet confections, and artisanal keepsakes finished with seasonal satin ribbons and calligraphed gift cards. Ready for nationwide doorstep delivery.
+            Gift sets curated with joy for the people you cherish.
           </p>
+
+          {/* Primary Action Button */}
+          <div className="mb-6">
+            <a
+              href="#festive-catalog"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-brand-dark hover:bg-gold-600 text-white font-sans text-xs font-bold uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
+            >
+              <span>BE MERRY. EXPLORE OUR GIFT SETS →</span>
+            </a>
+          </div>
 
           {/* Direct Share Bar */}
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -279,7 +293,7 @@ export default function ChristmasPage() {
         </header>
 
         {/* ── Products Showcase (Direct Display with No Questions) ── */}
-        <main className="w-full">
+        <main id="festive-catalog" className="w-full">
           {isLoading && (
             <div className="py-24 flex flex-col items-center justify-center gap-3 text-brand-medium">
               <Loader2 className="animate-spin text-gold-600" size={32} />
@@ -451,11 +465,10 @@ export default function ChristmasPage() {
                         key={idx}
                         type="button"
                         onClick={() => setSelectedModalImageIndex(idx)}
-                        className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                          selectedModalImageIndex === idx
+                        className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${selectedModalImageIndex === idx
                             ? 'border-brand-dark ring-2 ring-brand-dark/20'
                             : 'border-transparent opacity-60 hover:opacity-100'
-                        }`}
+                          }`}
                       >
                         <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
                       </button>
@@ -489,11 +502,10 @@ export default function ChristmasPage() {
                               key={pkg.id}
                               type="button"
                               onClick={() => setSelectedPackaging(pkg)}
-                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                                isSelected
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${isSelected
                                   ? 'border-brand-dark bg-[#FAF8F5] ring-1 ring-brand-dark shadow-2xs'
                                   : 'border-brand-dark/15 hover:border-brand-dark/30'
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center justify-between mb-1">
                                 <span className="font-serif text-sm font-semibold text-brand-dark">
@@ -528,11 +540,10 @@ export default function ChristmasPage() {
                         key={rb.id}
                         type="button"
                         onClick={() => setSelectedRibbon(rb)}
-                        className={`px-3.5 py-2 rounded-xl border text-xs font-sans transition-all flex items-center gap-2 cursor-pointer ${
-                          isSelected
+                        className={`px-3.5 py-2 rounded-xl border text-xs font-sans transition-all flex items-center gap-2 cursor-pointer ${isSelected
                             ? 'border-brand-dark bg-brand-dark text-white shadow-2xs'
                             : 'border-brand-dark/15 hover:border-brand-dark/30 bg-white text-brand-dark'
-                        }`}
+                          }`}
                       >
                         <span
                           className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
