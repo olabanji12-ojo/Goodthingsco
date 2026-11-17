@@ -15,6 +15,10 @@ export const CONTENT_PAGES: { id: ContentPageId; label: string; description: str
 ];
 
 export interface HomePageContent {
+  // Hero Focal Image (Custom Signature Gift Box / Festive Box)
+  heroImageUrl?: string;
+  heroImageAlt?: string;
+
   announcementEnabled?: boolean;
   announcementBadge?: string;
   announcementText?: string;

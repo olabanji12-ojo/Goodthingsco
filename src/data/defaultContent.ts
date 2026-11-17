@@ -6,6 +6,8 @@ import type { PageContentMap } from '../types/content';
 
 export const DEFAULT_PAGE_CONTENTS: PageContentMap = {
   home: {
+    heroImageUrl: '',
+    heroImageAlt: 'Curated Good Things Co. signature gift box with golden silk ribbon',
     announcementEnabled: true,
     announcementBadge: '2026 FESTIVE COLLECTION',
     announcementText: '’Tis the Season to Be Merry',

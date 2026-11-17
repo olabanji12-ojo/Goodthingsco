@@ -68,6 +68,8 @@ export default function HomePage() {
 
           {/* ── Hero Signature Gift Box (Dominant Visual Anchor) ── */}
           <HeroObject
+            imageUrl={homeContent.heroImageUrl}
+            imageAlt={homeContent.heroImageAlt}
             className="mt-1 sm:mt-2 mb-6 sm:mb-10 max-w-xl lg:max-w-2xl animate-fade-in"
             imgClassName="max-h-[220px] sm:max-h-[280px] md:max-h-[340px] lg:max-h-[380px]"
           />

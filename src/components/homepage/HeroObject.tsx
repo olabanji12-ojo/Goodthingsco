@@ -2,6 +2,8 @@ import React from 'react';
 import giftHeroImg from '../../assets/gift-hero.png';
 
 interface HeroObjectProps {
+  imageUrl?: string;
+  imageAlt?: string;
   className?: string;
   imgClassName?: string;
 }
@@ -10,12 +12,19 @@ interface HeroObjectProps {
  * HeroObject — Dominant Centered Product Focal Point
  *
  * Renders the hero gift box object with data-hero-element="hero-object-container"
- * for GSAP timeline entrance animation.
+ * for GSAP timeline entrance animation. Supports custom image uploaded via Admin CMS.
  */
 export const HeroObject: React.FC<HeroObjectProps> = ({
+  imageUrl,
+  imageAlt,
   className = '',
   imgClassName = '',
 }) => {
+  const finalSrc = imageUrl?.trim() ? imageUrl.trim() : giftHeroImg;
+  const finalAlt = imageAlt?.trim()
+    ? imageAlt.trim()
+    : 'Curated Good Things Co. signature gift box with golden silk ribbon and botanical accents';
+
   return (
     <div
       className={`relative w-full mx-auto px-4 sm:px-6 flex items-center justify-center z-20 select-none will-change-transform ${
@@ -35,8 +44,8 @@ export const HeroObject: React.FC<HeroObjectProps> = ({
         data-hero-element="hero-image-wrapper"
       >
         <img
-          src={giftHeroImg}
-          alt="Curated Good Things Co. signature gift box with golden silk ribbon and botanical accents"
+          src={finalSrc}
+          alt={finalAlt}
           loading="eager"
           decoding="async"
           className={`w-full h-auto object-contain object-center drop-shadow-[0_20px_35px_rgba(28,20,14,0.08)] pointer-events-none ${

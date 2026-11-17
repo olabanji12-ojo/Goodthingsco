@@ -16,7 +16,11 @@ import {
   ExternalLink,
   Eye,
   Sparkles,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
+import defaultGiftBoxImg from '../../assets/gift-hero.png';
+import { uploadImage } from '../../services/cloudinaryService';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import {
   fetchAdminPageContent,
@@ -52,6 +56,31 @@ export default function AdminContentPage() {
   const [createData, setCreateData] = useState<CreatePageContent>(DEFAULT_PAGE_CONTENTS.create);
   const [aboutData, setAboutData] = useState<AboutPageContent>(DEFAULT_PAGE_CONTENTS.about);
   const [footerData, setFooterData] = useState<FooterContent>(DEFAULT_PAGE_CONTENTS.footer);
+
+  // Hero Image Upload State
+  const [uploadingHeroImg, setUploadingHeroImg] = useState<boolean>(false);
+  const [heroImgError, setHeroImgError] = useState<string | null>(null);
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingHeroImg(true);
+    setHeroImgError(null);
+    try {
+      const uploaded = await uploadImage(file, 'goodthingsco/hero');
+      if (uploaded?.url) {
+        setHomeData((prev) => ({
+          ...prev,
+          heroImageUrl: uploaded.url,
+        }));
+      }
+    } catch (err: any) {
+      setHeroImgError(err?.message || 'Failed to upload image. Please verify your file or connection.');
+    } finally {
+      setUploadingHeroImg(false);
+      e.target.value = '';
+    }
+  };
 
   // Load content whenever activeTab changes
   useEffect(() => {
@@ -421,6 +450,120 @@ export default function AdminContentPage() {
                     onChange={(e) => setHomeData({ ...homeData, heroCtaText: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
                   />
+                </div>
+
+                {/* Hero Showcase Centerpiece Image */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-brand-dark/15 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-brand-dark/10">
+                    <div>
+                      <h4 className="font-serif text-sm sm:text-base font-semibold text-brand-dark flex items-center gap-2">
+                        <ImageIcon size={16} className="text-gold-600" />
+                        <span>Homepage Centerpiece Gift Box Image</span>
+                      </h4>
+                      <p className="text-[11px] font-sans text-brand-medium">
+                        Customize or replace the central 3D signature gift box image displayed on the homepage.
+                      </p>
+                    </div>
+
+                    {homeData.heroImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setHomeData({ ...homeData, heroImageUrl: '' })}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-dark/20 text-brand-dark hover:bg-black/5 text-xs font-sans font-medium transition-colors cursor-pointer"
+                        title="Revert to original signature ivory & gold box"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Reset to Default Box</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {heroImgError && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-sans flex items-center gap-2">
+                      <AlertCircle size={14} className="shrink-0" />
+                      <span>{heroImgError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    {/* Live Image Preview */}
+                    <div className="relative w-40 sm:w-48 aspect-square rounded-2xl bg-white border border-brand-dark/10 p-3 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
+                      <img
+                        src={homeData.heroImageUrl || defaultGiftBoxImg}
+                        alt="Gift Box Preview"
+                        className="max-w-full max-h-full object-contain drop-shadow-sm"
+                      />
+                      {!homeData.heroImageUrl && (
+                        <span className="absolute bottom-1.5 inset-x-2 text-center text-[9px] font-sans font-semibold uppercase tracking-wider bg-brand-dark/70 text-white rounded py-0.5 backdrop-blur-xs">
+                          Default Box
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Upload Controls */}
+                    <div className="flex-1 space-y-3 w-full">
+                      <div>
+                        <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1.5">
+                          Upload New Image (Cloudinary)
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-sans font-semibold transition-all shadow-xs cursor-pointer ${
+                            uploadingHeroImg
+                              ? 'bg-neutral-300 text-neutral-600 cursor-not-allowed'
+                              : 'bg-brand-dark text-white hover:bg-gold-600'
+                          }`}>
+                            {uploadingHeroImg ? (
+                              <>
+                                <Loader2 size={13} className="animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload size={13} />
+                                <span>Choose Image File</span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,image/avif"
+                              disabled={uploadingHeroImg}
+                              onChange={handleHeroImageUpload}
+                              className="sr-only"
+                            />
+                          </label>
+                          <span className="text-[11px] font-sans text-brand-light">
+                            Supports PNG, JPG, WebP (Transparent PNG recommended)
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                          Or Direct Image URL
+                        </label>
+                        <input
+                          type="url"
+                          value={homeData.heroImageUrl || ''}
+                          onChange={(e) => setHomeData({ ...homeData, heroImageUrl: e.target.value })}
+                          placeholder="https://res.cloudinary.com/.../my-box.png"
+                          className="w-full px-4 py-2 rounded-xl border border-brand-dark/20 text-xs font-sans bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                          Image Alt / Accessibility Text
+                        </label>
+                        <input
+                          type="text"
+                          value={homeData.heroImageAlt || ''}
+                          onChange={(e) => setHomeData({ ...homeData, heroImageAlt: e.target.value })}
+                          placeholder="e.g. Good Things Co. 2026 Festive Keepsake Box"
+                          className="w-full px-4 py-2 rounded-xl border border-brand-dark/20 text-xs font-sans bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-brand-dark/10">
