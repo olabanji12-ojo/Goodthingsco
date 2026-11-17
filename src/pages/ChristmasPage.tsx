@@ -229,6 +229,10 @@ export default function ChristmasPage() {
 
         {/* ── Hero / Festive Banner ── */}
         <header className="w-full text-center py-8 sm:py-12 max-w-3xl mx-auto">
+          <p className="font-sans text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-brand-medium mb-3 animate-fade-in">
+            2026 FESTIVE COLLECTION
+          </p>
+
           <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-brand-dark font-normal tracking-tight mb-4">
             ’Tis the Season to Be Merry.
           </h1>
