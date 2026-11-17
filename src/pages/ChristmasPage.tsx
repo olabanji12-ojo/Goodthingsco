@@ -15,7 +15,6 @@ import { Product } from '../types/product';
 import { useCart } from '../contexts/CartContext';
 import {
   ShoppingBag,
-  Sparkles,
   Check,
   X,
   Share2,
@@ -230,17 +229,12 @@ export default function ChristmasPage() {
 
         {/* ── Hero / Festive Banner ── */}
         <header className="w-full text-center py-8 sm:py-12 max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs font-sans font-semibold mb-4 animate-fade-in shadow-2xs">
-            <Sparkles size={14} className="text-emerald-600 animate-pulse" />
-            <span>2026 Festive Atelier Edit</span>
-          </div>
-
           <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-brand-dark font-normal tracking-tight mb-4">
-            Season for Good Things.
+            ’Tis the Season to Be Merry.
           </h1>
 
           <p className="font-sans text-xs sm:text-sm text-brand-medium/90 max-w-xl mx-auto leading-relaxed mb-6">
-            Gift sets curated with joy for the people you cherish.
+            Shop gift sets curated with joy for the people you cherish.
           </p>
 
           {/* Primary Action Button */}
@@ -249,7 +243,7 @@ export default function ChristmasPage() {
               href="#festive-catalog"
               className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-brand-dark hover:bg-gold-600 text-white font-sans text-xs font-bold uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
             >
-              <span>BE MERRY. EXPLORE OUR GIFT SETS →</span>
+              <span>SPREAD THE JOY →</span>
             </a>
           </div>
 

@@ -65,10 +65,10 @@ export const ShopPage: React.FC = () => {
               <span className="text-2xl shrink-0">🎄</span>
               <div>
                 <h3 className="font-serif text-sm sm:text-base font-semibold text-gold-300">
-                  Season for Good Things.
+                  ’Tis the Season to Be Merry.
                 </h3>
                 <p className="font-sans text-xs text-white/80">
-                  Gift sets curated with joy for the people you cherish.
+                  Shop gift sets curated with joy for the people you cherish.
                 </p>
               </div>
             </div>
@@ -76,7 +76,7 @@ export const ShopPage: React.FC = () => {
               to="/christmas"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-brand-dark font-sans text-xs font-bold uppercase tracking-wider transition-colors shrink-0 shadow-sm"
             >
-              <span>BE MERRY. EXPLORE OUR GIFT SETS →</span>
+              <span>SPREAD THE JOY →</span>
             </Link>
           </div>
 
