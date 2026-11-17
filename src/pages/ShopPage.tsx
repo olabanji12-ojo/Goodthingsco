@@ -68,7 +68,7 @@ export const ShopPage: React.FC = () => {
                   2026 FESTIVE COLLECTION
                 </span>
                 <h3 className="font-serif text-sm sm:text-base font-semibold text-gold-300">
-                  ’Tis the Season to Be Merry.
+                  ’Tis the Season to Be Merry
                 </h3>
                 <p className="font-sans text-xs text-white/80">
                   Shop gift sets curated with joy for the people you cherish.

@@ -234,7 +234,7 @@ export default function ChristmasPage() {
           </p>
 
           <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-brand-dark font-normal tracking-tight mb-4">
-            ’Tis the Season to Be Merry.
+            ’Tis the Season to Be Merry
           </h1>
 
           <p className="font-sans text-xs sm:text-sm text-brand-medium/90 max-w-xl mx-auto leading-relaxed mb-6">
