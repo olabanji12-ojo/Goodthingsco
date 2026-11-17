@@ -470,7 +470,7 @@ export default function AdminContentPage() {
                         type="button"
                         onClick={() => setHomeData({ ...homeData, heroImageUrl: '' })}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-dark/20 text-brand-dark hover:bg-black/5 text-xs font-sans font-medium transition-colors cursor-pointer"
-                        title="Revert to original signature ivory & gold box"
+                        title="Revert to default gift box"
                       >
                         <RotateCcw size={12} />
                         <span>Reset to Default Box</span>
