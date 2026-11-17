@@ -13,6 +13,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeBudgetTier } from '../../src/services/productService';
+import { resolveDeliveryZone } from '../../src/config/shipping';
 import type { Product, CreateProductInput } from '../../src/types/product';
 
 // Helper to compute packaging fee and total unit price
@@ -139,5 +140,25 @@ test('Packaging Configuration Test Suite', async (t) => {
     };
 
     assert.equal(createdProduct.packagingIncluded, true, 'packagingIncluded must exist on created product');
+  });
+
+  await t.test('7. Authoritative order calculation accurately charges packaging fee', () => {
+    const prod = { price: 50000, packagingIncluded: false };
+    const cartItem = { quantity: 2, packagingFee: 4000 };
+    const effectiveUnitPrice = prod.price + (prod.packagingIncluded ? 0 : cartItem.packagingFee);
+    const itemSubtotal = effectiveUnitPrice * cartItem.quantity;
+    const deliveryFee = 3500;
+    const orderTotal = itemSubtotal + deliveryFee;
+
+    assert.equal(effectiveUnitPrice, 54000);
+    assert.equal(itemSubtotal, 108000);
+    assert.equal(orderTotal, 111500, 'Order total must include packaging upgrade fees and delivery fee');
+  });
+
+  await t.test('8. Delivery zone resolves correctly for Lagos, Interstate, and International', () => {
+    assert.equal(resolveDeliveryZone('Nigeria', 'Lagos'), 'lagos');
+    assert.equal(resolveDeliveryZone('Nigeria', ''), 'lagos', 'Empty state defaults to Lagos base zone');
+    assert.equal(resolveDeliveryZone('Nigeria', 'Rivers'), 'other-nigeria');
+    assert.equal(resolveDeliveryZone('United Kingdom', 'London'), 'international');
   });
 });

@@ -13,6 +13,7 @@ export interface OrderItem {
   unitPrice: number;
   quantity: number;
   subtotal: number;
+  packagingFee?: number;
 
   selectedVariants?: Record<string, string>;
   packaging?: string;

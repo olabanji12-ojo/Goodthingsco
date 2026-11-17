@@ -20,6 +20,7 @@ export interface CheckoutRecoveryItem {
   unitPrice: number;
   quantity: number;
   subtotal: number;
+  packagingFee?: number;
   image?: {
     url: string;
     publicId?: string;

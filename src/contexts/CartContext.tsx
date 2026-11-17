@@ -116,8 +116,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const currentStock = typeof liveProd.stock === 'number' ? liveProd.stock : 0;
           const isOutOfStock = currentStock === 0;
           const isUnavailable = Boolean(liveProd.isArchived || !liveProd.isAvailable);
-          const priceChanged = liveProd.price !== item.unitPrice;
-          const currentPrice = liveProd.price;
+          const expectedPackagingFee = liveProd.packagingIncluded ? 0 : (item.packagingFee || 0);
+          const expectedPrice = (typeof liveProd.price === 'number' ? liveProd.price : item.unitPrice) + expectedPackagingFee;
+          const priceChanged = expectedPrice !== item.unitPrice;
+          const currentPrice = expectedPrice;
 
           if (
             item.currentStock !== currentStock ||

@@ -150,15 +150,19 @@ export async function createPendingOrderServer(
           };
         }
 
-        // Authoritative Price Calculation
+        // Authoritative Price Calculation (including packaging)
         if (!Number.isSafeInteger(item.quantity) || item.quantity < 1 || typeof prodData.price !== 'number' || !Number.isFinite(prodData.price) || prodData.price < 0) return { success: false, message: 'Invalid product price or quantity.' };
         const livePrice = prodData.price;
-        const itemSubtotal = livePrice * item.quantity;
+        const requestedPackagingFee = typeof item.packagingFee === 'number' && Number.isFinite(item.packagingFee) && item.packagingFee > 0 ? item.packagingFee : 0;
+        const packagingFee = prodData.packagingIncluded ? 0 : requestedPackagingFee;
+        const effectiveUnitPrice = livePrice + packagingFee;
+        const itemSubtotal = effectiveUnitPrice * item.quantity;
         authoritativeSubtotal += itemSubtotal;
 
         verifiedOrderItems.push({
           ...mapCartItemToOrderItem(item),
-          unitPrice: livePrice,
+          unitPrice: effectiveUnitPrice,
+          packagingFee,
           subtotal: itemSubtotal,
         });
       }

@@ -199,7 +199,9 @@ export async function revalidateCartInventory(
     const availableStock = typeof liveProd.stock === 'number' ? liveProd.stock : 0;
     const isArchived = Boolean(liveProd.isArchived);
     const isAvailable = Boolean(liveProd.isAvailable);
-    const currentPrice = typeof liveProd.price === 'number' ? liveProd.price : item.unitPrice;
+    const expectedPackagingFee = liveProd.packagingIncluded ? 0 : (item.packagingFee || 0);
+    const basePrice = typeof liveProd.price === 'number' ? liveProd.price : (item.unitPrice - expectedPackagingFee);
+    const currentPrice = basePrice + expectedPackagingFee;
     const hasPriceChanged = currentPrice !== item.unitPrice;
 
     if (hasPriceChanged) {

@@ -30,7 +30,7 @@ export const DELIVERY_ZONES: Record<DeliveryZone, DeliveryZoneConfig> = {
     id: 'lagos',
     name: 'Lagos Delivery',
     description: 'Direct courier delivery across Lagos mainland and island',
-    baseFee: 0, // Free shipping for testing
+    baseFee: 3500,
     requiresQuote: false,
     estimatedDeliveryTime: '1 - 2 Business Days',
   },
@@ -38,7 +38,7 @@ export const DELIVERY_ZONES: Record<DeliveryZone, DeliveryZoneConfig> = {
     id: 'other-nigeria',
     name: 'Other Nigerian States',
     description: 'Interstate courier dispatch to all states across Nigeria',
-    baseFee: 0, // Free shipping for testing
+    baseFee: 7000,
     requiresQuote: false,
     estimatedDeliveryTime: '3 - 5 Business Days',
   },
@@ -112,7 +112,7 @@ export const SUPPORTED_COUNTRIES: { code: string; name: string }[] = [
 /**
  * Resolves the appropriate DeliveryZone based on country and state selection.
  */
-export function resolveDeliveryZone(country: string, state: string): DeliveryZone {
+export function resolveDeliveryZone(country: string, state?: string): DeliveryZone {
   const normCountry = (country || 'nigeria').trim().toLowerCase();
   const isNigeria = normCountry === 'nigeria' || normCountry === 'ng';
 
@@ -121,7 +121,7 @@ export function resolveDeliveryZone(country: string, state: string): DeliveryZon
   }
 
   const normState = (state || '').trim().toLowerCase();
-  if (normState === 'lagos' || normState === 'la') {
+  if (!normState || normState === 'lagos' || normState === 'la') {
     return 'lagos';
   }
 

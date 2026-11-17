@@ -58,14 +58,16 @@ export async function revalidateRecoveredCheckout(
         continue;
       }
 
-      // Live price check
-      const livePrice = typeof prodData.price === 'number' && prodData.price >= 0 ? prodData.price : item.unitPrice;
-      if (livePrice !== item.unitPrice) {
+      // Live price check (accounting for packaging)
+      const baseLivePrice = typeof prodData.price === 'number' && prodData.price >= 0 ? prodData.price : item.unitPrice;
+      const expectedPackagingFee = prodData.packagingIncluded ? 0 : (item.packagingFee || 0);
+      const expectedUnitPrice = baseLivePrice + expectedPackagingFee;
+      if (expectedUnitPrice !== item.unitPrice) {
         hasPriceChanges = true;
         cartItem.priceChanged = true;
-        cartItem.currentPrice = livePrice;
-        warnings.push(`The price for "${item.name}" has been updated from ₦${item.unitPrice.toLocaleString()} to ₦${livePrice.toLocaleString()}.`);
-        cartItem.unitPrice = livePrice;
+        cartItem.currentPrice = expectedUnitPrice;
+        warnings.push(`The price for "${item.name}" has been updated from ₦${item.unitPrice.toLocaleString()} to ₦${expectedUnitPrice.toLocaleString()}.`);
+        cartItem.unitPrice = expectedUnitPrice;
       }
 
       // Stock check

@@ -160,7 +160,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   shipping: {
     lagos: {
       enabled: true,
-      fee: 0,
+      fee: 3500,
       estimatedMinDays: 1,
       estimatedMaxDays: 2,
       label: 'Lagos Delivery',
@@ -168,7 +168,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
     },
     otherNigeria: {
       enabled: true,
-      fee: 0,
+      fee: 7000,
       estimatedMinDays: 3,
       estimatedMaxDays: 5,
       label: 'Other Nigerian States',

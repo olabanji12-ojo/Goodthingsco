@@ -82,6 +82,7 @@ export function mapCartItemToOrderItem(item: CartItem): OrderItem {
     unitPrice: item.unitPrice,
     quantity: item.quantity,
     subtotal: item.unitPrice * item.quantity,
+    packagingFee: item.packagingFee,
     selectedVariants: item.selectedVariants,
     packaging: item.packaging,
     ribbonColour: item.ribbonColour,
