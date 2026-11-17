@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   GatewayNav,
   PrimaryEntryGateway,
+  TopAnnouncementBar,
   type GatewayTabId,
 } from '../components/gateway';
 import { HeroObject } from '../components/homepage/HeroObject';
@@ -39,6 +40,15 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
+      {/* ── Top Announcement Bar (Seasonal Banner: Christmas, Valentine, etc.) ── */}
+      <TopAnnouncementBar
+        enabled={homeContent.announcementEnabled !== false}
+        badge={homeContent.announcementBadge || '2026 FESTIVE COLLECTION'}
+        text={homeContent.announcementText || '’Tis the Season to Be Merry'}
+        ctaText={homeContent.announcementCtaText || 'Explore Gift Sets →'}
+        link={homeContent.announcementLink || '/christmas'}
+      />
+
       {/* Container wrapper for consistent editorial margins */}
       <div className="w-full max-w-7xl mx-auto px-5 sm:px-8 md:px-12 lg:px-16 flex flex-col flex-1 justify-between pb-10 sm:pb-16">
         {/* ── 1. Minimal Editorial Header & Navigation ── */}

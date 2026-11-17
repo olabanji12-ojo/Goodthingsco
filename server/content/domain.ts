@@ -35,6 +35,12 @@ export function sanitizeContentText(text?: unknown, maxLength = 2000): string {
 
 export const DEFAULT_PAGE_CONTENTS: PageContentMap = {
   home: {
+    announcementEnabled: true,
+    announcementBadge: '2026 FESTIVE COLLECTION',
+    announcementText: '’Tis the Season to Be Merry',
+    announcementCtaText: 'Explore Gift Sets →',
+    announcementLink: '/christmas',
+
     heroTagline: 'Considered Curation & Bespoke Gifting',
     heroTitle: 'Thoughtfully Curated, Distinctly Yours',
     heroSubtitle: 'Luxury gift boxes, artisanal souvenirs, and corporate presentations crafted with intention in Lagos, Nigeria.',
@@ -131,7 +137,9 @@ export function validateAndSanitizePageContent<T extends ContentPageId>(
   const sanitized: Record<string, string> = {};
 
   for (const [key, defaultVal] of Object.entries(defaults)) {
-    if (key in raw && typeof raw[key] === 'string') {
+    if (key === 'announcementEnabled') {
+      (sanitized as any)[key] = typeof raw[key] === 'boolean' ? raw[key] : (raw[key] === 'false' ? false : Boolean(defaultVal));
+    } else if (key in raw && typeof raw[key] === 'string') {
       const cleaned = sanitizeContentText(raw[key], 3000);
       sanitized[key] = cleaned || defaultVal;
     } else {

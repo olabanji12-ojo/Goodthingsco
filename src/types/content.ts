@@ -15,6 +15,12 @@ export const CONTENT_PAGES: { id: ContentPageId; label: string; description: str
 ];
 
 export interface HomePageContent {
+  announcementEnabled?: boolean;
+  announcementBadge?: string;
+  announcementText?: string;
+  announcementCtaText?: string;
+  announcementLink?: string;
+
   heroTagline: string;
   heroTitle: string;
   heroSubtitle: string;

@@ -6,6 +6,12 @@ import type { PageContentMap } from '../types/content';
 
 export const DEFAULT_PAGE_CONTENTS: PageContentMap = {
   home: {
+    announcementEnabled: true,
+    announcementBadge: '2026 FESTIVE COLLECTION',
+    announcementText: '’Tis the Season to Be Merry',
+    announcementCtaText: 'Explore Gift Sets →',
+    announcementLink: '/christmas',
+
     heroTagline: 'Considered Curation & Bespoke Gifting',
     heroTitle: 'Thoughtful gifts for inspired living',
     heroSubtitle: 'Curated gifts crafted with intention. Find an inspired gesture for someone special, or coordinate distinguished gifts at scale.',

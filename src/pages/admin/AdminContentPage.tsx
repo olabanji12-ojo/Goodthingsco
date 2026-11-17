@@ -285,7 +285,94 @@ export default function AdminContentPage() {
           <div className="bg-white rounded-3xl border border-brand-dark/10 p-6 sm:p-8 space-y-6 shadow-xs">
             {/* 1. HOME TAB */}
             {activeTab === 'home' && (
-              <div className="space-y-5">
+              <div className="space-y-6">
+                {/* Seasonal Top Announcement Bar */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-brand-dark/15 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-brand-dark/10">
+                    <div>
+                      <h4 className="font-serif text-sm sm:text-base font-semibold text-brand-dark">
+                        Top Announcement Bar (Seasonal Banner)
+                      </h4>
+                      <p className="text-[11px] font-sans text-brand-medium">
+                        Prominently appears across the top of the home screen. Perfect for seasonal events (Christmas, Valentine&apos;s, Mother&apos;s Day).
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={homeData.announcementEnabled !== false}
+                        onChange={(e) =>
+                          setHomeData({ ...homeData, announcementEnabled: e.target.checked })
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-800"></div>
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Season / Badge Tag
+                      </label>
+                      <input
+                        type="text"
+                        value={homeData.announcementBadge ?? '2026 FESTIVE COLLECTION'}
+                        onChange={(e) =>
+                          setHomeData({ ...homeData, announcementBadge: e.target.value })
+                        }
+                        placeholder="e.g. 2026 FESTIVE COLLECTION or VALENTINE'S EDIT"
+                        className="w-full px-4 py-2 rounded-xl border border-brand-dark/20 text-xs font-sans bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Button / Link Text
+                      </label>
+                      <input
+                        type="text"
+                        value={homeData.announcementCtaText ?? 'Explore Gift Sets →'}
+                        onChange={(e) =>
+                          setHomeData({ ...homeData, announcementCtaText: e.target.value })
+                        }
+                        placeholder="e.g. Explore Gift Sets →"
+                        className="w-full px-4 py-2 rounded-xl border border-brand-dark/20 text-xs font-sans bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Announcement Headline
+                      </label>
+                      <input
+                        type="text"
+                        value={homeData.announcementText ?? '’Tis the Season to Be Merry'}
+                        onChange={(e) =>
+                          setHomeData({ ...homeData, announcementText: e.target.value })
+                        }
+                        placeholder="e.g. ’Tis the Season to Be Merry"
+                        className="w-full px-4 py-2 rounded-xl border border-brand-dark/20 text-xs font-sans bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
+                        Destination Link / Route
+                      </label>
+                      <input
+                        type="text"
+                        value={homeData.announcementLink ?? '/christmas'}
+                        onChange={(e) =>
+                          setHomeData({ ...homeData, announcementLink: e.target.value })
+                        }
+                        placeholder="e.g. /christmas or /shop"
+                        className="w-full px-4 py-2 rounded-xl border border-brand-dark/20 text-xs font-sans bg-white focus:outline-none focus:ring-1 focus:ring-brand-dark"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold font-sans uppercase tracking-wider text-brand-dark mb-1">
                     Hero Eyebrow Tagline
