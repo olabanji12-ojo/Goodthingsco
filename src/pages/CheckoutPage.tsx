@@ -161,10 +161,109 @@ export const CheckoutPage: React.FC = () => {
     };
   }, []);
 
+  // Selected shipping method state
+  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string>('');
+
+  // Determine available shipping methods based on country and state
+  const availableShippingMethods = useMemo(() => {
+    if (!isNigeria) {
+      return [
+        {
+          id: 'international-courier',
+          name: publicSettings?.shipping?.international?.label || 'International Courier Dispatch (DHL/FedEx)',
+          description:
+            publicSettings?.shipping?.international?.notice ||
+            'Worldwide courier dispatch via DHL/FedEx partner services. Quote confirmed before dispatch.',
+          fee: publicSettings?.shipping?.international?.fee || 0,
+          requiresQuote: publicSettings?.shipping?.international?.requiresQuote !== false,
+          estimatedDeliveryTime:
+            publicSettings?.shipping?.international?.estimatedDeliveryTime || '5 - 10 Business Days',
+        },
+      ];
+    }
+
+    const normState = (formData.delivery.address.state || 'lagos').trim().toLowerCase();
+    if (normState === 'lagos' || normState === 'la') {
+      const lagosAreas =
+        publicSettings?.shipping?.lagos?.areas && publicSettings.shipping.lagos.areas.length > 0
+          ? publicSettings.shipping.lagos.areas
+          : DEFAULT_LAGOS_SHIPPING_AREAS;
+      return lagosAreas
+        .filter((a) => a.enabled !== false)
+        .map((a) => ({
+          id: a.id,
+          name: a.name,
+          description: a.description || '',
+          fee: a.fee,
+          requiresQuote: false,
+          estimatedDeliveryTime: a.estimatedDeliveryTime || '24 - 48 Business Hours',
+        }));
+    }
+
+    // Check custom states
+    const customStates = publicSettings?.shipping?.customStates || [];
+    const matchedState = customStates.find(
+      (cs) => cs.enabled !== false && cs.stateName.trim().toLowerCase() === normState
+    );
+    if (matchedState) {
+      if (matchedState.areas && matchedState.areas.length > 0) {
+        return matchedState.areas
+          .filter((a) => a.enabled !== false)
+          .map((a) => ({
+            id: a.id,
+            name: `${matchedState.stateName} — ${a.name}`,
+            description: a.description || '',
+            fee: a.fee,
+            requiresQuote: false,
+            estimatedDeliveryTime:
+              a.estimatedDeliveryTime || matchedState.estimatedDeliveryTime || '3 - 5 Business Days',
+          }));
+      }
+      return [
+        {
+          id: matchedState.id,
+          name: `${matchedState.stateName} Delivery`,
+          description: `Direct courier dispatch to ${matchedState.stateName}`,
+          fee: matchedState.defaultFee,
+          requiresQuote: false,
+          estimatedDeliveryTime: matchedState.estimatedDeliveryTime || '3 - 5 Business Days',
+        },
+      ];
+    }
+
+    // Default other Nigeria
+    return [
+      {
+        id: 'interstate-courier',
+        name: publicSettings?.shipping?.otherNigeria?.label || 'Other Nigerian States Courier',
+        description:
+          publicSettings?.shipping?.otherNigeria?.notice ||
+          'Nationwide courier dispatch outside Lagos (3 - 5 business days)',
+        fee: publicSettings?.shipping?.otherNigeria?.fee || 7000,
+        requiresQuote: false,
+        estimatedDeliveryTime:
+          publicSettings?.shipping?.otherNigeria?.estimatedDeliveryTime || '3 - 5 Business Days',
+      },
+    ];
+  }, [isNigeria, formData.delivery.address.state, publicSettings?.shipping]);
+
+  // Ensure an active method is selected
+  useEffect(() => {
+    if (availableShippingMethods.length > 0) {
+      const exists = availableShippingMethods.some((m) => m.id === selectedShippingMethodId);
+      if (!exists) {
+        setSelectedShippingMethodId(availableShippingMethods[0].id);
+      }
+    }
+  }, [availableShippingMethods, selectedShippingMethodId]);
+
   // Compute delivery fee from live settings (or fallback defaults)
   const deliveryCalc = useMemo(() => {
-    return getDeliveryFeeCalculation(currentZone, publicSettings?.shipping);
-  }, [currentZone, publicSettings?.shipping]);
+    return getDeliveryFeeCalculation(currentZone, publicSettings?.shipping, {
+      areaId: selectedShippingMethodId,
+      stateName: formData.delivery.address.state,
+    });
+  }, [currentZone, publicSettings?.shipping, selectedShippingMethodId, formData.delivery.address.state]);
 
   const deliveryFee = deliveryCalc.fee;
   const orderTotal = subtotal + deliveryFee;
