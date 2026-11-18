@@ -12,7 +12,6 @@ import {
   doc,
   getDocs,
   getDoc,
-  setDoc,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -37,21 +36,8 @@ export async function getCorporateProducts(forceRefresh = false): Promise<Corpor
     const snap = await getDocs(colRef);
 
     if (snap.empty) {
-      // Seed default corporate products into Firestore so admin doesn't start with an empty catalog
-      console.log('[CorporateProductService] Seeding default corporate products to Firestore...');
-      const seeded: CorporateGiftProduct[] = [];
-      for (const prod of CORPORATE_PRODUCTS) {
-        const docRef = doc(db, CORPORATE_PRODUCTS_COLLECTION, prod.id);
-        const payload = {
-          ...prod,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-        await setDoc(docRef, payload, { merge: true });
-        seeded.push(prod);
-      }
-      cachedProducts = seeded;
-      return seeded;
+      cachedProducts = [];
+      return [];
     }
 
     const products: CorporateGiftProduct[] = snap.docs.map((d) => {
@@ -159,4 +145,13 @@ export async function deleteCorporateProduct(id: string): Promise<void> {
   if (cachedProducts) {
     cachedProducts = cachedProducts.filter((p) => p.id !== id);
   }
+}
+
+export async function clearAllCorporateProducts(): Promise<void> {
+  const colRef = collection(db, CORPORATE_PRODUCTS_COLLECTION);
+  const snap = await getDocs(colRef);
+  for (const d of snap.docs) {
+    await deleteDoc(d.ref);
+  }
+  cachedProducts = [];
 }

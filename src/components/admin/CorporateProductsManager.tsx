@@ -17,6 +17,7 @@ import {
   createCorporateProduct,
   updateCorporateProduct,
   deleteCorporateProduct,
+  clearAllCorporateProducts,
 } from '../../services/corporateProductService';
 import { uploadImage } from '../../services/cloudinaryService';
 import type {
@@ -205,6 +206,23 @@ export const CorporateProductsManager: React.FC = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!window.confirm('Are you sure you want to remove ALL corporate products? The page will show "Products not added yet" so you can start afresh.')) {
+      return;
+    }
+    setLoading(true);
+    try {
+      await clearAllCorporateProducts();
+      setProducts([]);
+      setToast('Cleared all corporate products. Catalog is now completely empty.');
+      setTimeout(() => setToast(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to clear products');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesSearch =
@@ -244,13 +262,24 @@ export const CorporateProductsManager: React.FC = () => {
             Manage packages displayed on the public Corporate Gifting Concierge page (/corporate).
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors shadow-xs cursor-pointer shrink-0"
-        >
-          <Plus size={16} /> Add Corporate Package
-        </button>
+        <div className="flex items-center gap-2">
+          {products.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 text-rose-700 bg-rose-50 text-xs font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
+            >
+              <Trash2 size={14} /> Clear All Products
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors shadow-xs cursor-pointer shrink-0"
+          >
+            <Plus size={16} /> Add Corporate Package
+          </button>
+        </div>
       </div>
 
       {/* Filter / Search Bar */}
@@ -291,12 +320,21 @@ export const CorporateProductsManager: React.FC = () => {
           <span>{error}</span>
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl">
-          <Building2 size={32} className="mx-auto text-slate-300 mb-2" />
-          <h3 className="font-semibold text-sm text-slate-800">No Corporate Packages Found</h3>
-          <p className="text-xs text-slate-500 mt-1">
-            {searchQuery ? 'Try clearing your search query.' : 'Click "+ Add Corporate Package" to create your first package.'}
+        <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+          <Building2 size={36} className="mx-auto text-slate-300 mb-2" />
+          <h3 className="font-semibold text-sm text-slate-800">Products not added yet</h3>
+          <p className="text-xs text-slate-500 mt-1 mb-4">
+            {searchQuery ? 'Try clearing your search query.' : 'No corporate packages added yet. Click below to add your first package and start afresh.'}
           </p>
+          {!searchQuery && (
+            <button
+              type="button"
+              onClick={openAddModal}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <Plus size={15} /> Add Corporate Package
+            </button>
+          )}
         </div>
       ) : (
         /* Products Grid */

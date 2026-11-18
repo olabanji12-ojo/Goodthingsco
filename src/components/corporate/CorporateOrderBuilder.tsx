@@ -22,6 +22,22 @@ interface CorporateOrderBuilderProps {
   className?: string;
 }
 
+const DEFAULT_EMPTY_PRODUCT: CorporateGiftProduct = {
+  id: 'bespoke-custom',
+  name: 'Bespoke Corporate Presentation',
+  category: 'Custom Atelier',
+  unitPrice: 0,
+  formattedPrice: 'Quote on request',
+  image: '',
+  alt: 'Bespoke Corporate Presentation',
+  purposes: ['custom'],
+  giftTypes: ['choose-gift'],
+  budgetTier: '25k-50k',
+  description: 'Custom bespoke corporate gift suite tailored to your requirements.',
+  includedItems: [],
+  minQuantity: 1,
+};
+
 export const CorporateOrderBuilder: React.FC<CorporateOrderBuilderProps> = ({
   onClose,
   className = '',
@@ -33,7 +49,7 @@ export const CorporateOrderBuilder: React.FC<CorporateOrderBuilderProps> = ({
   const [selectedPurpose, setSelectedPurpose] = useState<CorporatePurpose>('client');
   const [selectedGiftType, setSelectedGiftType] = useState<CorporateGiftType>('choose-gift');
   const [selectedBudget, setSelectedBudget] = useState<CorporateBudgetTier>('25k-50k');
-  const [selectedProduct, setSelectedProduct] = useState<CorporateGiftProduct>(CORPORATE_PRODUCTS[0]);
+  const [selectedProduct, setSelectedProduct] = useState<CorporateGiftProduct>(CORPORATE_PRODUCTS[0] || DEFAULT_EMPTY_PRODUCT);
   const [quantity, setQuantity] = useState<number>(25);
 
   // ── Stage 2 State: Customise ──

@@ -65,7 +65,7 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
 
   // ── Step 5: Gift Selection ──
   const [corporateProducts, setCorporateProducts] = useState<CorporateGiftProduct[]>(CORPORATE_PRODUCTS);
-  const [selectedProduct, setSelectedProduct] = useState<CorporateGiftProduct>(CORPORATE_PRODUCTS[0]);
+  const [selectedProduct, setSelectedProduct] = useState<CorporateGiftProduct | null>(null);
   const [selectedGiftType] = useState<CorporateGiftType>('choose-gift');
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
     return 0;
   }, [quantity]);
 
-  const baseItemsTotal = selectedProduct.unitPrice * quantity;
+  const baseItemsTotal = selectedProduct ? selectedProduct.unitPrice * quantity : 0;
   const discountAmount = Math.round(baseItemsTotal * volumeDiscountRate);
   const packagingTotal = customisation.packagingCost * quantity;
   const monogramTotal = customisation.hasIndividualMonogram ? customisation.monogramCostPerUnit * quantity : 0;
@@ -227,16 +227,18 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
         giftType: selectedGiftType,
         budgetRange: selectedBudget,
         quantity,
-        selectedProducts: [
-          {
-            productId: selectedProduct.id,
-            name: selectedProduct.name,
-            imageUrl: selectedProduct.image,
-            unitPriceSnapshot: selectedProduct.unitPrice,
-            quantity,
-            description: selectedProduct.description,
-          },
-        ],
+        selectedProducts: selectedProduct
+          ? [
+              {
+                productId: selectedProduct.id,
+                name: selectedProduct.name,
+                imageUrl: selectedProduct.image,
+                unitPriceSnapshot: selectedProduct.unitPrice,
+                quantity,
+                description: selectedProduct.description,
+              },
+            ]
+          : [],
         customisation: {
           packaging: customisation.packagingName,
           ribbonColour: customisation.ribbonColorName,
@@ -573,52 +575,64 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayProducts.map((prod) => {
-              const isSelected = selectedProduct.id === prod.id;
-              return (
-                <div
-                  key={prod.id}
-                  onClick={() => setSelectedProduct(prod)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                    isSelected
-                      ? 'border-brand-dark bg-[#FAF8F5] ring-2 ring-brand-dark shadow-sm'
-                      : 'border-brand-dark/10 hover:border-brand-dark/30 bg-white'
-                  }`}
-                >
-                  <img
-                    src={prod.image}
-                    alt={prod.name}
-                    className="w-full h-36 object-cover rounded-xl mb-3"
-                  />
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-medium">
-                        {prod.category}
-                      </span>
-                      <strong className="font-serif text-sm text-brand-dark">
-                        {prod.formattedPrice}
-                      </strong>
+          {displayProducts.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center rounded-2xl border-2 border-dashed border-brand-dark/15 bg-[#FAF8F5]">
+              <Building2 size={36} className="mx-auto text-brand-medium/40 mb-3" />
+              <h4 className="font-serif text-lg text-brand-dark font-medium mb-1">
+                Products not added yet
+              </h4>
+              <p className="font-sans text-xs text-brand-medium max-w-md mx-auto leading-relaxed">
+                Corporate keepsakes are currently being curated by our atelier. You can configure your company branding and submit an inquiry below for a bespoke concierge quote.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {displayProducts.map((prod) => {
+                const isSelected = selectedProduct?.id === prod.id;
+                return (
+                  <div
+                    key={prod.id}
+                    onClick={() => setSelectedProduct(prod)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-brand-dark bg-[#FAF8F5] ring-2 ring-brand-dark shadow-sm'
+                        : 'border-brand-dark/10 hover:border-brand-dark/30 bg-white'
+                    }`}
+                  >
+                    <img
+                      src={prod.image}
+                      alt={prod.name}
+                      className="w-full h-36 object-cover rounded-xl mb-3"
+                    />
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-medium">
+                          {prod.category}
+                        </span>
+                        <strong className="font-serif text-sm text-brand-dark">
+                          {prod.formattedPrice}
+                        </strong>
+                      </div>
+                      <h4 className="font-serif text-sm font-semibold text-brand-dark leading-snug mb-1">
+                        {prod.name}
+                      </h4>
+                      <p className="font-sans text-[11px] text-brand-medium/80 line-clamp-2">
+                        {prod.description}
+                      </p>
                     </div>
-                    <h4 className="font-serif text-sm font-semibold text-brand-dark leading-snug mb-1">
-                      {prod.name}
-                    </h4>
-                    <p className="font-sans text-[11px] text-brand-medium/80 line-clamp-2">
-                      {prod.description}
-                    </p>
+                    <div className="mt-3 pt-3 border-t border-brand-dark/10 flex items-center justify-between">
+                      <span className="text-[11px] font-sans text-gold-700 font-semibold">
+                        {isSelected ? '✓ Selected' : 'Select'}
+                      </span>
+                      <span className="text-[10px] font-sans text-brand-medium">
+                        Min {prod.minQuantity} units
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-brand-dark/10 flex items-center justify-between">
-                    <span className="text-[11px] font-sans text-gold-700 font-semibold">
-                      {isSelected ? '✓ Selected' : 'Select'}
-                    </span>
-                    <span className="text-[10px] font-sans text-brand-medium">
-                      Min {prod.minQuantity} units
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Corporate Customisation */}
@@ -977,7 +991,7 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
                 Authoritative Quotation Overview
               </span>
               <h3 className="font-serif text-2xl font-normal">
-                {selectedProduct.name} ({quantity} units)
+                {selectedProduct ? `${selectedProduct.name} (${quantity} units)` : `Bespoke Corporate Presentation (${quantity} units)`}
               </h3>
               <p className="font-sans text-xs text-white/70 mt-1">
                 Includes debossed branding setup, complimentary stationery, and volume discount.
