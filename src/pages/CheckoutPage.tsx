@@ -37,7 +37,6 @@ import { useCart } from '../contexts/CartContext';
 import { formatNaira } from '../utils/cartUtils';
 import { getProductImageUrl } from '../services/cloudinaryService';
 import {
-  NIGERIAN_STATES,
   SUPPORTED_COUNTRIES,
   resolveDeliveryZone,
   getDeliveryFeeCalculation,
@@ -53,7 +52,7 @@ import {
   revalidateCartInventory,
   loadCheckoutFromStorage,
   saveCheckoutToStorage,
-  getMinDeliveryDateString,
+  getDeliveryScheduleDetails,
 } from '../utils/checkoutUtils';
 import {
   createCheckoutAutosaver,
@@ -163,6 +162,56 @@ export const CheckoutPage: React.FC = () => {
   // Logistics Medium & Area selection state
   const [selectedAreaId, setSelectedAreaId] = useState<string>('lagos-ikoyi-obalende-sura');
   const [selectedVehicle, setSelectedVehicle] = useState<'bike' | 'car' | 'van' | 'interstate' | 'air-freight'>('bike');
+
+  // Is Nigerian address
+  const isNigeria =
+    !formData.delivery.address.country ||
+    formData.delivery.address.country.trim().toLowerCase() === 'nigeria' ||
+    formData.delivery.address.country.trim().toLowerCase() === 'ng';
+
+  // Delivery Schedule Resolution (Working days & transit windows)
+  const deliverySchedule = useMemo(() => {
+    return getDeliveryScheduleDetails(formData.delivery.address.state, selectedVehicle);
+  }, [formData.delivery.address.state, selectedVehicle]);
+
+  // Sync preferred delivery date to minimum available date when state/tier changes
+  useEffect(() => {
+    if (isNigeria) {
+      if (!formData.delivery.preferredDate || formData.delivery.preferredDate < deliverySchedule.minDateStr) {
+        setFormData((prev) => ({
+          ...prev,
+          delivery: {
+            ...prev.delivery,
+            preferredDate: deliverySchedule.minDateStr,
+          },
+        }));
+      }
+    }
+  }, [deliverySchedule.minDateStr, isNigeria]);
+
+  // Ensure selected state is valid (Lagos or client-configured custom state)
+  useEffect(() => {
+    if (isNigeria && publicSettings?.shipping?.customStates) {
+      const currentState = formData.delivery.address.state;
+      if (currentState && currentState.toLowerCase() !== 'lagos') {
+        const isValidCustomState = publicSettings.shipping.customStates.some(
+          (cs) => cs.enabled !== false && cs.stateName.toLowerCase() === currentState.toLowerCase()
+        );
+        if (!isValidCustomState) {
+          setFormData((prev) => ({
+            ...prev,
+            delivery: {
+              ...prev.delivery,
+              address: {
+                ...prev.delivery.address,
+                state: 'Lagos',
+              },
+            },
+          }));
+        }
+      }
+    }
+  }, [publicSettings?.shipping?.customStates, isNigeria]);
 
   // Check vehicle requirement based on items in cart
   const cartRequiresVehicle: 'bike' | 'car' | 'van' = useMemo(() => {
@@ -543,10 +592,6 @@ export const CheckoutPage: React.FC = () => {
     );
   }
 
-  const isNigeria =
-    formData.delivery.address.country.trim().toLowerCase() === 'nigeria' ||
-    formData.delivery.address.country.trim().toLowerCase() === 'ng';
-
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-brand-dark flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 flex flex-col flex-1 justify-between pb-12 sm:pb-20">
@@ -832,19 +877,13 @@ export const CheckoutPage: React.FC = () => {
                           }`}
                         >
                           <option value="Lagos">Lagos (Local State Delivery)</option>
-                          {publicSettings?.shipping?.customStates && publicSettings.shipping.customStates.length > 0
-                            ? publicSettings.shipping.customStates
-                                .filter((cs) => cs.enabled !== false && cs.stateName.toLowerCase() !== 'lagos')
-                                .map((cs) => (
-                                  <option key={cs.id} value={cs.stateName}>
-                                    {cs.stateName}
-                                  </option>
-                                ))
-                            : NIGERIAN_STATES.filter((st) => st.name.toLowerCase() !== 'lagos').map((st) => (
-                                <option key={st.code} value={st.name}>
-                                  {st.name}
-                                </option>
-                              ))}
+                          {publicSettings?.shipping?.customStates
+                            ?.filter((cs) => cs.enabled !== false && cs.stateName.toLowerCase() !== 'lagos')
+                            .map((cs) => (
+                              <option key={cs.id} value={cs.stateName}>
+                                {cs.stateName}
+                              </option>
+                            ))}
                         </select>
                       ) : (
                         <input
@@ -1050,7 +1089,7 @@ export const CheckoutPage: React.FC = () => {
                     <div className="relative">
                       <input
                         type="date"
-                        min={getMinDeliveryDateString()}
+                        min={deliverySchedule.minDateStr}
                         value={formData.delivery.preferredDate}
                         onChange={(e) => {
                           setFormData((prev) => ({
@@ -1069,9 +1108,17 @@ export const CheckoutPage: React.FC = () => {
                     {errors.preferredDate && (
                       <p className="font-sans text-xs text-rose-600 mt-1">{errors.preferredDate}</p>
                     )}
-                    <span className="font-sans text-[10px] text-brand-light mt-1 block">
-                      Our atelier team hand-prepares and coordinates courier timing around your chosen date.
-                    </span>
+                    <div className="mt-2.5 p-3 rounded-xl bg-amber-50/80 border border-amber-200/70 flex items-start gap-2.5 text-xs font-sans text-amber-950">
+                      <Calendar size={15} className="mt-0.5 text-amber-700 shrink-0" />
+                      <div>
+                        <div className="font-semibold text-amber-900">
+                          {deliverySchedule.label} ({deliverySchedule.windowText})
+                        </div>
+                        <div className="text-[11px] text-amber-800/90 mt-0.5 leading-relaxed">
+                          Earliest available dispatch date is <strong>{deliverySchedule.formattedEarliest}</strong>. Estimated arrival window: <strong>{deliverySchedule.formattedEarliest} – {deliverySchedule.formattedLatest}</strong>.
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Calligraphy Gift Message */}

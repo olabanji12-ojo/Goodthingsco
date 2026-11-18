@@ -199,6 +199,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
     return getPackagingOptions().map((o) => o.name);
   });
   const [customPackagingInput, setCustomPackagingInput] = useState<string>('');
+  const [customPackagingPrice, setCustomPackagingPrice] = useState<string>('');
 
   useEffect(() => {
     getPublicStoreSettings()
@@ -1591,15 +1592,32 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
           </div>
 
           {/* Add custom packaging on the fly */}
-          <div style={{ display: 'flex', gap: '8px', maxWidth: '360px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxWidth: '520px', marginTop: '8px' }}>
             <input
               type="text"
               value={customPackagingInput}
               onChange={(e) => setCustomPackagingInput(e.target.value)}
-              placeholder="e.g. Leather Hamper, Acrylic Box"
+              placeholder="Packaging name (e.g. Festive Keepsake Box)"
+              style={{
+                flex: 2,
+                minWidth: '180px',
+                padding: '7px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '12px',
+              }}
+            />
+            <input
+              type="number"
+              min="0"
+              step="500"
+              value={customPackagingPrice}
+              onChange={(e) => setCustomPackagingPrice(e.target.value)}
+              placeholder="Fee ₦ (0 = Free)"
               style={{
                 flex: 1,
-                padding: '6px 12px',
+                minWidth: '110px',
+                padding: '7px 10px',
                 borderRadius: '6px',
                 border: '1px solid #cbd5e1',
                 fontSize: '12px',
@@ -1609,34 +1627,50 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
               type="button"
               onClick={() => {
                 const trimmed = customPackagingInput.trim();
-                if (trimmed && !packagingOptions.includes(trimmed)) {
-                  setPackagingOptions((prev) => [...prev, trimmed]);
-                  if (!availablePackaging.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
-                    setAvailablePackaging((prev) => [
+                const parsedPrice = Math.max(0, Number(customPackagingPrice) || 0);
+                if (trimmed) {
+                  if (!packagingOptions.includes(trimmed)) {
+                    setPackagingOptions((prev) => [...prev, trimmed]);
+                  }
+                  setAvailablePackaging((prev) => {
+                    const existingIdx = prev.findIndex((p) => p.name.toLowerCase() === trimmed.toLowerCase());
+                    if (existingIdx >= 0) {
+                      const copy = [...prev];
+                      copy[existingIdx] = {
+                        ...copy[existingIdx],
+                        price: parsedPrice,
+                        badge: parsedPrice === 0 ? 'Complimentary' : undefined,
+                      };
+                      return copy;
+                    }
+                    return [
                       ...prev,
                       {
                         id: `pkg-${Date.now()}`,
                         name: trimmed,
                         description: 'Custom presentation packaging',
-                        price: 0,
+                        price: parsedPrice,
                         enabled: true,
+                        badge: parsedPrice === 0 ? 'Complimentary' : undefined,
                       },
-                    ]);
-                  }
+                    ];
+                  });
                   setCustomPackagingInput('');
+                  setCustomPackagingPrice('');
                 }
               }}
               style={{
-                padding: '6px 12px',
+                padding: '7px 14px',
                 borderRadius: '6px',
-                backgroundColor: '#f1f5f9',
-                border: '1px solid #cbd5e1',
+                backgroundColor: '#0f172a',
+                color: '#ffffff',
+                border: 'none',
                 cursor: 'pointer',
                 fontSize: '12px',
-                fontWeight: 500,
+                fontWeight: 600,
               }}
             >
-              Add Packaging
+              + Add Packaging
             </button>
           </div>
         </div>

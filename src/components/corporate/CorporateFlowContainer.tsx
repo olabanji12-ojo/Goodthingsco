@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   CorporatePurpose,
   CorporateIndustry,
@@ -17,6 +17,7 @@ import {
   CORPORATE_PRODUCTS,
   SAMPLE_CORPORATE_RECIPIENTS,
 } from './corporateData';
+import { getCorporateProducts } from '../../services/corporateProductService';
 import { submitCorporateRequest } from '../../services/corporateService';
 import {
   Building2,
@@ -63,8 +64,22 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
   const topRef = useRef<HTMLDivElement>(null);
 
   // ── Step 5: Gift Selection ──
+  const [corporateProducts, setCorporateProducts] = useState<CorporateGiftProduct[]>(CORPORATE_PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<CorporateGiftProduct>(CORPORATE_PRODUCTS[0]);
   const [selectedGiftType] = useState<CorporateGiftType>('choose-gift');
+
+  useEffect(() => {
+    getCorporateProducts()
+      .then((prods) => {
+        if (prods && prods.length > 0) {
+          setCorporateProducts(prods);
+          setSelectedProduct(prods[0]);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load live corporate products, using default:', err);
+      });
+  }, []);
 
   // ── Step 6: Customise ──
   const [customisation, setCustomisation] = useState<CorporateCustomisation>({
@@ -104,14 +119,14 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
 
   // Filtered products responding to Purpose & Budget
   const filteredProducts = useMemo(() => {
-    return CORPORATE_PRODUCTS.filter((prod) => {
+    return corporateProducts.filter((prod) => {
       const matchPurpose = prod.purposes.includes(selectedPurpose);
       const matchBudget = prod.budgetTier === selectedBudget;
       return matchPurpose || matchBudget;
     });
-  }, [selectedPurpose, selectedBudget]);
+  }, [corporateProducts, selectedPurpose, selectedBudget]);
 
-  const displayProducts = filteredProducts.length > 0 ? filteredProducts : CORPORATE_PRODUCTS;
+  const displayProducts = filteredProducts.length > 0 ? filteredProducts : corporateProducts;
 
   // Financial Calculations & Volume Discount
   const volumeDiscountRate = useMemo(() => {
@@ -558,8 +573,8 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {displayProducts.slice(0, 3).map((prod) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayProducts.map((prod) => {
               const isSelected = selectedProduct.id === prod.id;
               return (
                 <div

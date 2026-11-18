@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, ArrowUpRight, Inbox, Building2 } from 'lucide-react';
+import { Search, ArrowUpRight, Inbox, Building2, Package } from 'lucide-react';
 import { listAdminCorporateRequests } from '../../services/corporateService';
+import { CorporateProductsManager } from '../../components/admin/CorporateProductsManager';
 import type { CorporateRequest, CorporateRequestStatus, CorporateQuoteStatus } from '../../types/corporate';
 
 const REQUEST_STATUS_LABELS: Record<CorporateRequestStatus, string> = {
@@ -28,6 +29,7 @@ const QUOTE_STATUS_LABELS: Record<CorporateQuoteStatus, string> = {
 };
 
 export default function AdminCorporateListPage() {
+  const [viewMode, setViewMode] = useState<'inquiries' | 'catalog'>('inquiries');
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get('search') || '');
   const [requests, setRequests] = useState<CorporateRequest[]>([]);
@@ -122,7 +124,44 @@ export default function AdminCorporateListPage() {
         </button>
       </header>
 
-      {/* Filter & Search Bar */}
+      {/* View Mode Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          type="button"
+          onClick={() => setViewMode('inquiries')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer ${
+            viewMode === 'inquiries'
+              ? 'bg-slate-900 text-white'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Inbox size={15} />
+          <span>Inquiries & Quotes</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-700 text-white">
+            {total}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('catalog')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer ${
+            viewMode === 'catalog'
+              ? 'bg-slate-900 text-white'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Package size={15} />
+          <span>Corporate Gift Packages (Add & Delete)</span>
+        </button>
+      </div>
+
+      {viewMode === 'catalog' ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+          <CorporateProductsManager />
+        </div>
+      ) : (
+        <>
+          {/* Filter & Search Bar */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4 shadow-xs">
         <form onSubmit={submitSearch} className="flex gap-2">
           <label className="flex-1 min-w-0">
@@ -289,6 +328,8 @@ export default function AdminCorporateListPage() {
             </nav>
           )}
         </>
+      )}
+      </>
       )}
     </section>
   );

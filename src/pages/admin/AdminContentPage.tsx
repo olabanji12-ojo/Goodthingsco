@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import defaultGiftBoxImg from '../../assets/gift-hero.png';
 import { uploadImage } from '../../services/cloudinaryService';
+import { CorporateProductsManager } from '../../components/admin/CorporateProductsManager';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import {
   fetchAdminPageContent,
@@ -1165,6 +1166,11 @@ export default function AdminContentPage() {
                     onChange={(e) => setCorporateData({ ...corporateData, volumeDescription: e.target.value })}
                     className="w-full p-3.5 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark leading-relaxed"
                   />
+                </div>
+
+                {/* ── Corporate Products Catalog Manager ── */}
+                <div className="pt-8 border-t border-brand-dark/15">
+                  <CorporateProductsManager />
                 </div>
               </div>
             )}

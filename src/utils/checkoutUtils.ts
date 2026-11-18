@@ -60,14 +60,101 @@ export function isDateNotPast(dateStr: string): boolean {
 }
 
 /**
+ * Formats a Date object as YYYY-MM-DD
+ */
+export function formatDateToYMD(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Adds working days (business days) to a date, skipping Sundays.
+ * In Nigeria, couriers and dispatch riders operate Monday through Saturday.
+ */
+export function addWorkingDays(startDate: Date, days: number): Date {
+  const result = new Date(startDate);
+  result.setHours(0, 0, 0, 0);
+  let added = 0;
+  while (added < days) {
+    result.setDate(result.getDate() + 1);
+    const dayOfWeek = result.getDay(); // 0 = Sunday
+    if (dayOfWeek !== 0) {
+      added++;
+    }
+  }
+  return result;
+}
+
+/**
+ * Calculates delivery transit window and minimum selectable date based on destination and vehicle.
+ * - Lagos: 2 to 5 working days (Earliest date: Today + 2 working days)
+ * - Outside Lagos (Interstate Courier): 5 to 14 working days (Earliest date: Today + 5 working days)
+ * - Air Freight: 2 to 4 working days (Earliest date: Today + 2 working days)
+ */
+export function getDeliveryScheduleDetails(state?: string, vehicleTier?: string) {
+  const now = new Date();
+  const normState = state?.trim().toLowerCase() || '';
+  const isLagos = !normState || normState === 'lagos';
+  const isAir = vehicleTier === 'air_freight' || vehicleTier === 'air-freight';
+
+  let minDays = 2;
+  let maxDays = 5;
+  let label = 'Lagos Delivery';
+
+  if (!isLagos) {
+    if (isAir) {
+      minDays = 2;
+      maxDays = 4;
+      label = 'Air Freight Interstate';
+    } else {
+      minDays = 5;
+      maxDays = 14;
+      label = 'Interstate Courier Delivery';
+    }
+  }
+
+  const minDate = addWorkingDays(now, minDays);
+  const maxWindowDate = addWorkingDays(now, maxDays);
+  const minDateStr = formatDateToYMD(minDate);
+  const maxWindowDateStr = formatDateToYMD(maxWindowDate);
+
+  const formattedEarliest = minDate.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  const formattedLatest = maxWindowDate.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+
+  return {
+    isLagos,
+    minDays,
+    maxDays,
+    minDate,
+    minDateStr,
+    maxWindowDate,
+    maxWindowDateStr,
+    label,
+    formattedEarliest,
+    formattedLatest,
+    windowText: `${minDays}–${maxDays} working days`,
+  };
+}
+
+/**
  * Returns today's date formatted as YYYY-MM-DD for min date attributes.
  */
-export function getMinDeliveryDateString(): string {
+export function getMinDeliveryDateString(state?: string, vehicleTier?: string): string {
+  if (state || vehicleTier) {
+    return getDeliveryScheduleDetails(state, vehicleTier).minDateStr;
+  }
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatDateToYMD(now);
 }
 
 /**
@@ -134,6 +221,14 @@ export function validateCheckoutForm(data: CheckoutFormData): {
     errors.preferredDate = 'Please select your preferred delivery date.';
   } else if (!isDateNotPast(data.delivery.preferredDate)) {
     errors.preferredDate = 'Preferred delivery date cannot be in the past.';
+  } else if (isNigeria) {
+    const schedule = getDeliveryScheduleDetails(
+      data.delivery.address.state,
+      data.delivery.vehicle
+    );
+    if (data.delivery.preferredDate < schedule.minDateStr) {
+      errors.preferredDate = `For ${schedule.label}, the earliest delivery date is ${schedule.formattedEarliest} (${schedule.windowText}).`;
+    }
   }
 
   const isValid = Object.keys(errors).length === 0;
