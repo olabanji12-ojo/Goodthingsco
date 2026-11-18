@@ -234,21 +234,19 @@ export const CheckoutPage: React.FC = () => {
     return highest;
   }, [items]);
 
-  // Auto-upgrade vehicle if cart contains items requiring car/van
+  // Ensure selected vehicle corresponds to destination state (Lagos vs Outside Lagos) without enforcing a specific vehicle
   useEffect(() => {
     const isLagos = (formData.delivery.address.state || 'lagos').trim().toLowerCase() === 'lagos';
     if (isLagos) {
-      if (cartRequiresVehicle === 'van' && selectedVehicle !== 'van') {
-        setSelectedVehicle('van');
-      } else if (cartRequiresVehicle === 'car' && selectedVehicle === 'bike') {
-        setSelectedVehicle('car');
+      if (selectedVehicle === 'air-freight' || selectedVehicle === 'interstate') {
+        setSelectedVehicle('bike');
       }
     } else {
       if (selectedVehicle !== 'air-freight' && selectedVehicle !== 'interstate') {
         setSelectedVehicle('interstate');
       }
     }
-  }, [cartRequiresVehicle, selectedVehicle, formData.delivery.address.state]);
+  }, [selectedVehicle, formData.delivery.address.state]);
 
   // Determine available shipping methods based on country, state, and selected area
   const availableShippingMethods = useMemo(() => {
@@ -293,14 +291,11 @@ export const CheckoutPage: React.FC = () => {
         {
           id: 'bike',
           name: '🛵 Bike Delivery',
-          description:
-            cartRequiresVehicle !== 'bike'
-              ? 'Unavailable: Order contains bulky items or trunks requiring car transport'
-              : `Fast courier dispatch on motorcycle (${lagosTime})`,
+          description: `Fast courier dispatch on motorcycle (${lagosTime})`,
           fee: baseFee,
           requiresQuote: false,
           estimatedDeliveryTime: lagosTime,
-          disabled: cartRequiresVehicle !== 'bike',
+          disabled: false,
         },
         {
           id: 'car',
@@ -309,7 +304,7 @@ export const CheckoutPage: React.FC = () => {
           fee: baseFee + carSurcharge,
           requiresQuote: false,
           estimatedDeliveryTime: lagosTime,
-          disabled: cartRequiresVehicle === 'van',
+          disabled: false,
         },
         {
           id: 'van',
@@ -1254,11 +1249,6 @@ export const CheckoutPage: React.FC = () => {
                       <span className="font-semibold text-brand-dark">
                         {deliveryCalc.requiresQuote ? 'Quote Required' : formatNaira(deliveryFee)}
                       </span>
-                    </div>
-
-                    <div className="flex justify-between text-brand-medium">
-                      <span>Calligraphy Card & Wrapping</span>
-                      <span className="text-gold-700 font-medium">Complimentary</span>
                     </div>
                   </div>
 
