@@ -15,9 +15,9 @@ import {
   CORPORATE_PACKAGING,
   CORPORATE_RIBBONS,
   CORPORATE_PRODUCTS,
-  SAMPLE_CORPORATE_RECIPIENTS,
 } from './corporateData';
 import { getCorporateProducts } from '../../services/corporateProductService';
+import { getPublicStoreSettings } from '../../services/settingsService';
 import { submitCorporateRequest } from '../../services/corporateService';
 import {
   Building2,
@@ -62,6 +62,10 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
   const detailsRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
+  // Dynamic packaging and ribbons from Admin Settings
+  const [dynamicPackaging, setDynamicPackaging] = useState<{ id: string; name: string; desc: string; cost: number }[]>(CORPORATE_PACKAGING);
+  const [dynamicRibbons, setDynamicRibbons] = useState<{ id: string; name: string; hex: string }[]>(CORPORATE_RIBBONS);
+
   // ── Step 5: Gift Selection ──
   const [corporateProducts, setCorporateProducts] = useState<CorporateGiftProduct[]>(CORPORATE_PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<CorporateGiftProduct | null>(null);
@@ -78,18 +82,63 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
       .catch((err) => {
         console.warn('Failed to load live corporate products, using default:', err);
       });
+
+    getPublicStoreSettings()
+      .then((settings) => {
+        if (settings && settings.packaging) {
+          if (settings.packaging.options && settings.packaging.options.length > 0) {
+            const activeOpts = settings.packaging.options
+              .filter((o) => o.enabled !== false)
+              .map((o) => ({
+                id: o.id,
+                name: o.name,
+                desc: o.description || (o.price === 0 ? 'Complimentary luxury packaging' : 'Premium presentation box'),
+                cost: o.price || 0,
+              }));
+            if (activeOpts.length > 0) {
+              setDynamicPackaging(activeOpts);
+              setCustomisation((prev) => ({
+                ...prev,
+                packagingId: prev.packagingId || activeOpts[0].id,
+                packagingName: prev.packagingName || activeOpts[0].name,
+                packagingCost: prev.packagingCost !== undefined ? prev.packagingCost : activeOpts[0].cost,
+              }));
+            }
+          }
+          if (settings.packaging.ribbons && settings.packaging.ribbons.length > 0) {
+            const activeRibbons = settings.packaging.ribbons
+              .filter((r) => r.enabled !== false)
+              .map((r) => ({
+                id: r.id,
+                name: r.name,
+                hex: r.hex,
+              }));
+            if (activeRibbons.length > 0) {
+              setDynamicRibbons(activeRibbons);
+              setCustomisation((prev) => ({
+                ...prev,
+                ribbonColorId: prev.ribbonColorId || activeRibbons[0].id,
+                ribbonColorName: prev.ribbonColorName || activeRibbons[0].name,
+              }));
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load public settings for corporate flow:', err);
+      });
   }, []);
 
   // ── Step 6: Customise ──
   const [customisation, setCustomisation] = useState<CorporateCustomisation>({
-    logoFileName: 'company_vector_logo.svg',
+    logoFileName: '',
     logoPreviewUrl: null,
-    packagingId: CORPORATE_PACKAGING[0].id,
-    packagingName: CORPORATE_PACKAGING[0].name,
-    packagingCost: CORPORATE_PACKAGING[0].cost,
-    ribbonColorId: CORPORATE_RIBBONS[0].id,
-    ribbonColorName: CORPORATE_RIBBONS[0].name,
-    companyMessage: 'With sincere gratitude for our valued partnership and shared success.',
+    packagingId: CORPORATE_PACKAGING[0]?.id || '',
+    packagingName: CORPORATE_PACKAGING[0]?.name || '',
+    packagingCost: CORPORATE_PACKAGING[0]?.cost || 0,
+    ribbonColorId: CORPORATE_RIBBONS[0]?.id || '',
+    ribbonColorName: CORPORATE_RIBBONS[0]?.name || '',
+    companyMessage: '',
     hasIndividualMonogram: false,
     monogramCostPerUnit: 2500,
   });
@@ -97,17 +146,17 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
 
   // ── Step 7: Recipients & Delivery ──
   const [deliveryMethod, setDeliveryMethod] = useState<'single-hub' | 'direct-recipient'>('single-hub');
-  const [recipients, setRecipients] = useState<CorporateRecipient[]>(SAMPLE_CORPORATE_RECIPIENTS);
+  const [recipients, setRecipients] = useState<CorporateRecipient[]>([]);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newAddress, setNewAddress] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   // ── Step 8: Corporate Contact Details ──
-  const [contactName, setContactName] = useState('Olumide Sterling');
-  const [contactEmail, setContactEmail] = useState('o.sterling@company.com');
-  const [contactPhone, setContactPhone] = useState('+234 803 555 0192');
-  const [companyName, setCompanyName] = useState('Sterling & Partners Capital');
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
 
   // ── Submission & Confirmation ──
@@ -198,12 +247,6 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       setUploadedFileName(file.name);
-      setRecipients([
-        ...SAMPLE_CORPORATE_RECIPIENTS,
-        { id: `cr-${Date.now()}-1`, name: 'Kemi Adeleke', phone: '+234 809 111 2233', address: 'Plot 10 Banana Island, Ikoyi, Lagos' },
-        { id: `cr-${Date.now()}-2`, name: 'Tunde Bakare', phone: '+234 812 444 7788', address: '12 Trans Amadi Layout, Port Harcourt' },
-        { id: `cr-${Date.now()}-3`, name: 'Fatima Al-Hassan', phone: '+234 803 777 9900', address: '8 Sultan Bello Road, Kaduna' },
-      ]);
     }
   };
 
@@ -652,7 +695,7 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
                 Presentation Packaging
               </label>
               <div className="space-y-2">
-                {CORPORATE_PACKAGING.map((pkg) => (
+                {dynamicPackaging.map((pkg) => (
                   <button
                     key={pkg.id}
                     type="button"
@@ -675,7 +718,7 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
                       <span className="text-[10px] font-sans text-brand-medium">{pkg.desc}</span>
                     </div>
                     <span className="text-xs font-sans text-gold-700 font-bold">
-                      +₦{pkg.cost.toLocaleString()}
+                      {pkg.cost === 0 ? 'Complimentary' : `+₦${pkg.cost.toLocaleString()}`}
                     </span>
                   </button>
                 ))}
@@ -689,7 +732,7 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
                   Ribbon Colour
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {CORPORATE_RIBBONS.map((ribbon) => (
+                  {dynamicRibbons.map((ribbon) => (
                     <button
                       key={ribbon.id}
                       type="button"
@@ -756,7 +799,7 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
               }
               rows={2}
               className="w-full p-3 rounded-xl border border-brand-dark/20 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-dark"
-              placeholder="With sincere gratitude for our valued partnership and shared success."
+              placeholder="Enter personalized message to accompany your gifts (optional)..."
             />
           </div>
         </section>
@@ -979,35 +1022,27 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
                 placeholder="Specific delivery dates, gate access instructions, or department routing..."
               />
             </div>
-          </div>
-        </section>
 
-        {/* Quotation & Actions */}
-        <section className="bg-brand-dark text-white rounded-3xl p-6 sm:p-8 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-white/10">
-            <div>
-              <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-gold-400 block mb-1">
-                Corporate Concierge Request
-              </span>
-              <h3 className="font-serif text-2xl font-normal">
-                {selectedProduct ? `${selectedProduct.name} (${quantity} units)` : `Bespoke Corporate Presentation (${quantity} units)`}
-              </h3>
-              <p className="font-sans text-xs text-white/70 mt-1">
-                Our concierge atelier will review your requirements and prepare an official tailored pro-forma quote with bespoke branding and dispatch schedules.
-              </p>
+            {/* Direct Submission Button */}
+            <div className="pt-6 mt-4 border-t border-brand-dark/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <p className="font-serif text-base text-brand-dark font-medium">
+                  {selectedProduct ? `${selectedProduct.name} (${quantity} units)` : `Corporate Gifting Commission (${quantity} units)`}
+                </p>
+                <p className="font-sans text-xs text-brand-medium">
+                  Our concierge atelier will review your requirements and generate an official pro-forma invoice.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={() => handleSubmit('quote')}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-brand-dark text-white hover:bg-gold-600 font-sans text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer text-center shadow-md disabled:opacity-50 shrink-0"
+              >
+                {isProcessing ? 'Submitting Request...' : 'Request Official Pro-Forma Quote'}
+              </button>
             </div>
-          </div>
-
-          {/* Submission Action Buttons */}
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-end gap-3">
-            <button
-              type="button"
-              disabled={isProcessing}
-              onClick={() => handleSubmit('quote')}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gold-500 text-brand-dark font-sans text-xs font-bold uppercase tracking-wider hover:bg-gold-400 transition-colors cursor-pointer text-center"
-            >
-              {isProcessing ? 'Submitting Request...' : 'Request Official Pro-Forma Quote'}
-            </button>
           </div>
         </section>
       </div>
