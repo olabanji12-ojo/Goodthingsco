@@ -83,6 +83,7 @@ export interface Product {
   personalisation?: ProductPersonalisation;
   packagingOptions?: string[]; // e.g. ['Gift Box', 'Gift Bag', 'Wooden Box', 'Pouch']
   packagingIncluded?: boolean; // If true, product already includes inbuilt packaging (no additional fee)
+  deliveryVehicle?: 'bike' | 'car' | 'van'; // Vehicle requirement: 'bike' (default), 'car', 'van'
   ribbonColours?: string[]; // e.g. ['Gold', 'White', 'Midnight Navy', 'Olive']
   /** Lifestyle categories for shop discovery filtering. Safe default: [] */
   lifestyles?: LifestyleCategory[];
@@ -112,6 +113,7 @@ export interface CreateProductInput {
   personalisation?: ProductPersonalisation;
   packagingOptions?: string[];
   packagingIncluded?: boolean;
+  deliveryVehicle?: 'bike' | 'car' | 'van';
   ribbonColours?: string[];
   lifestyles?: LifestyleCategory[];
 }

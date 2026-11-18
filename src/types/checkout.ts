@@ -36,6 +36,7 @@ export interface DeliveryDetails {
   specialInstructions?: string;
   shippingMethodId?: string;
   shippingMethodName?: string;
+  vehicle?: 'bike' | 'car' | 'van' | 'interstate' | 'air-freight';
 }
 
 export interface CheckoutFormData {

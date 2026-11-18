@@ -180,6 +180,7 @@ export async function createPendingOrderServer(
       deliveryCalc = getDeliveryFeeCalculation(resolvedZone, shippingSettings, {
         areaId: payload.delivery.shippingMethodId,
         stateName: payload.delivery.address.state,
+        vehicle: payload.delivery.vehicle as any,
       });
 
       if (!deliveryCalc.enabled) {
@@ -239,6 +240,7 @@ export async function createPendingOrderServer(
         deliveryFee: authoritativeDeliveryFee,
         shippingMethodId: payload.delivery.shippingMethodId,
         shippingMethodName: payload.delivery.shippingMethodName || deliveryCalc.name,
+        vehicle: payload.delivery.vehicle,
       },
       giftMessage: payload.giftMessage?.trim() || '',
       items: verifiedOrderItems,

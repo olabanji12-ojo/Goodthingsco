@@ -36,7 +36,7 @@ import {
   updateAdminStoreSettings,
 } from '../../services/settingsService';
 import type { StoreSettings, StoreSettingsUpdateInput, PackagingOptionItem, RibbonOptionItem, ShippingAreaRate, CustomStateDeliveryConfig } from '../../types/settings';
-import { DEFAULT_STORE_SETTINGS, DEFAULT_PACKAGING_OPTIONS, DEFAULT_RIBBON_OPTIONS, DEFAULT_LAGOS_SHIPPING_AREAS } from '../../types/settings';
+import { DEFAULT_STORE_SETTINGS, DEFAULT_PACKAGING_OPTIONS, DEFAULT_RIBBON_OPTIONS, DEFAULT_LAGOS_SHIPPING_AREAS, DEFAULT_VEHICLE_SETTINGS } from '../../types/settings';
 import { NIGERIAN_STATES } from '../../config/shipping';
 
 export default function AdminSettingsPage() {
@@ -125,6 +125,7 @@ export default function AdminSettingsPage() {
               areas: lagosAreas,
             },
             customStates,
+            vehicles: settings.shipping.vehicles || DEFAULT_VEHICLE_SETTINGS,
           },
           packaging: {
             giftBoxFee: packaging.giftBoxFee ?? 0,
@@ -351,6 +352,14 @@ export default function AdminSettingsPage() {
               }))
               : [],
           })),
+          vehicles: {
+            carSurcharge: Math.max(0, Number(formData.shipping.vehicles?.carSurcharge) || 3000),
+            vanSurcharge: Math.max(0, Number(formData.shipping.vehicles?.vanSurcharge) || 8000),
+            airFreightRate: Math.max(0, Number(formData.shipping.vehicles?.airFreightRate) || 15000),
+            lagosDeliveryEstimate: (formData.shipping.vehicles?.lagosDeliveryEstimate || '2 – 5 Working Days').trim(),
+            outsideLagosDeliveryEstimate: (formData.shipping.vehicles?.outsideLagosDeliveryEstimate || '5 – 14 Working Days').trim(),
+            airFreightDeliveryEstimate: (formData.shipping.vehicles?.airFreightDeliveryEstimate || '2 – 4 Working Days').trim(),
+          },
           international: {
             enabled: Boolean(formData.shipping.international.enabled),
             mode: formData.shipping.international.mode === 'fixed' ? 'fixed' : 'quote-required',
@@ -1088,6 +1097,182 @@ export default function AdminSettingsPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* ── Section: Logistics Methods & Vehicle Surcharges ── */}
+            <div className="p-5 rounded-xl border border-slate-200 bg-slate-50/40 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200/80">
+                <div className="flex items-center gap-2.5">
+                  <Truck size={18} className="text-[#96774c]" />
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Logistics Mediums & Vehicle Tiers</h3>
+                    <p className="text-xs text-slate-500">
+                      Configure vehicle upgrade rates (Bike, Car, Van, Air Freight) and official dispatch timelines.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    🚗 Car Delivery Upgrade (₦)
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-1.5">
+                    Added to base area rate for trunks & delicate hampers
+                  </p>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={formData.shipping.vehicles?.carSurcharge ?? 3000}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        shipping: {
+                          ...formData.shipping,
+                          vehicles: {
+                            ...(formData.shipping.vehicles || DEFAULT_VEHICLE_SETTINGS),
+                            carSurcharge: Math.max(0, Number(e.target.value) || 0),
+                          },
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    🚐 Van Delivery Upgrade (₦)
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-1.5">
+                    Added to base area rate for oversized crates & bulk
+                  </p>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={formData.shipping.vehicles?.vanSurcharge ?? 8000}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        shipping: {
+                          ...formData.shipping,
+                          vehicles: {
+                            ...(formData.shipping.vehicles || DEFAULT_VEHICLE_SETTINGS),
+                            vanSurcharge: Math.max(0, Number(e.target.value) || 0),
+                          },
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    ✈️ Air Freight Express Rate (₦)
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-1.5">
+                    Express interstate flight dispatch outside Lagos
+                  </p>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={formData.shipping.vehicles?.airFreightRate ?? 15000}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        shipping: {
+                          ...formData.shipping,
+                          vehicles: {
+                            ...(formData.shipping.vehicles || DEFAULT_VEHICLE_SETTINGS),
+                            airFreightRate: Math.max(0, Number(e.target.value) || 0),
+                          },
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900"
+                  />
+                </div>
+              </div>
+
+              {/* Transit Windows */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-200/60">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Lagos Working Days Window
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.shipping.vehicles?.lagosDeliveryEstimate || '2 – 5 Working Days'}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        shipping: {
+                          ...formData.shipping,
+                          vehicles: {
+                            ...(formData.shipping.vehicles || DEFAULT_VEHICLE_SETTINGS),
+                            lagosDeliveryEstimate: e.target.value,
+                          },
+                        },
+                      })
+                    }
+                    placeholder="2 – 5 Working Days"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Outside Lagos Working Days Window
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.shipping.vehicles?.outsideLagosDeliveryEstimate || '5 – 14 Working Days'}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        shipping: {
+                          ...formData.shipping,
+                          vehicles: {
+                            ...(formData.shipping.vehicles || DEFAULT_VEHICLE_SETTINGS),
+                            outsideLagosDeliveryEstimate: e.target.value,
+                          },
+                        },
+                      })
+                    }
+                    placeholder="5 – 14 Working Days"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Air Freight Working Days Window
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.shipping.vehicles?.airFreightDeliveryEstimate || '2 – 4 Working Days'}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        shipping: {
+                          ...formData.shipping,
+                          vehicles: {
+                            ...(formData.shipping.vehicles || DEFAULT_VEHICLE_SETTINGS),
+                            airFreightDeliveryEstimate: e.target.value,
+                          },
+                        },
+                      })
+                    }
+                    placeholder="2 – 4 Working Days"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
+                  />
+                </div>
               </div>
             </div>
 

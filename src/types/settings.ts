@@ -45,10 +45,29 @@ export interface InternationalDeliverySettings {
   notice?: string;
 }
 
+export interface VehiclePricingSettings {
+  carSurcharge: number;
+  vanSurcharge: number;
+  airFreightRate: number;
+  lagosDeliveryEstimate: string;
+  outsideLagosDeliveryEstimate: string;
+  airFreightDeliveryEstimate: string;
+}
+
+export const DEFAULT_VEHICLE_SETTINGS: VehiclePricingSettings = {
+  carSurcharge: 3000,
+  vanSurcharge: 8000,
+  airFreightRate: 15000,
+  lagosDeliveryEstimate: '2 – 5 Working Days',
+  outsideLagosDeliveryEstimate: '5 – 14 Working Days',
+  airFreightDeliveryEstimate: '2 – 4 Working Days',
+};
+
 export interface ShippingSettings {
   lagos: ZoneDeliverySettings;
   otherNigeria: ZoneDeliverySettings;
   customStates?: CustomStateDeliveryConfig[];
+  vehicles?: VehiclePricingSettings;
   international: InternationalDeliverySettings;
 }
 
@@ -119,6 +138,7 @@ export interface PublicStoreSettings {
     lagos: PublicZoneDeliveryConfig;
     otherNigeria: PublicZoneDeliveryConfig;
     customStates?: CustomStateDeliveryConfig[];
+    vehicles?: VehiclePricingSettings;
     international: PublicInternationalDeliveryConfig;
   };
   packaging?: PackagingSettings;
@@ -273,6 +293,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
       notice: 'Interstate courier dispatch to all states across Nigeria',
     },
     customStates: [],
+    vehicles: DEFAULT_VEHICLE_SETTINGS,
     international: {
       enabled: true,
       mode: 'quote-required',
@@ -310,6 +331,7 @@ export type StoreSettingsUpdateInput = {
     lagos?: Partial<ZoneDeliverySettings>;
     otherNigeria?: Partial<ZoneDeliverySettings>;
     customStates?: CustomStateDeliveryConfig[];
+    vehicles?: Partial<VehiclePricingSettings>;
     international?: Partial<InternationalDeliverySettings>;
   };
   packaging?: Partial<PackagingSettings>;

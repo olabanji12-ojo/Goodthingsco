@@ -191,6 +191,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
   // Packaging & Ribbons
   const [availablePackaging, setAvailablePackaging] = useState<PackagingOption[]>(() => getPackagingOptions());
   const [packagingIncluded, setPackagingIncluded] = useState<boolean>(initialProduct?.packagingIncluded ?? false);
+  const [deliveryVehicle, setDeliveryVehicle] = useState<'bike' | 'car' | 'van'>(initialProduct?.deliveryVehicle || 'bike');
   const [packagingOptions, setPackagingOptions] = useState<string[]>(() => {
     if (initialProduct?.packagingOptions && initialProduct.packagingOptions.length > 0) {
       return initialProduct.packagingOptions;
@@ -437,6 +438,7 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
       images,
       packagingOptions,
       packagingIncluded,
+      deliveryVehicle,
       ribbonColours,
       variants,
       personalisation: personalisationEnabled
@@ -1464,6 +1466,86 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
                 style={{ width: '16px', height: '16px', accentColor: '#0f172a', cursor: 'pointer' }}
               />
               <span>📦 <strong>Selectable Packaging / Add-On</strong> — Customer chooses presentation box & packaging upgrade fee applies</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Logistics & Delivery Vehicle Requirement */}
+        <div style={{ marginBottom: '20px', padding: '16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
+            🚚 Logistics & Delivery Vehicle Requirement
+          </label>
+          <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px' }}>
+            Specify the vehicle required to safely transport this item in Lagos. Large trunks or hampers will automatically require Car delivery at checkout.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px',
+              borderRadius: '8px',
+              border: (deliveryVehicle || 'bike') === 'bike' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+              backgroundColor: (deliveryVehicle || 'bike') === 'bike' ? '#ffffff' : '#f8fafc',
+              cursor: 'pointer',
+            }}>
+              <input
+                type="radio"
+                name="deliveryVehicle"
+                checked={(deliveryVehicle || 'bike') === 'bike'}
+                onChange={() => setDeliveryVehicle('bike')}
+                style={{ width: '16px', height: '16px', accentColor: '#0f172a' }}
+              />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>🛵 Bike Delivery</div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>Small items, gift bags, standard boxes</div>
+              </div>
+            </label>
+
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px',
+              borderRadius: '8px',
+              border: deliveryVehicle === 'car' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+              backgroundColor: deliveryVehicle === 'car' ? '#ffffff' : '#f8fafc',
+              cursor: 'pointer',
+            }}>
+              <input
+                type="radio"
+                name="deliveryVehicle"
+                checked={deliveryVehicle === 'car'}
+                onChange={() => setDeliveryVehicle('car')}
+                style={{ width: '16px', height: '16px', accentColor: '#0f172a' }}
+              />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>🚗 Car Delivery</div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>Trunks, delicate luxury hampers, crates</div>
+              </div>
+            </label>
+
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px',
+              borderRadius: '8px',
+              border: deliveryVehicle === 'van' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+              backgroundColor: deliveryVehicle === 'van' ? '#ffffff' : '#f8fafc',
+              cursor: 'pointer',
+            }}>
+              <input
+                type="radio"
+                name="deliveryVehicle"
+                checked={deliveryVehicle === 'van'}
+                onChange={() => setDeliveryVehicle('van')}
+                style={{ width: '16px', height: '16px', accentColor: '#0f172a' }}
+              />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>🚐 Van Delivery</div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>Oversized bulk orders, corporate sets</div>
+              </div>
             </label>
           </div>
         </div>

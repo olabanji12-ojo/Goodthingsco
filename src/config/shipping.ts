@@ -140,11 +140,12 @@ export interface DeliveryCalculationResult {
 export interface DeliveryCalculationOptions {
   areaId?: string;
   stateName?: string;
+  vehicle?: 'bike' | 'car' | 'van' | 'interstate' | 'air-freight';
 }
 
 /**
  * Computes the delivery fee and metadata for the given zone.
- * Respects live admin settings and area-specific rates if provided;
+ * Respects live admin settings, area-specific rates, and vehicle tiers if provided;
  * otherwise falls back to static defaults.
  */
 export function getDeliveryFeeCalculation(
@@ -155,21 +156,34 @@ export function getDeliveryFeeCalculation(
   if (liveShipping) {
     if (zone === 'lagos' && liveShipping.lagos) {
       const z = liveShipping.lagos;
-      const estimate =
-        z.estimatedMinDays && z.estimatedMaxDays
-          ? `${z.estimatedMinDays}–${z.estimatedMaxDays} business days`
-          : z.estimatedDeliveryTime || '1 - 2 Business Days';
+      const lagosEstimate = liveShipping.vehicles?.lagosDeliveryEstimate || '2 – 5 Working Days';
+      const carSurcharge = Number(liveShipping.vehicles?.carSurcharge) || 3000;
+      const vanSurcharge = Number(liveShipping.vehicles?.vanSurcharge) || 8000;
+
+      let vehicleSurcharge = 0;
+      let vehicleLabel = '';
+      if (options?.vehicle === 'car') {
+        vehicleSurcharge = carSurcharge;
+        vehicleLabel = ' (Car Delivery)';
+      } else if (options?.vehicle === 'van') {
+        vehicleSurcharge = vanSurcharge;
+        vehicleLabel = ' (Van Delivery)';
+      } else if (options?.vehicle === 'bike') {
+        vehicleLabel = ' (Bike Delivery)';
+      }
 
       const areas = Array.isArray(z.areas) ? z.areas : [];
       if (options?.areaId) {
-        const selectedArea = areas.find((a: any) => a.id === options.areaId && a.enabled !== false);
+        // Strip vehicle prefix if present in areaId (e.g. bike-area-1 or car-area-1)
+        const cleanAreaId = options.areaId.replace(/^(bike|car|van)-/, '');
+        const selectedArea = areas.find((a: any) => (a.id === options.areaId || a.id === cleanAreaId) && a.enabled !== false);
         if (selectedArea) {
           return {
-            fee: Math.max(0, selectedArea.fee),
+            fee: Math.max(0, selectedArea.fee + vehicleSurcharge),
             requiresQuote: false,
             enabled: z.enabled !== false,
-            name: selectedArea.name,
-            estimatedDeliveryTime: selectedArea.estimatedDeliveryTime || estimate,
+            name: `${selectedArea.name}${vehicleLabel}`,
+            estimatedDeliveryTime: lagosEstimate,
             notice: selectedArea.description || z.notice,
           };
         }
@@ -177,20 +191,35 @@ export function getDeliveryFeeCalculation(
 
       // If no specific area was provided or matched, pick the first active area if available
       const firstArea = areas.find((a: any) => a.enabled !== false);
-      const effectiveFee = firstArea ? firstArea.fee : Math.max(0, z.fee ?? 0);
-      const effectiveName = firstArea ? firstArea.name : (z.label || 'Lagos Delivery');
+      const effectiveFee = firstArea ? firstArea.fee + vehicleSurcharge : Math.max(0, (z.fee ?? 0) + vehicleSurcharge);
+      const effectiveName = firstArea ? `${firstArea.name}${vehicleLabel}` : `${z.label || 'Lagos Delivery'}${vehicleLabel}`;
 
       return {
         fee: z.enabled !== false ? effectiveFee : 0,
         requiresQuote: false,
         enabled: z.enabled !== false,
         name: effectiveName,
-        estimatedDeliveryTime: firstArea?.estimatedDeliveryTime || estimate,
+        estimatedDeliveryTime: lagosEstimate,
         notice: firstArea?.description || z.notice,
       };
     }
 
     if (zone === 'other-nigeria') {
+      const outsideEstimate = liveShipping.vehicles?.outsideLagosDeliveryEstimate || '5 – 14 Working Days';
+      const airFreightEstimate = liveShipping.vehicles?.airFreightDeliveryEstimate || '2 – 4 Working Days';
+      const airFreightRate = Number(liveShipping.vehicles?.airFreightRate) || 15000;
+
+      if (options?.vehicle === 'air-freight' || options?.areaId === 'air-freight') {
+        return {
+          fee: airFreightRate,
+          requiresQuote: false,
+          enabled: true,
+          name: 'Air Freight Express',
+          estimatedDeliveryTime: airFreightEstimate,
+          notice: 'Priority airport cargo dispatch outside Lagos',
+        };
+      }
+
       const customStates = Array.isArray(liveShipping.customStates) ? liveShipping.customStates : [];
       const matchedState = options?.stateName
         ? customStates.find(
@@ -210,7 +239,7 @@ export function getDeliveryFeeCalculation(
               requiresQuote: false,
               enabled: true,
               name: `${matchedState.stateName} — ${selectedArea.name}`,
-              estimatedDeliveryTime: selectedArea.estimatedDeliveryTime || matchedState.estimatedDeliveryTime || '3 - 5 Business Days',
+              estimatedDeliveryTime: outsideEstimate,
               notice: selectedArea.description,
             };
           }
@@ -222,23 +251,19 @@ export function getDeliveryFeeCalculation(
           fee: stateFee,
           requiresQuote: false,
           enabled: true,
-          name: firstStateArea ? `${matchedState.stateName} — ${firstStateArea.name}` : `${matchedState.stateName} Delivery`,
-          estimatedDeliveryTime: matchedState.estimatedDeliveryTime || '3 - 5 Business Days',
+          name: firstStateArea ? `${matchedState.stateName} — ${firstStateArea.name}` : `${matchedState.stateName} Interstate Courier`,
+          estimatedDeliveryTime: outsideEstimate,
         };
       }
 
       const z = liveShipping.otherNigeria;
       if (z) {
-        const estimate =
-          z.estimatedMinDays && z.estimatedMaxDays
-            ? `${z.estimatedMinDays}–${z.estimatedMaxDays} business days`
-            : z.estimatedDeliveryTime || '3 - 5 Business Days';
         return {
           fee: z.enabled ? Math.max(0, z.fee) : 0,
           requiresQuote: false,
           enabled: z.enabled !== false,
-          name: z.label || 'Other Nigerian States',
-          estimatedDeliveryTime: estimate,
+          name: z.label || 'Interstate Courier Delivery',
+          estimatedDeliveryTime: outsideEstimate,
           notice: z.notice,
         };
       }

@@ -73,6 +73,7 @@ export interface OrderDelivery {
   deliveryFee: number;
   shippingMethodId?: string;
   shippingMethodName?: string;
+  vehicle?: string;
 }
 
 export type PaymentProvider = 'flutterwave' | 'paystack';

@@ -24,6 +24,7 @@ export interface CartItem {
   selectedVariants?: Record<string, string>;
   packaging?: string;
   packagingFee?: number;
+  deliveryVehicle?: 'bike' | 'car' | 'van';
   ribbonColour?: string;
   giftMessage?: string;
   personalisationText?: string;

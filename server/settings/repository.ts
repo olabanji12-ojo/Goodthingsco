@@ -58,6 +58,7 @@ export const firestoreSettingsRepository: StoreSettingsRepository = {
             ...data.shipping?.otherNigeria,
           },
           customStates: data.shipping?.customStates ?? DEFAULT_STORE_SETTINGS.shipping.customStates ?? [],
+          vehicles: data.shipping?.vehicles ?? DEFAULT_STORE_SETTINGS.shipping.vehicles,
           international: {
             ...DEFAULT_STORE_SETTINGS.shipping.international,
             ...data.shipping?.international,

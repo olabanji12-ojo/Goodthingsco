@@ -101,6 +101,7 @@ export async function revalidateRecoveredCheckout(
   const deliveryCalc = getDeliveryFeeCalculation(zone, shippingSettings, {
     areaId: (deliveryAddress as any).shippingMethodId,
     stateName: state,
+    vehicle: (deliveryAddress as any).vehicle,
   });
 
   if (!deliveryCalc.enabled) {

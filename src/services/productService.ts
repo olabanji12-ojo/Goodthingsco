@@ -171,6 +171,7 @@ export async function createProduct(input: CreateProductInput): Promise<Product>
     personalisation: input.personalisation,
     packagingOptions: input.packagingOptions ?? [],
     packagingIncluded: input.packagingIncluded ?? false,
+    deliveryVehicle: input.deliveryVehicle || 'bike',
     ribbonColours: input.ribbonColours ?? [],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -426,6 +427,7 @@ export async function updateProduct(
     'personalisation',
     'packagingOptions',
     'packagingIncluded',
+    'deliveryVehicle',
     'ribbonColours',
   ];
 

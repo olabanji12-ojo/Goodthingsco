@@ -160,10 +160,48 @@ export const CheckoutPage: React.FC = () => {
     };
   }, []);
 
-  // Selected shipping method state
-  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string>('');
+  // Logistics Medium & Area selection state
+  const [selectedAreaId, setSelectedAreaId] = useState<string>('lagos-ikoyi-obalende-sura');
+  const [selectedVehicle, setSelectedVehicle] = useState<'bike' | 'car' | 'van' | 'interstate' | 'air-freight'>('bike');
 
-  // Determine available shipping methods based on country and state
+  // Check vehicle requirement based on items in cart
+  const cartRequiresVehicle: 'bike' | 'car' | 'van' = useMemo(() => {
+    let highest: 'bike' | 'car' | 'van' = 'bike';
+    for (const item of items) {
+      const v = item.deliveryVehicle;
+      if (v === 'van') return 'van';
+      if (v === 'car') highest = 'car';
+      const lowerName = (item.name || '').toLowerCase();
+      const lowerPkg = (item.packaging || '').toLowerCase();
+      if (
+        lowerName.includes('trunk') ||
+        lowerName.includes('crate') ||
+        lowerPkg.includes('trunk') ||
+        lowerPkg.includes('crate')
+      ) {
+        highest = 'car';
+      }
+    }
+    return highest;
+  }, [items]);
+
+  // Auto-upgrade vehicle if cart contains items requiring car/van
+  useEffect(() => {
+    const isLagos = (formData.delivery.address.state || 'lagos').trim().toLowerCase() === 'lagos';
+    if (isLagos) {
+      if (cartRequiresVehicle === 'van' && selectedVehicle !== 'van') {
+        setSelectedVehicle('van');
+      } else if (cartRequiresVehicle === 'car' && selectedVehicle === 'bike') {
+        setSelectedVehicle('car');
+      }
+    } else {
+      if (selectedVehicle !== 'air-freight' && selectedVehicle !== 'interstate') {
+        setSelectedVehicle('interstate');
+      }
+    }
+  }, [cartRequiresVehicle, selectedVehicle, formData.delivery.address.state]);
+
+  // Determine available shipping methods based on country, state, and selected area
   const availableShippingMethods = useMemo(() => {
     const normCountry = (formData.delivery.address.country || 'Nigeria').trim().toLowerCase();
     const isLocalDelivery = normCountry === 'nigeria' || normCountry === 'ng';
@@ -175,11 +213,12 @@ export const CheckoutPage: React.FC = () => {
           name: publicSettings?.shipping?.international?.label || 'International Courier Dispatch (DHL/FedEx)',
           description:
             publicSettings?.shipping?.international?.notice ||
-            'Worldwide courier dispatch via DHL/FedEx partner services. Quote confirmed before dispatch.',
+            'Worldwide door-to-door courier dispatch via DHL/FedEx partner services. Quote confirmed before dispatch.',
           fee: publicSettings?.shipping?.international?.fee || 0,
           requiresQuote: publicSettings?.shipping?.international?.requiresQuote !== false,
           estimatedDeliveryTime:
             publicSettings?.shipping?.international?.estimatedDeliveryTime || '5 - 10 Business Days',
+          disabled: false,
         },
       ];
     }
@@ -190,82 +229,99 @@ export const CheckoutPage: React.FC = () => {
         publicSettings?.shipping?.lagos?.areas && publicSettings.shipping.lagos.areas.length > 0
           ? publicSettings.shipping.lagos.areas
           : DEFAULT_LAGOS_SHIPPING_AREAS;
-      return lagosAreas
-        .filter((a) => a.enabled !== false)
-        .map((a) => ({
-          id: a.id,
-          name: a.name,
-          description: a.description || '',
-          fee: a.fee,
-          requiresQuote: false,
-          estimatedDeliveryTime: a.estimatedDeliveryTime || '24 - 48 Business Hours',
-        }));
-    }
 
-    // Check custom states
-    const customStates = publicSettings?.shipping?.customStates || [];
-    const matchedState = customStates.find(
-      (cs) => cs.enabled !== false && cs.stateName.trim().toLowerCase() === normState
-    );
-    if (matchedState) {
-      if (matchedState.areas && matchedState.areas.length > 0) {
-        return matchedState.areas
-          .filter((a) => a.enabled !== false)
-          .map((a) => ({
-            id: a.id,
-            name: `${matchedState.stateName} — ${a.name}`,
-            description: a.description || '',
-            fee: a.fee,
-            requiresQuote: false,
-            estimatedDeliveryTime:
-              a.estimatedDeliveryTime || matchedState.estimatedDeliveryTime || '3 - 5 Business Days',
-          }));
-      }
+      const activeArea =
+        lagosAreas.find((a) => a.id === selectedAreaId && a.enabled !== false) ||
+        lagosAreas.find((a) => a.enabled !== false) ||
+        lagosAreas[0];
+
+      const baseFee = activeArea ? activeArea.fee : 2000;
+      const carSurcharge = publicSettings?.shipping?.vehicles?.carSurcharge ?? 3000;
+      const vanSurcharge = publicSettings?.shipping?.vehicles?.vanSurcharge ?? 8000;
+      const lagosTime = publicSettings?.shipping?.vehicles?.lagosDeliveryEstimate || '2 – 5 Working Days';
+
       return [
         {
-          id: matchedState.id,
-          name: `${matchedState.stateName} Delivery`,
-          description: `Direct courier dispatch to ${matchedState.stateName}`,
-          fee: matchedState.defaultFee,
+          id: 'bike',
+          name: '🛵 Bike Delivery',
+          description:
+            cartRequiresVehicle !== 'bike'
+              ? 'Unavailable: Order contains bulky items or trunks requiring car transport'
+              : `Fast courier dispatch on motorcycle (${lagosTime})`,
+          fee: baseFee,
           requiresQuote: false,
-          estimatedDeliveryTime: matchedState.estimatedDeliveryTime || '3 - 5 Business Days',
+          estimatedDeliveryTime: lagosTime,
+          disabled: cartRequiresVehicle !== 'bike',
+        },
+        {
+          id: 'car',
+          name: '🚗 Car Delivery',
+          description: `Dedicated air-conditioned courier car for trunks, hampers & delicate items (${lagosTime})`,
+          fee: baseFee + carSurcharge,
+          requiresQuote: false,
+          estimatedDeliveryTime: lagosTime,
+          disabled: cartRequiresVehicle === 'van',
+        },
+        {
+          id: 'van',
+          name: '🚐 Van Delivery',
+          description: `Spacious delivery van for oversized crates and corporate bulk sets (${lagosTime})`,
+          fee: baseFee + vanSurcharge,
+          requiresQuote: false,
+          estimatedDeliveryTime: lagosTime,
+          disabled: false,
         },
       ];
     }
 
-    // Default other Nigeria
+    // Outside Lagos
+    const outsideTime = publicSettings?.shipping?.vehicles?.outsideLagosDeliveryEstimate || '5 – 14 Working Days';
+    const airTime = publicSettings?.shipping?.vehicles?.airFreightDeliveryEstimate || '2 – 4 Working Days';
+    const airRate = publicSettings?.shipping?.vehicles?.airFreightRate ?? 15000;
+
+    const customStates = publicSettings?.shipping?.customStates || [];
+    const matchedState = customStates.find(
+      (cs) => cs.enabled !== false && cs.stateName.trim().toLowerCase() === normState
+    );
+    const stateFee = matchedState ? matchedState.defaultFee : (publicSettings?.shipping?.otherNigeria?.fee || 7000);
+    const stateDisplayName = matchedState ? matchedState.stateName : formData.delivery.address.state || 'Interstate';
+
     return [
       {
-        id: 'interstate-courier',
-        name: publicSettings?.shipping?.otherNigeria?.label || 'Other Nigerian States Courier',
-        description:
-          publicSettings?.shipping?.otherNigeria?.notice ||
-          'Nationwide courier dispatch outside Lagos (3 - 5 business days)',
-        fee: publicSettings?.shipping?.otherNigeria?.fee || 7000,
+        id: 'interstate',
+        name: `🚚 Interstate Courier Delivery — ${stateDisplayName}`,
+        description: `Standard nationwide road dispatch (${outsideTime})`,
+        fee: stateFee,
         requiresQuote: false,
-        estimatedDeliveryTime:
-          publicSettings?.shipping?.otherNigeria?.estimatedDeliveryTime || '3 - 5 Business Days',
+        estimatedDeliveryTime: outsideTime,
+        disabled: false,
+      },
+      {
+        id: 'air-freight',
+        name: `✈️ Air Freight Express — ${stateDisplayName}`,
+        description: `Priority airport cargo flight dispatch (${airTime})`,
+        fee: airRate,
+        requiresQuote: false,
+        estimatedDeliveryTime: airTime,
+        disabled: false,
       },
     ];
-  }, [formData.delivery.address.country, formData.delivery.address.state, publicSettings?.shipping]);
+  }, [
+    formData.delivery.address.country,
+    formData.delivery.address.state,
+    selectedAreaId,
+    cartRequiresVehicle,
+    publicSettings?.shipping,
+  ]);
 
-  // Ensure an active method is selected
-  useEffect(() => {
-    if (availableShippingMethods.length > 0) {
-      const exists = availableShippingMethods.some((m) => m.id === selectedShippingMethodId);
-      if (!exists) {
-        setSelectedShippingMethodId(availableShippingMethods[0].id);
-      }
-    }
-  }, [availableShippingMethods, selectedShippingMethodId]);
-
-  // Compute delivery fee from live settings (or fallback defaults)
+  // Compute delivery fee from live settings
   const deliveryCalc = useMemo(() => {
     return getDeliveryFeeCalculation(currentZone, publicSettings?.shipping, {
-      areaId: selectedShippingMethodId,
+      areaId: selectedAreaId,
       stateName: formData.delivery.address.state,
+      vehicle: selectedVehicle,
     });
-  }, [currentZone, publicSettings?.shipping, selectedShippingMethodId, formData.delivery.address.state]);
+  }, [currentZone, publicSettings?.shipping, selectedAreaId, selectedVehicle, formData.delivery.address.state]);
 
   const deliveryFee = deliveryCalc.fee;
   const orderTotal = subtotal + deliveryFee;
@@ -407,8 +463,9 @@ export const CheckoutPage: React.FC = () => {
         recipient: { ...formData.recipient },
         delivery: {
           ...formData.delivery,
-          shippingMethodId: selectedShippingMethodId,
+          shippingMethodId: selectedAreaId,
           shippingMethodName: deliveryCalc.name,
+          vehicle: selectedVehicle,
         },
         giftMessage: formData.giftMessage?.trim() || undefined,
         items: [...items],
@@ -836,6 +893,28 @@ export const CheckoutPage: React.FC = () => {
                       />
                     </div>
 
+                    {/* Lagos Destination Area Selector */}
+                    {isNigeria && (!formData.delivery.address.state || formData.delivery.address.state.toLowerCase() === 'lagos') && (
+                      <div id="checkout-lagos-area" className="sm:col-span-2">
+                        <label className="font-sans text-xs font-semibold text-brand-dark block mb-1.5">
+                          Lagos Delivery Area / Zone <span className="text-rose-600">*</span>
+                        </label>
+                        <select
+                          value={selectedAreaId}
+                          onChange={(e) => setSelectedAreaId(e.target.value)}
+                          className="w-full p-3 rounded-xl border border-brand-dark/15 text-sm font-sans bg-[#FAF8F5] focus:outline-none focus:border-brand-dark cursor-pointer font-medium"
+                        >
+                          {(publicSettings?.shipping?.lagos?.areas || DEFAULT_LAGOS_SHIPPING_AREAS)
+                            .filter((a) => a.enabled !== false)
+                            .map((area) => (
+                              <option key={area.id} value={area.id}>
+                                {area.name} (Base Bike: {formatNaira(area.fee)})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    )}
+
                     {/* Address Line 1 */}
                     <div id="checkout-addressLine1" className="sm:col-span-2">
                       <label className="font-sans text-xs font-semibold text-brand-dark block mb-1.5">
@@ -871,11 +950,11 @@ export const CheckoutPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* ── Shipping Method Selection (Exact Reference Match) ── */}
+                  {/* ── Shipping Method & Vehicle Medium ── */}
                   <div className="space-y-3 pt-2">
                     <div className="flex items-center justify-between">
                       <h3 className="font-sans text-sm font-bold text-brand-dark">
-                        Shipping method
+                        Shipping method & Vehicle
                       </h3>
                       {deliveryCalc.enabled && !deliveryCalc.requiresQuote && (
                         <span className="text-[11px] font-sans text-brand-medium">
@@ -892,15 +971,20 @@ export const CheckoutPage: React.FC = () => {
                     ) : (
                       <div className="rounded-2xl border border-brand-dark/15 bg-white divide-y divide-brand-dark/10 overflow-hidden shadow-2xs">
                         {availableShippingMethods.map((method) => {
-                          const isSelected = selectedShippingMethodId === method.id;
+                          const isSelected = selectedVehicle === method.id;
+                          const isDisabled = Boolean(method.disabled);
                           return (
                             <label
                               key={method.id}
-                              onClick={() => setSelectedShippingMethodId(method.id)}
-                              className={`p-4 sm:p-4.5 flex items-start sm:items-center justify-between gap-3.5 cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-[#FAF8F5] ring-1 ring-inset ring-brand-dark/20'
-                                  : 'hover:bg-black/[0.02]'
+                              onClick={() => {
+                                if (!isDisabled) setSelectedVehicle(method.id as any);
+                              }}
+                              className={`p-4 sm:p-4.5 flex items-start sm:items-center justify-between gap-3.5 transition-colors ${
+                                isDisabled
+                                  ? 'opacity-45 bg-slate-50 cursor-not-allowed'
+                                  : isSelected
+                                    ? 'bg-[#FAF8F5] ring-1 ring-inset ring-brand-dark/20 cursor-pointer'
+                                    : 'hover:bg-black/[0.02] cursor-pointer'
                               }`}
                             >
                               <div className="flex items-start sm:items-center gap-3.5 min-w-0">
@@ -918,8 +1002,13 @@ export const CheckoutPage: React.FC = () => {
                                 </div>
 
                                 <div className="space-y-0.5">
-                                  <div className="font-sans text-xs sm:text-[13px] font-semibold text-brand-dark leading-snug">
-                                    {method.name}
+                                  <div className="font-sans text-xs sm:text-[13px] font-semibold text-brand-dark leading-snug flex items-center gap-2 flex-wrap">
+                                    <span>{method.name}</span>
+                                    {isDisabled && (
+                                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                                        Car Required for Trunks
+                                      </span>
+                                    )}
                                   </div>
                                   {method.description && (
                                     <div className="font-sans text-[11px] text-brand-medium/90 uppercase tracking-tight leading-relaxed">

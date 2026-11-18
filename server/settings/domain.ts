@@ -74,6 +74,14 @@ export function toPublicSettings(settings: StoreSettings): PublicStoreSettings {
         notice: settings.shipping.otherNigeria.notice,
       },
       customStates: (settings.shipping.customStates || []).filter((cs) => cs.enabled !== false),
+      vehicles: settings.shipping.vehicles || {
+        carSurcharge: 3000,
+        vanSurcharge: 8000,
+        airFreightRate: 15000,
+        lagosDeliveryEstimate: '2 – 5 Working Days',
+        outsideLagosDeliveryEstimate: '5 – 14 Working Days',
+        airFreightDeliveryEstimate: '2 – 4 Working Days',
+      },
       international: {
         enabled: settings.shipping.international.enabled,
         mode: settings.shipping.international.mode,
@@ -260,6 +268,17 @@ export function validateStoreSettingsUpdate(raw: any): StoreSettingsUpdateInput 
         }))
         .filter((cs: any) => cs.stateName.length > 0);
     }
+    if (raw.shipping.vehicles && typeof raw.shipping.vehicles === 'object') {
+      const v = raw.shipping.vehicles;
+      result.shipping.vehicles = {
+        carSurcharge: Math.max(0, Math.round(Number(v.carSurcharge) || 3000)),
+        vanSurcharge: Math.max(0, Math.round(Number(v.vanSurcharge) || 8000)),
+        airFreightRate: Math.max(0, Math.round(Number(v.airFreightRate) || 15000)),
+        lagosDeliveryEstimate: sanitizeText(v.lagosDeliveryEstimate || '2 – 5 Working Days', 60),
+        outsideLagosDeliveryEstimate: sanitizeText(v.outsideLagosDeliveryEstimate || '5 – 14 Working Days', 60),
+        airFreightDeliveryEstimate: sanitizeText(v.airFreightDeliveryEstimate || '2 – 4 Working Days', 60),
+      };
+    }
     if (raw.shipping.international && typeof raw.shipping.international === 'object') {
       const intl = validateZone(raw.shipping.international, 'International');
       if (raw.shipping.international.mode !== undefined) {
@@ -404,6 +423,9 @@ export function applySettingsUpdate(
         ...update.shipping?.otherNigeria,
       },
       customStates: update.shipping?.customStates !== undefined ? update.shipping.customStates : current.shipping.customStates,
+      vehicles: update.shipping?.vehicles
+        ? { ...(current.shipping.vehicles || { carSurcharge: 3000, vanSurcharge: 8000, airFreightRate: 15000, lagosDeliveryEstimate: '2 – 5 Working Days', outsideLagosDeliveryEstimate: '5 – 14 Working Days', airFreightDeliveryEstimate: '2 – 4 Working Days' }), ...update.shipping.vehicles }
+        : current.shipping.vehicles,
       international: {
         ...current.shipping.international,
         ...update.shipping?.international,
