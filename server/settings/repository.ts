@@ -51,11 +51,13 @@ export const firestoreSettingsRepository: StoreSettingsRepository = {
           lagos: {
             ...DEFAULT_STORE_SETTINGS.shipping.lagos,
             ...data.shipping?.lagos,
+            areas: data.shipping?.lagos?.areas ?? DEFAULT_STORE_SETTINGS.shipping.lagos.areas ?? [],
           },
           otherNigeria: {
             ...DEFAULT_STORE_SETTINGS.shipping.otherNigeria,
             ...data.shipping?.otherNigeria,
           },
+          customStates: data.shipping?.customStates ?? DEFAULT_STORE_SETTINGS.shipping.customStates ?? [],
           international: {
             ...DEFAULT_STORE_SETTINGS.shipping.international,
             ...data.shipping?.international,

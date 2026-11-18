@@ -60,6 +60,7 @@ export function toPublicSettings(settings: StoreSettings): PublicStoreSettings {
         ),
         label: settings.shipping.lagos.label || 'Lagos Delivery',
         notice: settings.shipping.lagos.notice,
+        areas: (settings.shipping.lagos.areas || []).filter((a) => a.enabled !== false),
       },
       otherNigeria: {
         enabled: settings.shipping.otherNigeria.enabled,
@@ -72,6 +73,7 @@ export function toPublicSettings(settings: StoreSettings): PublicStoreSettings {
         label: settings.shipping.otherNigeria.label || 'Other Nigerian States',
         notice: settings.shipping.otherNigeria.notice,
       },
+      customStates: (settings.shipping.customStates || []).filter((cs) => cs.enabled !== false),
       international: {
         enabled: settings.shipping.international.enabled,
         mode: settings.shipping.international.mode,
@@ -217,10 +219,46 @@ export function validateStoreSettingsUpdate(raw: any): StoreSettingsUpdateInput 
     };
 
     if (raw.shipping.lagos && typeof raw.shipping.lagos === 'object') {
-      result.shipping.lagos = validateZone(raw.shipping.lagos, 'Lagos');
+      const lagosZone = validateZone(raw.shipping.lagos, 'Lagos');
+      if (raw.shipping.lagos.areas !== undefined && Array.isArray(raw.shipping.lagos.areas)) {
+        lagosZone.areas = raw.shipping.lagos.areas
+          .map((a: any) => ({
+            id: sanitizeText(a.id || `area-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`, 60),
+            name: sanitizeText(a.name, 200),
+            description: a.description ? sanitizeText(a.description, 500) : '',
+            fee: Math.max(0, Math.round(Number(a.fee) || 0)),
+            estimatedDeliveryTime: a.estimatedDeliveryTime ? sanitizeText(a.estimatedDeliveryTime, 100) : '24 - 48 Business Hours',
+            enabled: a.enabled !== false,
+          }))
+          .filter((a: any) => a.name.length > 0);
+      }
+      result.shipping.lagos = lagosZone;
     }
     if (raw.shipping.otherNigeria && typeof raw.shipping.otherNigeria === 'object') {
       result.shipping.otherNigeria = validateZone(raw.shipping.otherNigeria, 'Other Nigeria');
+    }
+    if (raw.shipping.customStates !== undefined && Array.isArray(raw.shipping.customStates)) {
+      result.shipping.customStates = raw.shipping.customStates
+        .map((cs: any) => ({
+          id: sanitizeText(cs.id || `state-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`, 60),
+          stateName: sanitizeText(cs.stateName, 100),
+          enabled: cs.enabled !== false,
+          defaultFee: Math.max(0, Math.round(Number(cs.defaultFee) || 0)),
+          estimatedDeliveryTime: cs.estimatedDeliveryTime ? sanitizeText(cs.estimatedDeliveryTime, 100) : '3 - 5 Business Days',
+          areas: Array.isArray(cs.areas)
+            ? cs.areas
+                .map((a: any) => ({
+                  id: sanitizeText(a.id || `area-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`, 60),
+                  name: sanitizeText(a.name, 200),
+                  description: a.description ? sanitizeText(a.description, 500) : '',
+                  fee: Math.max(0, Math.round(Number(a.fee) || 0)),
+                  estimatedDeliveryTime: a.estimatedDeliveryTime ? sanitizeText(a.estimatedDeliveryTime, 100) : '3 - 5 Business Days',
+                  enabled: a.enabled !== false,
+                }))
+                .filter((a: any) => a.name.length > 0)
+            : [],
+        }))
+        .filter((cs: any) => cs.stateName.length > 0);
     }
     if (raw.shipping.international && typeof raw.shipping.international === 'object') {
       const intl = validateZone(raw.shipping.international, 'International');
@@ -359,11 +397,13 @@ export function applySettingsUpdate(
       lagos: {
         ...current.shipping.lagos,
         ...update.shipping?.lagos,
+        areas: update.shipping?.lagos?.areas !== undefined ? update.shipping.lagos.areas : current.shipping.lagos.areas,
       },
       otherNigeria: {
         ...current.shipping.otherNigeria,
         ...update.shipping?.otherNigeria,
       },
+      customStates: update.shipping?.customStates !== undefined ? update.shipping.customStates : current.shipping.customStates,
       international: {
         ...current.shipping.international,
         ...update.shipping?.international,

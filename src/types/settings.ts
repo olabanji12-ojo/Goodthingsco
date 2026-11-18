@@ -8,6 +8,24 @@ export interface BusinessSettings {
   supportPhone: string;
 }
 
+export interface ShippingAreaRate {
+  id: string;
+  name: string;
+  description?: string;
+  fee: number;
+  estimatedDeliveryTime?: string;
+  enabled?: boolean;
+}
+
+export interface CustomStateDeliveryConfig {
+  id: string;
+  stateName: string;
+  enabled: boolean;
+  defaultFee: number;
+  estimatedDeliveryTime?: string;
+  areas?: ShippingAreaRate[];
+}
+
 export interface ZoneDeliverySettings {
   enabled: boolean;
   fee: number;
@@ -15,6 +33,7 @@ export interface ZoneDeliverySettings {
   estimatedMaxDays: number;
   label?: string;
   notice?: string;
+  areas?: ShippingAreaRate[];
 }
 
 export interface InternationalDeliverySettings {
@@ -29,6 +48,7 @@ export interface InternationalDeliverySettings {
 export interface ShippingSettings {
   lagos: ZoneDeliverySettings;
   otherNigeria: ZoneDeliverySettings;
+  customStates?: CustomStateDeliveryConfig[];
   international: InternationalDeliverySettings;
 }
 
@@ -85,6 +105,7 @@ export interface PublicZoneDeliveryConfig {
   estimatedDeliveryTime: string;
   label: string;
   notice?: string;
+  areas?: ShippingAreaRate[];
 }
 
 export interface PublicInternationalDeliveryConfig extends PublicZoneDeliveryConfig {
@@ -97,10 +118,86 @@ export interface PublicStoreSettings {
   shipping: {
     lagos: PublicZoneDeliveryConfig;
     otherNigeria: PublicZoneDeliveryConfig;
+    customStates?: CustomStateDeliveryConfig[];
     international: PublicInternationalDeliveryConfig;
   };
   packaging?: PackagingSettings;
 }
+
+export const DEFAULT_LAGOS_SHIPPING_AREAS: ShippingAreaRate[] = [
+  {
+    id: 'lagos-ikoyi-obalende-sura',
+    name: 'Ikoyi, Obalende, Sura',
+    description: "YOU'LL BE REQUIRED TO RECEIVE AT ESTATE GATE IF BIKES AREN'T ALLOWED 24-48HRS",
+    fee: 2000,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+  {
+    id: 'lagos-vi-island-lekki1',
+    name: 'VI, Lagos Island, Lekki 1 EST; Isale-eko',
+    description: "YOU'LL BE REQUIRED TO RECEIVE AT EST GATE IF BIKES AREN'T ALLOWED 24-48HRS",
+    fee: 2500,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+  {
+    id: 'lagos-marwa-ikate-osapa',
+    name: 'Marwa to Ikate, Osapa, ologolo, Igbo efon',
+    description: "YOU'LL RECEIVE AT GATE IF BIKES AREN'T ALLOWED 24-48HRS",
+    fee: 3000,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+  {
+    id: 'lagos-iddo-apapa-surulere',
+    name: 'IDDO, APAPA, EBUTE-META, SURULERE, YABA, IWAYA, ALAGBOMEJI, OBANIKORO, ILUPEJU',
+    description: '24-48hrs dispatch window',
+    fee: 3500,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+  {
+    id: 'lagos-chevron-ikeja-magodo',
+    name: 'CHEVRON, IKEJA, MAGODO 2, SHAGINSHA, OSHODI, IKOSI, MUSHIN, ILASA',
+    description: '24-48HRS dispatch window',
+    fee: 4000,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+  {
+    id: 'lagos-gbagada-ketu-maryland',
+    name: 'GBAGADA, KETU, OGUDU, ANTHONY, MARYLAND',
+    description: '24-48hrs dispatch window',
+    fee: 4000,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+  {
+    id: 'lagos-abraham-adesanya-vgc',
+    name: 'Abraham Adesanya, VGC',
+    description: "YOU'LL BE REQUIRED TO RECEIVE AT EST GATE IF BIKES AREN'T ALLOWED 24-48HRS",
+    fee: 5000,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+  {
+    id: 'lagos-dopemu-iyana-ipaja-festac',
+    name: 'DOPEMU, IYANA-IPAJA, ILE-EPO, OMOLE 1, ISHERI, BERGER, OJODU, MAGODO 1, ISOLO, FESTAC, ALAKIJA, IKOTUN, LASU, EJIGBO',
+    description: '24-48HRS dispatch window',
+    fee: 6000,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+  {
+    id: 'lagos-iju-agege-ikorodu',
+    name: 'IJU, AGEGE, OGBA, OMOLE 2, FAGBA, OKO-OBA, ISHERI-PIPELINE, OKOTA, IDIMU, IKORODU BEFORE THE GARAGE',
+    description: '24-48HRS dispatch window',
+    fee: 6000,
+    estimatedDeliveryTime: '24 - 48 Business Hours',
+    enabled: true,
+  },
+];
 
 export const DEFAULT_PACKAGING_OPTIONS: PackagingOptionItem[] = [
   {
@@ -160,11 +257,12 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   shipping: {
     lagos: {
       enabled: true,
-      fee: 3500,
+      fee: 2000,
       estimatedMinDays: 1,
       estimatedMaxDays: 2,
       label: 'Lagos Delivery',
       notice: 'Direct courier delivery across Lagos mainland and island',
+      areas: DEFAULT_LAGOS_SHIPPING_AREAS,
     },
     otherNigeria: {
       enabled: true,
@@ -174,6 +272,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
       label: 'Other Nigerian States',
       notice: 'Interstate courier dispatch to all states across Nigeria',
     },
+    customStates: [],
     international: {
       enabled: true,
       mode: 'quote-required',
@@ -210,6 +309,7 @@ export type StoreSettingsUpdateInput = {
   shipping?: {
     lagos?: Partial<ZoneDeliverySettings>;
     otherNigeria?: Partial<ZoneDeliverySettings>;
+    customStates?: CustomStateDeliveryConfig[];
     international?: Partial<InternationalDeliverySettings>;
   };
   packaging?: Partial<PackagingSettings>;

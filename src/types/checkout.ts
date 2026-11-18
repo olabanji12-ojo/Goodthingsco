@@ -34,6 +34,8 @@ export interface DeliveryDetails {
   zone: DeliveryZone;
   preferredDate: string; // ISO date string YYYY-MM-DD
   specialInstructions?: string;
+  shippingMethodId?: string;
+  shippingMethodName?: string;
 }
 
 export interface CheckoutFormData {

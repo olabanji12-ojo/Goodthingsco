@@ -98,7 +98,10 @@ export async function revalidateRecoveredCheckout(
   const state = deliveryAddress.state || 'Lagos';
   const zone = resolveDeliveryZone(country, state);
   const shippingSettings = await settingsService.getEffectiveShipping();
-  const deliveryCalc = getDeliveryFeeCalculation(zone, shippingSettings);
+  const deliveryCalc = getDeliveryFeeCalculation(zone, shippingSettings, {
+    areaId: (deliveryAddress as any).shippingMethodId,
+    stateName: state,
+  });
 
   if (!deliveryCalc.enabled) {
     warnings.push('Delivery to this location is currently unavailable.');

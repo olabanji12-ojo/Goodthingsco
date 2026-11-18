@@ -174,9 +174,13 @@ export async function createPendingOrderServer(
       payload.delivery.address.state
     );
     let authoritativeDeliveryFee = 0;
+    let deliveryCalc: any = null;
     try {
       const shippingSettings = await settingsService.getEffectiveShipping();
-      const deliveryCalc = getDeliveryFeeCalculation(resolvedZone, shippingSettings);
+      deliveryCalc = getDeliveryFeeCalculation(resolvedZone, shippingSettings, {
+        areaId: payload.delivery.shippingMethodId,
+        stateName: payload.delivery.address.state,
+      });
 
       if (!deliveryCalc.enabled) {
         return {
@@ -233,6 +237,8 @@ export async function createPendingOrderServer(
         preferredDate: payload.delivery.preferredDate,
         specialInstructions: payload.delivery.specialInstructions?.trim() || '',
         deliveryFee: authoritativeDeliveryFee,
+        shippingMethodId: payload.delivery.shippingMethodId,
+        shippingMethodName: payload.delivery.shippingMethodName || deliveryCalc.name,
       },
       giftMessage: payload.giftMessage?.trim() || '',
       items: verifiedOrderItems,

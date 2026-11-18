@@ -137,13 +137,20 @@ export interface DeliveryCalculationResult {
   notice?: string;
 }
 
+export interface DeliveryCalculationOptions {
+  areaId?: string;
+  stateName?: string;
+}
+
 /**
  * Computes the delivery fee and metadata for the given zone.
- * Respects live admin settings if provided; otherwise falls back to static defaults.
+ * Respects live admin settings and area-specific rates if provided;
+ * otherwise falls back to static defaults.
  */
 export function getDeliveryFeeCalculation(
   zone: DeliveryZone,
-  liveShipping?: any
+  liveShipping?: any,
+  options?: DeliveryCalculationOptions
 ): DeliveryCalculationResult {
   if (liveShipping) {
     if (zone === 'lagos' && liveShipping.lagos) {
@@ -152,30 +159,91 @@ export function getDeliveryFeeCalculation(
         z.estimatedMinDays && z.estimatedMaxDays
           ? `${z.estimatedMinDays}–${z.estimatedMaxDays} business days`
           : z.estimatedDeliveryTime || '1 - 2 Business Days';
+
+      const areas = Array.isArray(z.areas) ? z.areas : [];
+      if (options?.areaId) {
+        const selectedArea = areas.find((a: any) => a.id === options.areaId && a.enabled !== false);
+        if (selectedArea) {
+          return {
+            fee: Math.max(0, selectedArea.fee),
+            requiresQuote: false,
+            enabled: z.enabled !== false,
+            name: selectedArea.name,
+            estimatedDeliveryTime: selectedArea.estimatedDeliveryTime || estimate,
+            notice: selectedArea.description || z.notice,
+          };
+        }
+      }
+
+      // If no specific area was provided or matched, pick the first active area if available
+      const firstArea = areas.find((a: any) => a.enabled !== false);
+      const effectiveFee = firstArea ? firstArea.fee : Math.max(0, z.fee ?? 0);
+      const effectiveName = firstArea ? firstArea.name : (z.label || 'Lagos Delivery');
+
       return {
-        fee: z.enabled ? Math.max(0, z.fee) : 0,
+        fee: z.enabled !== false ? effectiveFee : 0,
         requiresQuote: false,
         enabled: z.enabled !== false,
-        name: z.label || 'Lagos Delivery',
-        estimatedDeliveryTime: estimate,
-        notice: z.notice,
+        name: effectiveName,
+        estimatedDeliveryTime: firstArea?.estimatedDeliveryTime || estimate,
+        notice: firstArea?.description || z.notice,
       };
     }
-    if (zone === 'other-nigeria' && liveShipping.otherNigeria) {
+
+    if (zone === 'other-nigeria') {
+      const customStates = Array.isArray(liveShipping.customStates) ? liveShipping.customStates : [];
+      const matchedState = options?.stateName
+        ? customStates.find(
+            (cs: any) =>
+              cs.enabled !== false &&
+              cs.stateName?.trim().toLowerCase() === options.stateName?.trim().toLowerCase()
+          )
+        : null;
+
+      if (matchedState) {
+        const stateAreas = Array.isArray(matchedState.areas) ? matchedState.areas : [];
+        if (options?.areaId) {
+          const selectedArea = stateAreas.find((a: any) => a.id === options.areaId && a.enabled !== false);
+          if (selectedArea) {
+            return {
+              fee: Math.max(0, selectedArea.fee),
+              requiresQuote: false,
+              enabled: true,
+              name: `${matchedState.stateName} — ${selectedArea.name}`,
+              estimatedDeliveryTime: selectedArea.estimatedDeliveryTime || matchedState.estimatedDeliveryTime || '3 - 5 Business Days',
+              notice: selectedArea.description,
+            };
+          }
+        }
+
+        const firstStateArea = stateAreas.find((a: any) => a.enabled !== false);
+        const stateFee = firstStateArea ? firstStateArea.fee : Math.max(0, matchedState.defaultFee ?? 0);
+        return {
+          fee: stateFee,
+          requiresQuote: false,
+          enabled: true,
+          name: firstStateArea ? `${matchedState.stateName} — ${firstStateArea.name}` : `${matchedState.stateName} Delivery`,
+          estimatedDeliveryTime: matchedState.estimatedDeliveryTime || '3 - 5 Business Days',
+        };
+      }
+
       const z = liveShipping.otherNigeria;
-      const estimate =
-        z.estimatedMinDays && z.estimatedMaxDays
-          ? `${z.estimatedMinDays}–${z.estimatedMaxDays} business days`
-          : z.estimatedDeliveryTime || '3 - 5 Business Days';
-      return {
-        fee: z.enabled ? Math.max(0, z.fee) : 0,
-        requiresQuote: false,
-        enabled: z.enabled !== false,
-        name: z.label || 'Other Nigerian States',
-        estimatedDeliveryTime: estimate,
-        notice: z.notice,
-      };
+      if (z) {
+        const estimate =
+          z.estimatedMinDays && z.estimatedMaxDays
+            ? `${z.estimatedMinDays}–${z.estimatedMaxDays} business days`
+            : z.estimatedDeliveryTime || '3 - 5 Business Days';
+        return {
+          fee: z.enabled ? Math.max(0, z.fee) : 0,
+          requiresQuote: false,
+          enabled: z.enabled !== false,
+          name: z.label || 'Other Nigerian States',
+          estimatedDeliveryTime: estimate,
+          notice: z.notice,
+        };
+      }
     }
+
     if (zone === 'international' && liveShipping.international) {
       const z = liveShipping.international;
       const isFixed = z.mode === 'fixed';

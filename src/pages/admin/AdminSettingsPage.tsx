@@ -35,8 +35,9 @@ import {
   getAdminStoreSettings,
   updateAdminStoreSettings,
 } from '../../services/settingsService';
-import type { StoreSettings, StoreSettingsUpdateInput, PackagingOptionItem, RibbonOptionItem } from '../../types/settings';
-import { DEFAULT_STORE_SETTINGS, DEFAULT_PACKAGING_OPTIONS, DEFAULT_RIBBON_OPTIONS } from '../../types/settings';
+import type { StoreSettings, StoreSettingsUpdateInput, PackagingOptionItem, RibbonOptionItem, ShippingAreaRate, CustomStateDeliveryConfig } from '../../types/settings';
+import { DEFAULT_STORE_SETTINGS, DEFAULT_PACKAGING_OPTIONS, DEFAULT_RIBBON_OPTIONS, DEFAULT_LAGOS_SHIPPING_AREAS } from '../../types/settings';
+import { NIGERIAN_STATES } from '../../config/shipping';
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -47,6 +48,8 @@ export default function AdminSettingsPage() {
   // Form state
   const [formData, setFormData] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
   const [reminderDelaysInput, setReminderDelaysInput] = useState<string>('1, 24');
+  const [selectedNewState, setSelectedNewState] = useState<string>('');
+  const [newStateFee, setNewStateFee] = useState<number>(7000);
 
   // Load existing settings on mount
   useEffect(() => {
@@ -107,8 +110,22 @@ export default function AdminSettingsPage() {
           ? packaging.ribbons
           : DEFAULT_RIBBON_OPTIONS;
 
+        const lagosAreas =
+          settings.shipping.lagos?.areas && settings.shipping.lagos.areas.length > 0
+            ? settings.shipping.lagos.areas
+            : DEFAULT_LAGOS_SHIPPING_AREAS;
+        const customStates = settings.shipping.customStates || [];
+
         setFormData({
           ...settings,
+          shipping: {
+            ...settings.shipping,
+            lagos: {
+              ...settings.shipping.lagos,
+              areas: lagosAreas,
+            },
+            customStates,
+          },
           packaging: {
             giftBoxFee: packaging.giftBoxFee ?? 0,
             linenBagFee: packaging.linenBagFee ?? 0,
@@ -127,6 +144,119 @@ export default function AdminSettingsPage() {
       setLoading(false);
     }
   }
+
+  // Lagos Areas Handlers
+  const handleAddLagosArea = () => {
+    const newArea: ShippingAreaRate = {
+      id: `lagos-${Date.now()}`,
+      name: '',
+      description: '',
+      fee: 2500,
+      estimatedDeliveryTime: '24 - 48 Business Hours',
+      enabled: true,
+    };
+    setFormData((prev) => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        lagos: {
+          ...prev.shipping.lagos,
+          areas: [...(prev.shipping.lagos.areas || DEFAULT_LAGOS_SHIPPING_AREAS), newArea],
+        },
+      },
+    }));
+  };
+
+  const handleUpdateLagosArea = (id: string, updates: Partial<ShippingAreaRate>) => {
+    setFormData((prev) => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        lagos: {
+          ...prev.shipping.lagos,
+          areas: (prev.shipping.lagos.areas || DEFAULT_LAGOS_SHIPPING_AREAS).map((a) =>
+            a.id === id ? { ...a, ...updates } : a
+          ),
+        },
+      },
+    }));
+  };
+
+  const handleRemoveLagosArea = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        lagos: {
+          ...prev.shipping.lagos,
+          areas: (prev.shipping.lagos.areas || DEFAULT_LAGOS_SHIPPING_AREAS).filter((a) => a.id !== id),
+        },
+      },
+    }));
+  };
+
+  const handleResetLagosAreas = () => {
+    setFormData((prev) => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        lagos: {
+          ...prev.shipping.lagos,
+          areas: DEFAULT_LAGOS_SHIPPING_AREAS,
+        },
+      },
+    }));
+  };
+
+  // Custom States Handlers
+  const handleAddCustomState = () => {
+    if (!selectedNewState) return;
+    const existing = (formData.shipping.customStates || []).find(
+      (cs) => cs.stateName.toLowerCase() === selectedNewState.toLowerCase()
+    );
+    if (existing) {
+      setError(`State "${selectedNewState}" has already been added.`);
+      return;
+    }
+    const stateObj: CustomStateDeliveryConfig = {
+      id: `state-${Date.now()}`,
+      stateName: selectedNewState,
+      defaultFee: Math.max(0, newStateFee || 0),
+      estimatedDeliveryTime: '3 - 5 Business Days',
+      enabled: true,
+      areas: [],
+    };
+    setFormData((prev) => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        customStates: [...(prev.shipping.customStates || []), stateObj],
+      },
+    }));
+    setSelectedNewState('');
+  };
+
+  const handleUpdateCustomState = (id: string, updates: Partial<CustomStateDeliveryConfig>) => {
+    setFormData((prev) => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        customStates: (prev.shipping.customStates || []).map((cs) =>
+          cs.id === id ? { ...cs, ...updates } : cs
+        ),
+      },
+    }));
+  };
+
+  const handleRemoveCustomState = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        customStates: (prev.shipping.customStates || []).filter((cs) => cs.id !== id),
+      },
+    }));
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +318,14 @@ export default function AdminSettingsPage() {
             estimatedMinDays: Number(formData.shipping.lagos.estimatedMinDays) || 1,
             estimatedMaxDays: Number(formData.shipping.lagos.estimatedMaxDays) || 2,
             label: formData.shipping.lagos.label?.trim() || 'Lagos Delivery',
+            areas: (formData.shipping.lagos.areas || DEFAULT_LAGOS_SHIPPING_AREAS).map((a) => ({
+              id: a.id,
+              name: a.name.trim(),
+              description: (a.description || '').trim(),
+              fee: Math.max(0, Number(a.fee) || 0),
+              estimatedDeliveryTime: (a.estimatedDeliveryTime || '24 - 48 Business Hours').trim(),
+              enabled: a.enabled !== false,
+            })),
           },
           otherNigeria: {
             enabled: Boolean(formData.shipping.otherNigeria.enabled),
@@ -196,6 +334,23 @@ export default function AdminSettingsPage() {
             estimatedMaxDays: Number(formData.shipping.otherNigeria.estimatedMaxDays) || 5,
             label: formData.shipping.otherNigeria.label?.trim() || 'Other Nigerian States',
           },
+          customStates: (formData.shipping.customStates || []).map((cs) => ({
+            id: cs.id,
+            stateName: cs.stateName.trim(),
+            enabled: cs.enabled !== false,
+            defaultFee: Math.max(0, Number(cs.defaultFee) || 0),
+            estimatedDeliveryTime: (cs.estimatedDeliveryTime || '3 - 5 Business Days').trim(),
+            areas: Array.isArray(cs.areas)
+              ? cs.areas.map((a) => ({
+                  id: a.id,
+                  name: a.name.trim(),
+                  description: (a.description || '').trim(),
+                  fee: Math.max(0, Number(a.fee) || 0),
+                  estimatedDeliveryTime: (a.estimatedDeliveryTime || '3 - 5 Business Days').trim(),
+                  enabled: a.enabled !== false,
+                }))
+              : [],
+          })),
           international: {
             enabled: Boolean(formData.shipping.international.enabled),
             mode: formData.shipping.international.mode === 'fixed' ? 'fixed' : 'quote-required',
@@ -577,6 +732,116 @@ export default function AdminSettingsPage() {
                     placeholder="Lagos Delivery"
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-slate-900"
                   />
+                </div>
+              </div>
+
+              {/* ── Lagos Delivery Areas & Pricing Manager ── */}
+              <div className="mt-6 pt-5 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <span>Lagos Delivery Areas & Pricing</span>
+                      <span className="text-[10px] font-sans font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        {(formData.shipping.lagos.areas || DEFAULT_LAGOS_SHIPPING_AREAS).length} Areas Configured
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Customers in Lagos select their specific area during checkout to determine their exact courier fee.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetLagosAreas}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+                      title="Reset back to the 9 client reference areas"
+                    >
+                      <RotateCcw size={12} />
+                      <span>Reset to 9 Reference Areas</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddLagosArea}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-[#c5a880] text-white text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>Add Area</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {(formData.shipping.lagos.areas || DEFAULT_LAGOS_SHIPPING_AREAS).map((area, idx) => (
+                    <div
+                      key={area.id || idx}
+                      className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition-colors space-y-3"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex-1 space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                            <div className="sm:col-span-8">
+                              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                                Area Name / Locations Covered
+                              </label>
+                              <input
+                                type="text"
+                                value={area.name}
+                                onChange={(e) => handleUpdateLagosArea(area.id, { name: e.target.value })}
+                                placeholder="e.g. Ikoyi, Obalende, Sura"
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-medium focus:outline-none focus:border-slate-900"
+                              />
+                            </div>
+                            <div className="sm:col-span-4">
+                              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                                Delivery Fee (₦)
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="100"
+                                value={area.fee}
+                                onChange={(e) => handleUpdateLagosArea(area.id, { fee: Math.max(0, Number(e.target.value) || 0) })}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                              Customer Delivery Note / Transit Timing (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={area.description || ''}
+                              onChange={(e) => handleUpdateLagosArea(area.id, { description: e.target.value })}
+                              placeholder="e.g. YOU'LL BE REQUIRED TO RECEIVE AT ESTATE GATE IF BIKES AREN'T ALLOWED 24-48HRS"
+                              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 focus:outline-none focus:border-slate-900"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0 pt-1">
+                          <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600">
+                            <input
+                              type="checkbox"
+                              checked={area.enabled !== false}
+                              onChange={(e) => handleUpdateLagosArea(area.id, { enabled: e.target.checked })}
+                              className="w-3.5 h-3.5 rounded text-slate-900 focus:ring-slate-900"
+                            />
+                            <span>Active</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLagosArea(area.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Delete this area"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
