@@ -72,39 +72,39 @@ export default function AdminSettingsPage() {
         const options = packaging.options && packaging.options.length > 0
           ? packaging.options
           : [
-              {
-                id: 'gift-box',
-                name: 'Signature Gift Box',
-                description: 'Sturdy debossed ivory box with golden interior lining',
-                price: packaging.giftBoxFee ?? 0,
-                badge: (packaging.giftBoxFee ?? 0) === 0 ? 'Complimentary' : undefined,
-                enabled: true,
-              },
-              {
-                id: 'gift-bag',
-                name: 'Textured Linen Bag',
-                description: 'Heavy natural cotton linen bag with hand-tied twill handles',
-                price: packaging.linenBagFee ?? 0,
-                badge: (packaging.linenBagFee ?? 0) === 0 ? 'Complimentary' : undefined,
-                enabled: true,
-              },
-              {
-                id: 'wooden-box',
-                name: 'Artisan Wooden Crate',
-                description: 'Handcrafted solid cedar keepsake box with sliding lid',
-                price: packaging.woodenBoxFee ?? 0,
-                badge: (packaging.woodenBoxFee ?? 0) === 0 ? 'Complimentary' : undefined,
-                enabled: true,
-              },
-              {
-                id: 'pouch',
-                name: 'Silk Keepsake Pouch',
-                description: 'Soft drawstring satin pouch for jewelry & daily objects',
-                price: packaging.pouchFee ?? 0,
-                badge: (packaging.pouchFee ?? 0) === 0 ? 'Complimentary' : undefined,
-                enabled: true,
-              },
-            ];
+            {
+              id: 'gift-box',
+              name: 'Signature Gift Box',
+              description: 'Sturdy debossed ivory box with golden interior lining',
+              price: packaging.giftBoxFee ?? 0,
+              badge: (packaging.giftBoxFee ?? 0) === 0 ? 'Complimentary' : undefined,
+              enabled: true,
+            },
+            {
+              id: 'gift-bag',
+              name: 'Textured Linen Bag',
+              description: 'Heavy natural cotton linen bag with hand-tied twill handles',
+              price: packaging.linenBagFee ?? 0,
+              badge: (packaging.linenBagFee ?? 0) === 0 ? 'Complimentary' : undefined,
+              enabled: true,
+            },
+            {
+              id: 'wooden-box',
+              name: 'Artisan Wooden Crate',
+              description: 'Handcrafted solid cedar keepsake box with sliding lid',
+              price: packaging.woodenBoxFee ?? 0,
+              badge: (packaging.woodenBoxFee ?? 0) === 0 ? 'Complimentary' : undefined,
+              enabled: true,
+            },
+            {
+              id: 'pouch',
+              name: 'Silk Keepsake Pouch',
+              description: 'Soft drawstring satin pouch for jewelry & daily objects',
+              price: packaging.pouchFee ?? 0,
+              badge: (packaging.pouchFee ?? 0) === 0 ? 'Complimentary' : undefined,
+              enabled: true,
+            },
+          ];
 
         const ribbons = packaging.ribbons && packaging.ribbons.length > 0
           ? packaging.ribbons
@@ -342,13 +342,13 @@ export default function AdminSettingsPage() {
             estimatedDeliveryTime: (cs.estimatedDeliveryTime || '3 - 5 Business Days').trim(),
             areas: Array.isArray(cs.areas)
               ? cs.areas.map((a) => ({
-                  id: a.id,
-                  name: a.name.trim(),
-                  description: (a.description || '').trim(),
-                  fee: Math.max(0, Number(a.fee) || 0),
-                  estimatedDeliveryTime: (a.estimatedDeliveryTime || '3 - 5 Business Days').trim(),
-                  enabled: a.enabled !== false,
-                }))
+                id: a.id,
+                name: a.name.trim(),
+                description: (a.description || '').trim(),
+                fee: Math.max(0, Number(a.fee) || 0),
+                estimatedDeliveryTime: (a.estimatedDeliveryTime || '3 - 5 Business Days').trim(),
+                enabled: a.enabled !== false,
+              }))
               : [],
           })),
           international: {
@@ -965,6 +965,130 @@ export default function AdminSettingsPage() {
                   />
                 </div>
               </div>
+
+              {/* ── Custom Serviceable States Manager ── */}
+              <div className="mt-6 pt-5 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <span>Specific Serviceable States (Outside Lagos)</span>
+                      <span className="text-[10px] font-sans font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                        {(formData.shipping.customStates || []).length} Custom States Added
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Add only the specific states outside Lagos you ship to. If empty, the general interstate rate above applies.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Add State Form */}
+                <div className="p-3.5 rounded-xl border border-dashed border-slate-300 bg-white/70 mb-4 flex flex-col sm:flex-row items-end gap-3">
+                  <div className="flex-1 w-full">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Select Nigerian State to Add
+                    </label>
+                    <select
+                      value={selectedNewState}
+                      onChange={(e) => setSelectedNewState(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-medium focus:outline-none focus:border-slate-900 bg-white"
+                    >
+                      <option value="">Choose a State (e.g. Abuja, Rivers, Oyo)...</option>
+                      {NIGERIAN_STATES.filter(
+                        (st) =>
+                          st.name.toLowerCase() !== 'lagos' &&
+                          !(formData.shipping.customStates || []).some(
+                            (cs) => cs.stateName.toLowerCase() === st.name.toLowerCase()
+                          )
+                      ).map((st) => (
+                        <option key={st.code} value={st.name}>
+                          {st.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="w-full sm:w-44">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Delivery Fee (₦)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={newStateFee}
+                      onChange={(e) => setNewStateFee(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddCustomState}
+                    disabled={!selectedNewState}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 hover:bg-[#c5a880] disabled:opacity-40 text-white text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                  >
+                    <Plus size={14} />
+                    <span>Add State</span>
+                  </button>
+                </div>
+
+                {/* State list */}
+                {formData.shipping.customStates && formData.shipping.customStates.length > 0 && (
+                  <div className="space-y-2.5">
+                    {formData.shipping.customStates.map((cs) => (
+                      <div
+                        key={cs.id}
+                        className="p-3 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                          <div className="sm:col-span-6 font-semibold text-xs text-slate-900">
+                            {cs.stateName}
+                          </div>
+                          <div className="sm:col-span-3 flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold">Fee:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="100"
+                              value={cs.defaultFee}
+                              onChange={(e) =>
+                                handleUpdateCustomState(cs.id, {
+                                  defaultFee: Math.max(0, Number(e.target.value) || 0),
+                                })
+                              }
+                              className="w-24 px-2 py-1 rounded border border-slate-200 text-xs font-bold"
+                            />
+                          </div>
+                          <div className="sm:col-span-3 text-[11px] text-slate-500">
+                            {cs.estimatedDeliveryTime || '3 - 5 Business Days'}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600">
+                            <input
+                              type="checkbox"
+                              checked={cs.enabled !== false}
+                              onChange={(e) => handleUpdateCustomState(cs.id, { enabled: e.target.checked })}
+                              className="w-3.5 h-3.5 rounded text-slate-900 focus:ring-slate-900"
+                            />
+                            <span>Active</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomState(cs.id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
+                            title="Remove state"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* International Zone */}
@@ -1178,9 +1302,8 @@ export default function AdminSettingsPage() {
                 return (
                   <div
                     key={opt.id || idx}
-                    className={`p-4 rounded-xl border transition-all ${
-                      opt.enabled !== false ? 'border-slate-200 bg-slate-50/50' : 'border-slate-200/50 bg-slate-100/40 opacity-70'
-                    }`}
+                    className={`p-4 rounded-xl border transition-all ${opt.enabled !== false ? 'border-slate-200 bg-slate-50/50' : 'border-slate-200/50 bg-slate-100/40 opacity-70'
+                      }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-200/80">
                       <div className="flex items-center gap-2 flex-1">
