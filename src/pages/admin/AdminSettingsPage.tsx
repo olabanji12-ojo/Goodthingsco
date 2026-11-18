@@ -324,6 +324,8 @@ export default function AdminSettingsPage() {
               name: a.name.trim(),
               description: (a.description || '').trim(),
               fee: Math.max(0, Number(a.fee) || 0),
+              carFee: typeof a.carFee === 'number' ? Math.max(0, a.carFee) : undefined,
+              vanFee: typeof a.vanFee === 'number' ? Math.max(0, a.vanFee) : undefined,
               estimatedDeliveryTime: (a.estimatedDeliveryTime || '24 - 48 Business Hours').trim(),
               enabled: a.enabled !== false,
             })),
@@ -787,22 +789,23 @@ export default function AdminSettingsPage() {
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="flex-1 space-y-2">
-                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                            <div className="sm:col-span-8">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                              Area Name / Locations Covered
+                            </label>
+                            <input
+                              type="text"
+                              value={area.name}
+                              onChange={(e) => handleUpdateLagosArea(area.id, { name: e.target.value })}
+                              placeholder="e.g. Ikoyi, Obalende, Sura"
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-medium focus:outline-none focus:border-slate-900"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
                               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                                Area Name / Locations Covered
-                              </label>
-                              <input
-                                type="text"
-                                value={area.name}
-                                onChange={(e) => handleUpdateLagosArea(area.id, { name: e.target.value })}
-                                placeholder="e.g. Ikoyi, Obalende, Sura"
-                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-medium focus:outline-none focus:border-slate-900"
-                              />
-                            </div>
-                            <div className="sm:col-span-4">
-                              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                                Delivery Fee (₦)
+                                🛵 Bike Delivery Fee (₦)
                               </label>
                               <input
                                 type="number"
@@ -811,6 +814,42 @@ export default function AdminSettingsPage() {
                                 value={area.fee}
                                 onChange={(e) => handleUpdateLagosArea(area.id, { fee: Math.max(0, Number(e.target.value) || 0) })}
                                 className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                                🚗 Car Delivery Fee (₦)
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="100"
+                                value={area.carFee ?? ''}
+                                onChange={(e) =>
+                                  handleUpdateLagosArea(area.id, {
+                                    carFee: e.target.value === '' ? undefined : Math.max(0, Number(e.target.value) || 0),
+                                  })
+                                }
+                                placeholder={`Auto: ₦${(area.fee + (formData.shipping.vehicles?.carSurcharge || 3000)).toLocaleString()}`}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                                🚐 Van Delivery Fee (₦)
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="100"
+                                value={area.vanFee ?? ''}
+                                onChange={(e) =>
+                                  handleUpdateLagosArea(area.id, {
+                                    vanFee: e.target.value === '' ? undefined : Math.max(0, Number(e.target.value) || 0),
+                                  })
+                                }
+                                placeholder={`Auto: ₦${(area.fee + (formData.shipping.vehicles?.vanSurcharge || 8000)).toLocaleString()}`}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900"
                               />
                             </div>
                           </div>

@@ -12,7 +12,9 @@ export interface ShippingAreaRate {
   id: string;
   name: string;
   description?: string;
-  fee: number;
+  fee: number; // Bike delivery fee
+  carFee?: number; // Optional custom car delivery fee
+  vanFee?: number; // Optional custom van delivery fee
   estimatedDeliveryTime?: string;
   enabled?: boolean;
 }

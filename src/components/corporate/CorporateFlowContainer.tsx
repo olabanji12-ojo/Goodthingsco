@@ -24,7 +24,6 @@ import {
   Check,
   FileSpreadsheet,
   CheckCircle2,
-  ArrowRight,
 } from 'lucide-react';
 
 interface CorporateFlowContainerProps {
@@ -983,31 +982,19 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
           </div>
         </section>
 
-        {/* Financial Summary & Actions */}
+        {/* Quotation & Actions */}
         <section className="bg-brand-dark text-white rounded-3xl p-6 sm:p-8 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-white/10">
             <div>
               <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-gold-400 block mb-1">
-                Authoritative Quotation Overview
+                Corporate Concierge Request
               </span>
               <h3 className="font-serif text-2xl font-normal">
                 {selectedProduct ? `${selectedProduct.name} (${quantity} units)` : `Bespoke Corporate Presentation (${quantity} units)`}
               </h3>
               <p className="font-sans text-xs text-white/70 mt-1">
-                Includes debossed branding setup, complimentary stationery, and volume discount.
+                Our concierge atelier will review your requirements and prepare an official tailored pro-forma quote with bespoke branding and dispatch schedules.
               </p>
-            </div>
-
-            <div className="text-left sm:text-right">
-              <span className="font-sans text-xs text-white/70 block">Estimated Grand Total</span>
-              <span className="font-serif text-2xl sm:text-3xl font-bold text-white">
-                ₦{grandTotal.toLocaleString()}
-              </span>
-              {volumeDiscountRate > 0 && (
-                <span className="text-[11px] font-sans text-gold-300 block">
-                  Includes {volumeDiscountRate * 100}% volume savings (-₦{discountAmount.toLocaleString()})
-                </span>
-              )}
             </div>
           </div>
 
@@ -1017,19 +1004,9 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
               type="button"
               disabled={isProcessing}
               onClick={() => handleSubmit('quote')}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-white/20 text-white font-sans text-xs font-semibold uppercase tracking-wider hover:bg-white/10 transition-colors cursor-pointer text-center"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gold-500 text-brand-dark font-sans text-xs font-bold uppercase tracking-wider hover:bg-gold-400 transition-colors cursor-pointer text-center"
             >
-              {isProcessing && actionType === 'quote' ? 'Processing...' : 'Request Official Pro-Forma Quote'}
-            </button>
-
-            <button
-              type="button"
-              disabled={isProcessing}
-              onClick={() => handleSubmit('pay')}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gold-600 text-white font-sans text-xs font-semibold uppercase tracking-wider hover:bg-gold-500 transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
-            >
-              <span>{isProcessing && actionType === 'pay' ? 'Authorizing...' : 'Authorize & Pay Now'}</span>
-              <ArrowRight size={14} />
+              {isProcessing ? 'Submitting Request...' : 'Request Official Pro-Forma Quote'}
             </button>
           </div>
         </section>

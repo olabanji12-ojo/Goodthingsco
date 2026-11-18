@@ -282,9 +282,15 @@ export const CheckoutPage: React.FC = () => {
         lagosAreas.find((a) => a.enabled !== false) ||
         lagosAreas[0];
 
-      const baseFee = activeArea ? activeArea.fee : 2000;
+      const bikeFee = activeArea ? activeArea.fee : 2000;
       const carSurcharge = publicSettings?.shipping?.vehicles?.carSurcharge ?? 3000;
       const vanSurcharge = publicSettings?.shipping?.vehicles?.vanSurcharge ?? 8000;
+      const carFee = typeof activeArea?.carFee === 'number' && activeArea.carFee > 0
+        ? activeArea.carFee
+        : bikeFee + carSurcharge;
+      const vanFee = typeof activeArea?.vanFee === 'number' && activeArea.vanFee > 0
+        ? activeArea.vanFee
+        : bikeFee + vanSurcharge;
       const lagosTime = publicSettings?.shipping?.vehicles?.lagosDeliveryEstimate || '2 – 5 Working Days';
 
       return [
@@ -292,7 +298,7 @@ export const CheckoutPage: React.FC = () => {
           id: 'bike',
           name: '🛵 Bike Delivery',
           description: `Fast courier dispatch on motorcycle (${lagosTime})`,
-          fee: baseFee,
+          fee: bikeFee,
           requiresQuote: false,
           estimatedDeliveryTime: lagosTime,
           disabled: false,
@@ -301,7 +307,7 @@ export const CheckoutPage: React.FC = () => {
           id: 'car',
           name: '🚗 Car Delivery',
           description: `Dedicated air-conditioned courier car for trunks, hampers & delicate items (${lagosTime})`,
-          fee: baseFee + carSurcharge,
+          fee: carFee,
           requiresQuote: false,
           estimatedDeliveryTime: lagosTime,
           disabled: false,
@@ -310,7 +316,7 @@ export const CheckoutPage: React.FC = () => {
           id: 'van',
           name: '🚐 Van Delivery',
           description: `Spacious delivery van for oversized crates and corporate bulk sets (${lagosTime})`,
-          fee: baseFee + vanSurcharge,
+          fee: vanFee,
           requiresQuote: false,
           estimatedDeliveryTime: lagosTime,
           disabled: false,
@@ -931,7 +937,7 @@ export const CheckoutPage: React.FC = () => {
                     {isNigeria && (!formData.delivery.address.state || formData.delivery.address.state.toLowerCase() === 'lagos') && (
                       <div id="checkout-lagos-area" className="sm:col-span-2">
                         <label className="font-sans text-xs font-semibold text-brand-dark block mb-1.5">
-                          Lagos Delivery Area / Zone <span className="text-rose-600">*</span>
+                          Delivery Neighborhood / Area in Lagos <span className="text-rose-600">*</span>
                         </label>
                         <select
                           value={selectedAreaId}
@@ -942,10 +948,13 @@ export const CheckoutPage: React.FC = () => {
                             .filter((a) => a.enabled !== false)
                             .map((area) => (
                               <option key={area.id} value={area.id}>
-                                {area.name} (Base Bike: {formatNaira(area.fee)})
+                                {area.name}
                               </option>
                             ))}
                         </select>
+                        <span className="font-sans text-[10px] text-brand-light mt-1 block">
+                          Select your delivery neighborhood. Specific vehicle delivery rates are calculated below.
+                        </span>
                       </div>
                     )}
 
@@ -1245,7 +1254,19 @@ export const CheckoutPage: React.FC = () => {
                     )}
 
                     <div className="flex justify-between items-center text-brand-medium">
-                      <span>Delivery Fee ({deliveryCalc.name})</span>
+                      <span>
+                        Delivery Fee (
+                        {selectedVehicle === 'bike'
+                          ? '🛵 Bike'
+                          : selectedVehicle === 'car'
+                          ? '🚗 Car'
+                          : selectedVehicle === 'van'
+                          ? '🚐 Van'
+                          : selectedVehicle === 'air-freight'
+                          ? '✈️ Air Freight'
+                          : '🚚 Interstate'}
+                        )
+                      </span>
                       <span className="font-semibold text-brand-dark">
                         {deliveryCalc.requiresQuote ? 'Quote Required' : formatNaira(deliveryFee)}
                       </span>

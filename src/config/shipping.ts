@@ -178,8 +178,19 @@ export function getDeliveryFeeCalculation(
         const cleanAreaId = options.areaId.replace(/^(bike|car|van)-/, '');
         const selectedArea = areas.find((a: any) => (a.id === options.areaId || a.id === cleanAreaId) && a.enabled !== false);
         if (selectedArea) {
+          let calculatedFee = selectedArea.fee;
+          if (options?.vehicle === 'car') {
+            calculatedFee = typeof selectedArea.carFee === 'number' && selectedArea.carFee > 0
+              ? selectedArea.carFee
+              : selectedArea.fee + carSurcharge;
+          } else if (options?.vehicle === 'van') {
+            calculatedFee = typeof selectedArea.vanFee === 'number' && selectedArea.vanFee > 0
+              ? selectedArea.vanFee
+              : selectedArea.fee + vanSurcharge;
+          }
+
           return {
-            fee: Math.max(0, selectedArea.fee + vehicleSurcharge),
+            fee: Math.max(0, calculatedFee),
             requiresQuote: false,
             enabled: z.enabled !== false,
             name: `${selectedArea.name}${vehicleLabel}`,

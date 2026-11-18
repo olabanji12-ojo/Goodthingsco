@@ -235,6 +235,8 @@ export function validateStoreSettingsUpdate(raw: any): StoreSettingsUpdateInput 
             name: sanitizeText(a.name, 200),
             description: a.description ? sanitizeText(a.description, 500) : '',
             fee: Math.max(0, Math.round(Number(a.fee) || 0)),
+            carFee: a.carFee !== undefined && a.carFee !== '' ? Math.max(0, Math.round(Number(a.carFee) || 0)) : undefined,
+            vanFee: a.vanFee !== undefined && a.vanFee !== '' ? Math.max(0, Math.round(Number(a.vanFee) || 0)) : undefined,
             estimatedDeliveryTime: a.estimatedDeliveryTime ? sanitizeText(a.estimatedDeliveryTime, 100) : '24 - 48 Business Hours',
             enabled: a.enabled !== false,
           }))
