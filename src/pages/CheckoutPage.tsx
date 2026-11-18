@@ -61,7 +61,7 @@ import {
   getStoredSessionId,
 } from '../services/checkoutSessionService';
 import { getPublicStoreSettings } from '../services/settingsService';
-import type { PublicStoreSettings } from '../types/settings';
+import { type PublicStoreSettings, DEFAULT_LAGOS_SHIPPING_AREAS } from '../types/settings';
 
 export const CheckoutPage: React.FC = () => {
   const { items, subtotal, totalQuantity, revalidateStock } = useCart();
