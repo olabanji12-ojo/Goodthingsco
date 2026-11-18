@@ -8,6 +8,7 @@ import { notificationService } from '../services/notificationService.js';
 import { settingsService } from '../settings/service.js';
 import {
   firestoreCorporateRequests,
+  firestoreCorporateProducts,
   type CorporateRequestRepository,
 } from './repository.js';
 import {
@@ -406,6 +407,33 @@ export function createCorporateManagement(dependencies: ServiceDependencies = {}
         },
         historyEntry
       );
+    },
+
+    /**
+     * 6. Corporate Gift Products Catalog Management
+     */
+    async listCorporateProducts() {
+      return await firestoreCorporateProducts.list();
+    },
+
+    async createCorporateProduct(authorization: string | undefined, data: any) {
+      await requireAdmin(authorization);
+      return await firestoreCorporateProducts.create(data);
+    },
+
+    async updateCorporateProduct(authorization: string | undefined, id: string, data: any) {
+      await requireAdmin(authorization);
+      return await firestoreCorporateProducts.update(id, data);
+    },
+
+    async deleteCorporateProduct(authorization: string | undefined, id: string) {
+      await requireAdmin(authorization);
+      return await firestoreCorporateProducts.delete(id);
+    },
+
+    async clearAllCorporateProducts(authorization: string | undefined) {
+      await requireAdmin(authorization);
+      return await firestoreCorporateProducts.clearAll();
     },
   };
 }

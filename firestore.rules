@@ -34,6 +34,11 @@ service cloud.firestore {
     match /settings/{document=**} {
       allow read, write: if false;
     }
+    // Corporate products catalog: public read, admin write
+    match /corporateProducts/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
     // Website content CMS: public read, admin write
     match /siteContent/{page} {
       allow read: if true;

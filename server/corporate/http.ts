@@ -44,8 +44,10 @@ export function createCorporateHttp(service = corporateManagement) {
 
     const isPublicCorp = path === '/api/corporate-requests';
     const isAdminCorp = path.startsWith('/api/admin/corporate');
+    const isCorpProducts = path === '/api/corporate-products';
+    const isAdminCorpProducts = path.startsWith('/api/admin/corporate-products');
 
-    if (!isPublicCorp && !isAdminCorp) return false;
+    if (!isPublicCorp && !isAdminCorp && !isCorpProducts && !isAdminCorpProducts) return false;
 
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     res.setHeader('Pragma', 'no-cache');
@@ -61,6 +63,42 @@ export function createCorporateHttp(service = corporateManagement) {
     const authorization = req.headers.authorization;
 
     try {
+      // 0. Corporate Products Catalog routes
+      if (isCorpProducts && method === 'GET') {
+        const products = await service.listCorporateProducts();
+        send(200, { success: true, products });
+        return true;
+      }
+
+      if (path === '/api/admin/corporate-products/clear-all' && method === 'POST') {
+        await service.clearAllCorporateProducts(authorization);
+        send(200, { success: true });
+        return true;
+      }
+
+      if (path === '/api/admin/corporate-products' && method === 'POST') {
+        const body = await readJson(req);
+        const product = await service.createCorporateProduct(authorization, body);
+        send(201, { success: true, product });
+        return true;
+      }
+
+      const prodMatch = path.match(/^\/api\/admin\/corporate-products\/([a-zA-Z0-9_-]{1,128})$/);
+      if (prodMatch && (method === 'PUT' || method === 'PATCH')) {
+        const id = prodMatch[1];
+        const body = await readJson(req);
+        const product = await service.updateCorporateProduct(authorization, id, body);
+        send(200, { success: true, product });
+        return true;
+      }
+
+      if (prodMatch && method === 'DELETE') {
+        const id = prodMatch[1];
+        await service.deleteCorporateProduct(authorization, id);
+        send(200, { success: true });
+        return true;
+      }
+
       // 1. POST /api/corporate-requests (Public submission)
       if (isPublicCorp && method === 'POST') {
         // Trust the platform header only on Vercel, where it is set by their proxy.

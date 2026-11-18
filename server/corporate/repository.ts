@@ -152,3 +152,50 @@ export const firestoreCorporateRequests: CorporateRequestRepository = {
     return true;
   },
 };
+
+export const CORPORATE_PRODUCTS_COLLECTION = 'corporateProducts';
+
+export const firestoreCorporateProducts = {
+  async list(): Promise<any[]> {
+    const snap = await getAdminFirestore()
+      .collection(CORPORATE_PRODUCTS_COLLECTION)
+      .get();
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  },
+
+  async create(data: any): Promise<any> {
+    const docRef = await getAdminFirestore()
+      .collection(CORPORATE_PRODUCTS_COLLECTION)
+      .add({
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    return { ...data, id: docRef.id };
+  },
+
+  async update(id: string, data: any): Promise<any> {
+    const docRef = getAdminFirestore()
+      .collection(CORPORATE_PRODUCTS_COLLECTION)
+      .doc(id);
+    await docRef.set({ ...data, updatedAt: new Date().toISOString() }, { merge: true });
+    const snap = await docRef.get();
+    return { id: snap.id, ...snap.data() };
+  },
+
+  async delete(id: string): Promise<void> {
+    await getAdminFirestore()
+      .collection(CORPORATE_PRODUCTS_COLLECTION)
+      .doc(id)
+      .delete();
+  },
+
+  async clearAll(): Promise<void> {
+    const snap = await getAdminFirestore()
+      .collection(CORPORATE_PRODUCTS_COLLECTION)
+      .get();
+    const batch = getAdminFirestore().batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  },
+};

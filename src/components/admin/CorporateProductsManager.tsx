@@ -141,10 +141,10 @@ export const CorporateProductsManager: React.FC = () => {
       alert('Please enter a package name.');
       return;
     }
-    if (!formImage.trim()) {
-      alert('Please upload or provide an image URL for this package.');
-      return;
-    }
+
+    const finalImage =
+      formImage.trim() ||
+      'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80';
 
     setSaving(true);
     try {
@@ -158,7 +158,7 @@ export const CorporateProductsManager: React.FC = () => {
         category: formCategory.trim() || 'Curated Gift Set',
         unitPrice: Math.max(0, Number(formPrice) || 0),
         formattedPrice: `₦${Number(formPrice).toLocaleString()}`,
-        image: formImage.trim(),
+        image: finalImage,
         alt: formName.trim(),
         purposes: formPurposes.length > 0 ? formPurposes : (['client'] as CorporatePurpose[]),
         giftTypes: formGiftTypes.length > 0 ? formGiftTypes : (['choose-gift'] as CorporateGiftType[]),
@@ -659,8 +659,16 @@ export const CorporateProductsManager: React.FC = () => {
                   disabled={saving || uploadingImage}
                   className="px-5 py-2 rounded-xl text-xs font-sans font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
-                  {saving && <Loader2 size={13} className="animate-spin" />}
-                  <span>{editingProduct ? 'Save Changes' : 'Create Package'}</span>
+                  {(saving || uploadingImage) && <Loader2 size={13} className="animate-spin" />}
+                  <span>
+                    {uploadingImage
+                      ? 'Uploading Image...'
+                      : saving
+                      ? 'Saving Package...'
+                      : editingProduct
+                      ? 'Save Changes'
+                      : 'Publish Corporate Package'}
+                  </span>
                 </button>
               </div>
             </form>
