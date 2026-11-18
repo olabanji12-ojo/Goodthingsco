@@ -23,7 +23,6 @@ import {
   ShieldCheck,
   Package,
   Calendar,
-  Truck,
   CheckCircle2,
   AlertTriangle,
   AlertCircle,
@@ -166,7 +165,10 @@ export const CheckoutPage: React.FC = () => {
 
   // Determine available shipping methods based on country and state
   const availableShippingMethods = useMemo(() => {
-    if (!isNigeria) {
+    const normCountry = (formData.delivery.address.country || 'Nigeria').trim().toLowerCase();
+    const isLocalDelivery = normCountry === 'nigeria' || normCountry === 'ng';
+
+    if (!isLocalDelivery) {
       return [
         {
           id: 'international-courier',
@@ -245,7 +247,7 @@ export const CheckoutPage: React.FC = () => {
           publicSettings?.shipping?.otherNigeria?.estimatedDeliveryTime || '3 - 5 Business Days',
       },
     ];
-  }, [isNigeria, formData.delivery.address.state, publicSettings?.shipping]);
+  }, [formData.delivery.address.country, formData.delivery.address.state, publicSettings?.shipping]);
 
   // Ensure an active method is selected
   useEffect(() => {
@@ -403,7 +405,11 @@ export const CheckoutPage: React.FC = () => {
       const payload: ValidatedCheckoutPayload = {
         customer: { ...formData.customer },
         recipient: { ...formData.recipient },
-        delivery: { ...formData.delivery },
+        delivery: {
+          ...formData.delivery,
+          shippingMethodId: selectedShippingMethodId,
+          shippingMethodName: deliveryCalc.name,
+        },
         giftMessage: formData.giftMessage?.trim() || undefined,
         items: [...items],
         subtotal,
@@ -768,12 +774,20 @@ export const CheckoutPage: React.FC = () => {
                             errors.state ? 'border-rose-400 bg-rose-50/20' : 'border-brand-dark/15'
                           }`}
                         >
-                          <option value="">Select Nigerian State...</option>
-                          {NIGERIAN_STATES.map((st) => (
-                            <option key={st.code} value={st.name}>
-                              {st.name}
-                            </option>
-                          ))}
+                          <option value="Lagos">Lagos (Local State Delivery)</option>
+                          {publicSettings?.shipping?.customStates && publicSettings.shipping.customStates.length > 0
+                            ? publicSettings.shipping.customStates
+                                .filter((cs) => cs.enabled !== false && cs.stateName.toLowerCase() !== 'lagos')
+                                .map((cs) => (
+                                  <option key={cs.id} value={cs.stateName}>
+                                    {cs.stateName}
+                                  </option>
+                                ))
+                            : NIGERIAN_STATES.filter((st) => st.name.toLowerCase() !== 'lagos').map((st) => (
+                                <option key={st.code} value={st.name}>
+                                  {st.name}
+                                </option>
+                              ))}
                         </select>
                       ) : (
                         <input
@@ -857,45 +871,72 @@ export const CheckoutPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Dynamic Delivery Zone Indicator */}
-                  <div
-                    className={`p-4 rounded-2xl border flex items-start gap-3 transition-colors ${
-                      !deliveryCalc.enabled
-                        ? 'bg-rose-50/90 border-rose-200 text-rose-950'
-                        : 'bg-amber-50/80 border-amber-200/80 text-amber-950'
-                    }`}
-                  >
-                    <Truck
-                      size={20}
-                      className={!deliveryCalc.enabled ? 'text-rose-600 shrink-0 mt-0.5' : 'text-gold-700 shrink-0 mt-0.5'}
-                    />
-                    <div className="font-sans text-xs space-y-1">
-                      <div className="flex items-center gap-2 font-bold">
-                        <span>{deliveryCalc.name}</span>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-white text-[10px] uppercase font-bold ${
-                            !deliveryCalc.enabled
-                              ? 'bg-rose-600'
-                              : deliveryCalc.requiresQuote
-                                ? 'bg-amber-600'
-                                : 'bg-gold-600'
-                          }`}
-                        >
-                          {!deliveryCalc.enabled
-                            ? 'Unavailable'
-                            : deliveryCalc.requiresQuote
-                              ? 'Quote Required'
-                              : formatNaira(deliveryFee)}
+                  {/* ── Shipping Method Selection (Exact Reference Match) ── */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-sans text-sm font-bold text-brand-dark">
+                        Shipping method
+                      </h3>
+                      {deliveryCalc.enabled && !deliveryCalc.requiresQuote && (
+                        <span className="text-[11px] font-sans text-brand-medium">
+                          Dispatch: {deliveryCalc.estimatedDeliveryTime}
                         </span>
-                      </div>
-                      <p className={!deliveryCalc.enabled ? 'text-rose-800' : 'text-amber-900/80'}>
-                        {!deliveryCalc.enabled
-                          ? 'Delivery to this location is currently unavailable.'
-                          : deliveryCalc.requiresQuote
-                            ? (deliveryCalc.notice || 'International delivery rates vary by destination weight and customs. The atelier team will confirm exact shipping before dispatch.')
-                            : `Estimated dispatch window: ${deliveryCalc.estimatedDeliveryTime}`}
-                      </p>
+                      )}
                     </div>
+
+                    {!deliveryCalc.enabled ? (
+                      <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50/90 text-rose-950 font-sans text-xs flex items-center gap-2.5">
+                        <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                        <span>Delivery to this destination is currently unavailable.</span>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-brand-dark/15 bg-white divide-y divide-brand-dark/10 overflow-hidden shadow-2xs">
+                        {availableShippingMethods.map((method) => {
+                          const isSelected = selectedShippingMethodId === method.id;
+                          return (
+                            <label
+                              key={method.id}
+                              onClick={() => setSelectedShippingMethodId(method.id)}
+                              className={`p-4 sm:p-4.5 flex items-start sm:items-center justify-between gap-3.5 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-[#FAF8F5] ring-1 ring-inset ring-brand-dark/20'
+                                  : 'hover:bg-black/[0.02]'
+                              }`}
+                            >
+                              <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                                {/* Styled radio button matching screenshot */}
+                                <div className="pt-0.5 sm:pt-0 shrink-0">
+                                  <div
+                                    className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                                      isSelected
+                                        ? 'border-brand-dark bg-brand-dark'
+                                        : 'border-brand-dark/30 bg-white'
+                                    }`}
+                                  >
+                                    {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-0.5">
+                                  <div className="font-sans text-xs sm:text-[13px] font-semibold text-brand-dark leading-snug">
+                                    {method.name}
+                                  </div>
+                                  {method.description && (
+                                    <div className="font-sans text-[11px] text-brand-medium/90 uppercase tracking-tight leading-relaxed">
+                                      {method.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="shrink-0 text-right font-sans font-bold text-xs sm:text-sm text-brand-dark pl-2">
+                                {method.requiresQuote ? 'Quote Required' : formatNaira(method.fee)}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
