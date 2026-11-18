@@ -641,11 +641,17 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
                         : 'border-brand-dark/10 hover:border-brand-dark/30 bg-white'
                     }`}
                   >
-                    <img
-                      src={prod.image}
-                      alt={prod.name}
-                      className="w-full h-36 object-cover rounded-xl mb-3"
-                    />
+                    <div className="w-full h-52 sm:h-56 rounded-xl bg-[#FAF8F5] p-3 mb-3 flex items-center justify-center overflow-hidden border border-brand-dark/5">
+                      <img
+                        src={prod.image}
+                        alt={prod.name}
+                        className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=600&q=80';
+                        }}
+                      />
+                    </div>
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-medium">

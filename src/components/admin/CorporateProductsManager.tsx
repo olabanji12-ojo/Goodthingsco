@@ -345,11 +345,11 @@ export const CorporateProductsManager: React.FC = () => {
               className="bg-white rounded-2xl border border-slate-200/90 p-4 flex flex-col justify-between shadow-2xs hover:shadow-xs transition-shadow"
             >
               <div>
-                <div className="relative mb-3 rounded-xl overflow-hidden bg-slate-100 aspect-16/10">
+                <div className="relative mb-3 rounded-xl overflow-hidden bg-slate-50 p-2 h-48 flex items-center justify-center border border-slate-100">
                   <img
                     src={prod.image}
                     alt={prod.name}
-                    className="w-full h-full object-cover"
+                    className="max-h-full max-w-full object-contain"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
                         'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=600&q=80';
