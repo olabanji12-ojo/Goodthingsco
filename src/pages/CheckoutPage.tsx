@@ -47,6 +47,7 @@ import {
   StockRevalidationSummary,
   ValidatedCheckoutPayload,
 } from '../types/checkout';
+import { PaymentProvider } from '../types/order';
 import {
   validateCheckoutForm,
   revalidateCartInventory,
@@ -101,6 +102,7 @@ export const CheckoutPage: React.FC = () => {
   const [initializingPayment, setInitializingPayment] = useState<boolean>(false);
   const [preparedPayload, setPreparedPayload] = useState<ValidatedCheckoutPayload | null>(null);
   const [paymentNoticeOpen, setPaymentNoticeOpen] = useState<boolean>(false);
+  const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<PaymentProvider>('flutterwave');
 
   // Auto-sync form changes to localStorage
   useEffect(() => {
@@ -527,13 +529,13 @@ export const CheckoutPage: React.FC = () => {
         deliveryRequiresQuote: deliveryCalc.requiresQuote,
         validatedAt: new Date().toISOString(),
         checkoutSessionId: getStoredSessionId() || undefined,
-        paymentProvider: 'flutterwave',
+        paymentProvider: selectedPaymentProvider,
       };
 
       setPreparedPayload(payload);
       setInitializingPayment(true);
 
-      const initResult = await initializeOrderPayment(payload, 'flutterwave');
+      const initResult = await initializeOrderPayment(payload, selectedPaymentProvider);
 
       if (!initResult.success || !initResult.authorizationUrl) {
         setErrors({
@@ -1290,36 +1292,88 @@ export const CheckoutPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Payment Method — Flutterwave */}
+                  {/* Payment Method Selector */}
                   <div className="pt-3 border-t border-brand-dark/10 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="font-sans text-xs font-semibold uppercase tracking-wider text-brand-dark flex items-center gap-1.5">
                         <CreditCard size={14} className="text-gold-600" />
-                        Payment Method
+                        Payment Gateway
                       </span>
                       <span className="font-sans text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full font-medium">
                         Direct & Secure
                       </span>
                     </div>
 
-                    <div
-                      id="payment-method-flutterwave"
-                      className="p-3.5 rounded-2xl border border-brand-dark/20 bg-brand-dark/5 flex items-center justify-between"
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-sans text-xs font-bold text-brand-dark">Flutterwave</span>
-                          <span className="text-[10px] bg-gold-500/15 text-gold-800 px-2 py-0.5 rounded-md font-semibold tracking-wide">
-                            Official Gateway
-                          </span>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {/* Flutterwave Option (Default) */}
+                      <button
+                        type="button"
+                        id="payment-method-flutterwave"
+                        onClick={() => setSelectedPaymentProvider('flutterwave')}
+                        className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                          selectedPaymentProvider === 'flutterwave'
+                            ? 'border-brand-dark bg-brand-dark/5 ring-1 ring-brand-dark shadow-xs'
+                            : 'border-brand-dark/15 hover:border-brand-dark/30 bg-white'
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-sans text-xs font-bold text-brand-dark">Flutterwave</span>
+                            <span className="text-[10px] bg-gold-500/15 text-gold-800 px-2 py-0.5 rounded-md font-semibold tracking-wide">
+                              Cards & Transfer
+                            </span>
+                          </div>
+                          <p className="font-sans text-[11px] text-brand-medium/80">
+                            Debit / Credit Cards, Bank Transfer, USSD & Mobile Money
+                          </p>
                         </div>
-                        <p className="font-sans text-[11px] text-brand-medium/80">
-                          Debit / Credit Cards, Bank Transfer, USSD & Mobile Money
-                        </p>
-                      </div>
-                      <div className="w-4 h-4 rounded-full border border-brand-dark bg-brand-dark flex items-center justify-center shrink-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                      </div>
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                            selectedPaymentProvider === 'flutterwave'
+                              ? 'border-brand-dark bg-brand-dark'
+                              : 'border-brand-dark/30 bg-white'
+                          }`}
+                        >
+                          {selectedPaymentProvider === 'flutterwave' && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Nomba Option */}
+                      <button
+                        type="button"
+                        id="payment-method-nomba"
+                        onClick={() => setSelectedPaymentProvider('nomba')}
+                        className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                          selectedPaymentProvider === 'nomba'
+                            ? 'border-brand-dark bg-brand-dark/5 ring-1 ring-brand-dark shadow-xs'
+                            : 'border-brand-dark/15 hover:border-brand-dark/30 bg-white'
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-sans text-xs font-bold text-brand-dark">Nomba</span>
+                            <span className="text-[10px] bg-emerald-600/15 text-emerald-800 px-2 py-0.5 rounded-md font-semibold tracking-wide">
+                              Instant Checkout
+                            </span>
+                          </div>
+                          <p className="font-sans text-[11px] text-brand-medium/80">
+                            Debit / Credit Cards, Instant Bank Transfer & QR
+                          </p>
+                        </div>
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                            selectedPaymentProvider === 'nomba'
+                              ? 'border-brand-dark bg-brand-dark'
+                              : 'border-brand-dark/30 bg-white'
+                          }`}
+                        >
+                          {selectedPaymentProvider === 'nomba' && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          )}
+                        </div>
+                      </button>
                     </div>
                   </div>
 
@@ -1342,7 +1396,7 @@ export const CheckoutPage: React.FC = () => {
                     ) : initializingPayment ? (
                       <>
                         <Loader2 size={16} className="animate-spin text-gold-400" />
-                        <span>Connecting to Flutterwave...</span>
+                        <span>Connecting to {selectedPaymentProvider === 'nomba' ? 'Nomba' : 'Flutterwave'}...</span>
                       </>
                     ) : !deliveryCalc.enabled ? (
                       <span>Delivery Location Unavailable</span>
@@ -1350,7 +1404,7 @@ export const CheckoutPage: React.FC = () => {
                       <span>Shipping Quote Required</span>
                     ) : (
                       <>
-                        <span>Pay with Flutterwave</span>
+                        <span>Pay with {selectedPaymentProvider === 'nomba' ? 'Nomba' : 'Flutterwave'}</span>
                         <span>→</span>
                       </>
                     )}

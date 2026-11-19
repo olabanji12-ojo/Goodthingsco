@@ -52,6 +52,17 @@ export function generateFlutterwaveReference(orderNumber: string): string {
 }
 
 /**
+ * Generates a unique Nomba payment orderReference.
+ * Format: nomba_GTC_YYYYMMDD_XXXX_<timestamp>_<rand>
+ */
+export function generateNombaReference(orderNumber: string): string {
+  const cleanOrderNum = orderNumber.replace(/[^A-Za-z0-9]/g, '_');
+  const timestamp = Date.now().toString(36);
+  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `nomba_${cleanOrderNum}_${timestamp}_${randomSuffix}`;
+}
+
+/**
  * Converts Nigerian Naira (NGN) to Kobo (smallest currency unit).
  * Paystack strictly expects amount in kobo (1 Naira = 100 kobo).
  * Example: ₦35,000 -> 3500000 kobo.

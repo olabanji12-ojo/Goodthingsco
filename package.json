@@ -18,6 +18,7 @@
     "test:settings": "tsc -p tsconfig.settings-tests.json && node scripts/settings.mjs",
     "test:content": "tsc -p tsconfig.content-tests.json && node scripts/content.mjs",
     "test:paystack": "tsc -p tsconfig.payment-tests.json && node scripts/paystack.mjs",
+    "test:nomba": "node scripts/nombaTest.mjs",
     "test:packaging": "node scripts/packagingTest.mjs",
     "admin:claim": "node scripts/set-admin-claim.mjs",
     "build": "npm run test:api-runtime && vite build",

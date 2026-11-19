@@ -26,12 +26,12 @@ import {
 import { db } from './firebase.js';
 import { notificationService } from './services/notificationService.js';
 import { effectiveHistory } from './orders/domain.js';
-import { Order, OrderItem, OrderStatus } from '../src/types/order.js';
+import { Order, OrderItem, OrderStatus, PaymentProvider } from '../src/types/order.js';
 import { ValidatedCheckoutPayload } from '../src/types/checkout.js';
 import {
   generateOrderNumber,
   generateFlutterwaveReference,
-  nairaToKobo,
+  generateNombaReference,
   mapCartItemToOrderItem,
 } from '../src/utils/orderUtils.js';
 import { resolveDeliveryZone, getDeliveryFeeCalculation } from '../src/config/shipping.js';
@@ -42,6 +42,11 @@ import {
   initializeFlutterwaveTransaction,
   verifyFlutterwaveTransaction,
 } from './flutterwaveService.js';
+import {
+  initializeNombaTransaction,
+  verifyNombaTransaction,
+  nairaToKoboSafe,
+} from './nombaService.js';
 import { abandonedCheckoutService } from './checkout/service.js';
 import { settingsService } from './settings/service.js';
 
@@ -203,12 +208,14 @@ export async function createPendingOrderServer(
     }
 
     const authoritativeTotal = authoritativeSubtotal + authoritativeDeliveryFee;
-    const amountKobo = nairaToKobo(authoritativeTotal);
+    const amountKobo = nairaToKoboSafe(authoritativeTotal);
 
-    // D. Payment Gateway & Unique Reference (Flutterwave)
-    const provider = 'flutterwave';
+    // D. Payment Gateway & Unique Reference (Preserve Flutterwave as default)
+    const provider: PaymentProvider = payload.paymentProvider === 'nomba' ? 'nomba' : 'flutterwave';
     const orderNumber = generateOrderNumber();
-    const reference = generateFlutterwaveReference(orderNumber);
+    const reference = provider === 'nomba'
+      ? generateNombaReference(orderNumber)
+      : generateFlutterwaveReference(orderNumber);
 
     // E. Assemble Order Document
     const orderDocData: Omit<Order, 'id'> = {
@@ -272,26 +279,50 @@ export async function createPendingOrderServer(
     // The order is already durable. Delivery failures are isolated by the notification layer.
     await notificationService.orderCreated({ id: orderId, ...orderDocData });
 
-    // G. Initialize Payment with Flutterwave Gateway
+    // G. Initialize Payment with Selected Gateway
     const callbackUrl = `${callbackOrigin.replace(/\/$/, '')}/order-confirmation/${orderNumber}`;
 
-    const flwResult = await initializeFlutterwaveTransaction({
-      email: orderDocData.customer.email,
-      amountNaira: authoritativeTotal,
-      reference,
-      callbackUrl,
-      customerName: orderDocData.customer.fullName,
-      customerPhone: orderDocData.customer.phone,
-      metadata: {
-        orderNumber,
-        orderId,
-        customerName: orderDocData.customer.fullName,
-      },
-    });
+    let gatewayResult: {
+      success: boolean;
+      authorizationUrl?: string;
+      reference: string;
+      message?: string;
+    };
 
-    if (!flwResult.success) {
+    if (provider === 'nomba') {
+      gatewayResult = await initializeNombaTransaction({
+        reference,
+        amountNaira: authoritativeTotal,
+        customerEmail: orderDocData.customer.email,
+        callbackUrl,
+        customerName: orderDocData.customer.fullName,
+        customerPhone: orderDocData.customer.phone,
+        metadata: {
+          orderNumber,
+          orderId,
+          customerName: orderDocData.customer.fullName,
+        },
+      });
+    } else {
+      gatewayResult = await initializeFlutterwaveTransaction({
+        email: orderDocData.customer.email,
+        amountNaira: authoritativeTotal,
+        reference,
+        callbackUrl,
+        customerName: orderDocData.customer.fullName,
+        customerPhone: orderDocData.customer.phone,
+        metadata: {
+          orderNumber,
+          orderId,
+          customerName: orderDocData.customer.fullName,
+        },
+      });
+    }
+
+    if (!gatewayResult.success) {
+      const gatewayLabel = provider === 'nomba' ? 'Nomba' : 'Flutterwave';
       await notificationService.orderException({ id: orderId, ...orderDocData },
-        'Flutterwave payment initialization failed. The pending order is saved and may need assistance.',
+        `${gatewayLabel} payment initialization failed. The pending order is saved and may need assistance.`,
         `${orderNumber}:payment-initialization`);
       return {
         success: false,
@@ -299,7 +330,7 @@ export async function createPendingOrderServer(
         orderId,
         reference,
         total: authoritativeTotal,
-        message: flwResult.message || 'Failed to initialize payment with Flutterwave.',
+        message: gatewayResult.message || `Failed to initialize payment with ${gatewayLabel}.`,
       };
     }
 
@@ -308,7 +339,7 @@ export async function createPendingOrderServer(
       orderNumber,
       orderId,
       reference,
-      authorizationUrl: flwResult.authorizationUrl,
+      authorizationUrl: gatewayResult.authorizationUrl,
       total: authoritativeTotal,
     };
   } catch (error: any) {
@@ -374,9 +405,13 @@ export async function confirmPaidOrderServer(
       };
     }
 
-    // C. Verify transaction with Flutterwave API (with legacy Paystack fallback if needed)
-    const isPaystack = existingOrder.payment?.provider === 'paystack';
-    const verifyResult = isPaystack
+    // C. Verify transaction with gateway (Flutterwave default, Nomba, or legacy Paystack)
+    const provider = existingOrder.payment?.provider;
+    const isNomba = provider === 'nomba' || reference.startsWith('nomba_');
+    const isPaystack = provider === 'paystack';
+    const verifyResult = isNomba
+      ? await verifyNombaTransaction(reference)
+      : isPaystack
       ? await verifyPaystackTransaction(reference)
       : await verifyFlutterwaveTransaction(reference, transactionId);
 
@@ -407,7 +442,7 @@ export async function confirmPaidOrderServer(
 
     // D. Validate amount match (unless in simulation mode)
     if (!verifyResult.isSimulated) {
-      const expectedKobo = existingOrder.payment.amountKobo || nairaToKobo(existingOrder.total);
+      const expectedKobo = existingOrder.payment.amountKobo || nairaToKoboSafe(existingOrder.total);
       if (verifyResult.amountKobo !== expectedKobo || verifyResult.currency !== existingOrder.currency) {
         console.error(
           `[OrderService] Amount mismatch for order ${existingOrder.orderNumber}: expected ${expectedKobo} kobo, received ${verifyResult.amountKobo} kobo`
@@ -503,7 +538,8 @@ export async function confirmPaidOrderServer(
           revision: (liveOrder.data().revision || 0) + 1,
           statusHistory: [...effectiveHistory(liveOrder.data() as Order), {
             eventId: `payment-${orderId}`, status: finalOrderStatus,
-            changedAt: verifyResult.paidAt || new Date().toISOString(), changedBy: 'system:paystack',
+            changedAt: verifyResult.paidAt || new Date().toISOString(),
+            changedBy: isNomba ? 'system:nomba' : (isPaystack ? 'system:paystack' : 'system:flutterwave'),
           }],
           'payment.paidAt': verifyResult.paidAt || new Date().toISOString(),
           'payment.channel': verifyResult.channel || 'card',

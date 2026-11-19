@@ -76,7 +76,7 @@ export interface OrderDelivery {
   vehicle?: string;
 }
 
-export type PaymentProvider = 'flutterwave' | 'paystack';
+export type PaymentProvider = 'flutterwave' | 'paystack' | 'nomba';
 
 export interface OrderPayment {
   status: PaymentStatus;

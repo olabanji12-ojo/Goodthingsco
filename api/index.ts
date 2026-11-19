@@ -16,6 +16,14 @@ import { handleContentHttp } from '../server/content/http.js';
 import { createPendingOrderServer, confirmPaidOrderServer } from '../server/orderService.js';
 import { verifyWebhookSignature } from '../server/paystackService.js';
 import { verifyFlutterwaveWebhookSignature } from '../server/flutterwaveService.js';
+import {
+  getNombaCredentials,
+  verifyNombaWebhookSignature,
+  acquireNombaWebhookLock,
+  releaseNombaWebhookLock,
+  handleNombaPaymentFailed,
+  handleNombaPaymentReversal,
+} from '../server/nombaService.js';
 
 async function parseBody(req: IncomingMessage & { body?: any }): Promise<any> {
   if (req.body !== undefined) {
@@ -70,23 +78,42 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
     const url = (req.url || '').split('?')[0];
     const method = (req.method || 'GET').toUpperCase();
 
-    // 2. Payment Initialization (Flutterwave)
-    if ((url === '/api/flutterwave/initialize' || url === '/api/payment/initialize' || url === '/api/paystack/initialize') && method === 'POST') {
+    // 2. Payment Initialization (Flutterwave / Nomba)
+    if (
+      (url === '/api/flutterwave/initialize' ||
+        url === '/api/payment/initialize' ||
+        url === '/api/paystack/initialize' ||
+        url === '/api/nomba/initialize') &&
+      method === 'POST'
+    ) {
       const body = await parseBody(req);
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host || 'goodthingsco.ng';
       const origin = `${protocol}://${host}`;
 
-      const payload = { ...body.payload, paymentProvider: 'flutterwave' };
+      const selectedProvider =
+        url === '/api/nomba/initialize'
+          ? 'nomba'
+          : body.payload?.paymentProvider === 'nomba'
+          ? 'nomba'
+          : 'flutterwave';
+
+      const payload = { ...body.payload, paymentProvider: selectedProvider };
 
       const result = await createPendingOrderServer(payload, origin, req.headers.authorization?.replace(/^Bearer /, ''));
       return sendJson(res, result.success ? 200 : 400, result);
     }
 
-    // 3. Payment Verification (Flutterwave)
-    if ((url === '/api/flutterwave/verify' || url === '/api/payment/verify' || url === '/api/paystack/verify') && method === 'POST') {
+    // 3. Payment Verification (Flutterwave / Nomba / Paystack)
+    if (
+      (url === '/api/flutterwave/verify' ||
+        url === '/api/payment/verify' ||
+        url === '/api/paystack/verify' ||
+        url === '/api/nomba/verify') &&
+      method === 'POST'
+    ) {
       const body = await parseBody(req);
-      const reference = body.reference || body.tx_ref;
+      const reference = body.reference || body.tx_ref || body.orderReference;
       if (!reference) {
         return sendJson(res, 400, { success: false, message: 'Missing transaction reference' });
       }
@@ -157,7 +184,100 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
       return sendJson(res, 200, { status: 'received' });
     }
 
-    // 5. Unknown route fallback
+    // 6. POST /api/nomba/webhook
+    if (url === '/api/nomba/webhook' && method === 'POST') {
+      let rawBody = '';
+      if (req.body !== undefined) {
+        rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      } else {
+        await new Promise<void>((resolve) => {
+          req.on('data', (chunk) => {
+            rawBody += chunk.toString();
+          });
+          req.on('end', () => resolve());
+        });
+      }
+
+      const { webhookSecret } = getNombaCredentials();
+      if (!webhookSecret) {
+        console.error('[NombaWebhook] NOMBA_WEBHOOK_SECRET is not configured on server');
+        return sendJson(res, 500, { error: 'Webhook configuration missing on server' });
+      }
+
+      let payload: any = {};
+      try {
+        payload = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(rawBody);
+      } catch {
+        return sendJson(res, 400, { error: 'Invalid JSON payload' });
+      }
+
+      const verification = verifyNombaWebhookSignature(payload, req.headers as any, webhookSecret);
+      if (!verification.valid) {
+        console.warn('[NombaWebhook] Invalid signature received:', verification.reason);
+        return sendJson(res, 401, { error: 'Invalid webhook signature', reason: verification.reason });
+      }
+
+      const requestId = payload.requestId || '';
+      const eventType = payload.event_type || '';
+      const orderReference =
+        payload.data?.order?.orderReference ||
+        payload.data?.transaction?.merchantTxRef ||
+        payload.orderReference;
+
+      if (!requestId) {
+        return sendJson(res, 400, { error: 'Missing requestId in payload' });
+      }
+
+      // Event-level idempotency lock
+      const lock = await acquireNombaWebhookLock(requestId, orderReference);
+      if (lock.alreadyProcessed) {
+        return sendJson(res, 200, { status: 'received', message: 'Event already processed' });
+      }
+      if (!lock.acquired) {
+        return sendJson(res, 200, { status: 'processing', message: 'Event is currently processing' });
+      }
+
+      try {
+        if (eventType === 'payment_success' || eventType === 'checkout_order_successful') {
+          if (orderReference) {
+            const confirmed = await confirmPaidOrderServer(orderReference);
+            if (!confirmed.success && confirmed.retryable) {
+              await releaseNombaWebhookLock(requestId, 'failed', confirmed.message);
+              return sendJson(res, 503, { status: 'retry', message: confirmed.message });
+            }
+          }
+          await releaseNombaWebhookLock(requestId, 'processed');
+          return sendJson(res, 200, { status: 'received' });
+        }
+
+        if (eventType === 'payment_failed' || eventType === 'checkout_order_failed') {
+          if (orderReference) {
+            await handleNombaPaymentFailed(orderReference, payload);
+          }
+          await releaseNombaWebhookLock(requestId, 'processed');
+          return sendJson(res, 200, { status: 'received' });
+        }
+
+        if (eventType === 'payment_reversal' || eventType === 'transaction_reversed') {
+          if (orderReference) {
+            await handleNombaPaymentReversal(orderReference, payload);
+          }
+          await releaseNombaWebhookLock(requestId, 'processed');
+          return sendJson(res, 200, { status: 'received' });
+        }
+
+        // Unknown or unhandled event (acknowledged safely)
+        console.log(`[NombaWebhook] Acknowledged unhandled event_type: ${eventType}`);
+        await releaseNombaWebhookLock(requestId, 'processed');
+        return sendJson(res, 200, { status: 'ignored', message: `Unhandled event type: ${eventType}` });
+      } catch (err: any) {
+        console.error('[NombaWebhook] Processing exception:', err);
+        await releaseNombaWebhookLock(requestId, 'failed', err.message);
+        return sendJson(res, 500, { error: 'Internal processing error', message: err.message });
+      }
+    }
+
+    // 7. Unknown route fallback
     return sendJson(res, 404, { success: false, message: 'API route not found' });
   } catch (error: any) {
     console.error('[API Router Error]', error);

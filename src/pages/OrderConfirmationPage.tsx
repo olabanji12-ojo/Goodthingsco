@@ -37,6 +37,7 @@ export const OrderConfirmationPage: React.FC = () => {
   const { clearCart } = useCart();
 
   const reference =
+    searchParams.get('orderReference') ||
     searchParams.get('reference') ||
     searchParams.get('trxref') ||
     searchParams.get('tx_ref') ||
@@ -49,12 +50,16 @@ export const OrderConfirmationPage: React.FC = () => {
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [copiedOrderNumber, setCopiedOrderNumber] = useState<boolean>(false);
 
-  const isFlutterwave = Boolean(
-    (reference && reference.startsWith('flw_')) ||
-    searchParams.has('tx_ref') ||
-    order?.payment?.provider !== 'paystack'
+  const isNomba = Boolean(
+    (reference && reference.startsWith('nomba_')) ||
+    searchParams.has('orderReference') ||
+    order?.payment?.provider === 'nomba'
   );
-  const gatewayName = isFlutterwave ? 'Flutterwave' : 'Flutterwave';
+  const isPaystack = Boolean(
+    (reference && reference.startsWith('gtc_')) ||
+    order?.payment?.provider === 'paystack'
+  );
+  const gatewayName = isNomba ? 'Nomba' : isPaystack ? 'Paystack' : 'Flutterwave';
 
   useEffect(() => {
     let isMounted = true;
@@ -197,7 +202,7 @@ export const OrderConfirmationPage: React.FC = () => {
 
                 <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-sans text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                  <span>Verified Flutterwave Payment · Order Confirmed</span>
+                  <span>Verified {gatewayName} Payment · Order Confirmed</span>
                 </div>
 
                 <h1 className="font-serif text-3xl sm:text-4xl text-brand-dark font-normal tracking-tight">

@@ -11,23 +11,26 @@ import { Order, PaystackInitResponse, PaystackVerifyResponse } from '../types/or
 
 export type FlutterwaveInitResponse = PaystackInitResponse;
 export type FlutterwaveVerifyResponse = PaystackVerifyResponse;
+export type NombaInitResponse = PaystackInitResponse;
+export type NombaVerifyResponse = PaystackVerifyResponse;
 
 /**
- * Initializes a pending order and Flutterwave payment on the server.
+ * Initializes a pending order and gateway payment on the server.
+ * Supports Flutterwave (default) and Nomba.
  */
 export async function initializeOrderPayment(
   payload: ValidatedCheckoutPayload,
-  _provider: 'flutterwave' | 'paystack' = 'flutterwave'
+  provider: 'flutterwave' | 'paystack' | 'nomba' = 'flutterwave'
 ): Promise<PaystackInitResponse> {
   try {
-    const endpoint = '/api/flutterwave/initialize';
+    const endpoint = provider === 'nomba' ? '/api/nomba/initialize' : '/api/flutterwave/initialize';
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${getStoredSessionToken() || ''}`, 
       },
-      body: JSON.stringify({ payload: { ...payload, paymentProvider: 'flutterwave' } }),
+      body: JSON.stringify({ payload: { ...payload, paymentProvider: provider } }),
     });
 
     const text = await response.text();
