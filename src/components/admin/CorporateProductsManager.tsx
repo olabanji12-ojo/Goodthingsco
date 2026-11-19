@@ -439,11 +439,12 @@ export const CorporateProductsManager: React.FC = () => {
       {/* ADD / EDIT PACKAGE MODAL                                 */}
       {/* ======================================================== */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-5 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-6 flex items-start sm:items-center justify-center">
+          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl my-auto max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-fade-in">
+            {/* Fixed Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:p-6 shrink-0 bg-white">
               <div>
-                <h3 className="font-serif text-lg font-semibold text-slate-900">
+                <h3 className="font-serif text-lg font-bold text-slate-900">
                   {editingProduct ? 'Edit Corporate Package' : 'Add Corporate Package'}
                 </h3>
                 <p className="font-sans text-xs text-slate-500">
@@ -453,26 +454,29 @@ export const CorporateProductsManager: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close modal"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Package Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. The Executive Leather Folio & Cardholder"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-sans focus:outline-none focus:border-slate-900"
-                />
-              </div>
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSaveProduct} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Package Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="e.g. The Executive Leather Folio & Cardholder"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-sans focus:outline-none focus:border-slate-900 bg-white"
+                  />
+                </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
@@ -647,19 +651,21 @@ export const CorporateProductsManager: React.FC = () => {
                 />
               </div>
 
-              {/* Submit Buttons */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              </div>
+
+              {/* Fixed Modal Footer */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-sans font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="px-4 py-2.5 rounded-xl text-xs font-sans font-semibold text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving || uploadingImage}
-                  className="px-5 py-2 rounded-xl text-xs font-sans font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-xl text-xs font-sans font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-xs"
                 >
                   {(saving || uploadingImage) && <Loader2 size={13} className="animate-spin" />}
                   <span>
@@ -682,8 +688,8 @@ export const CorporateProductsManager: React.FC = () => {
       {/* DELETE CONFIRMATION MODAL                                */}
       {/* ======================================================== */}
       {deletingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 my-auto">
             <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
               <Trash2 size={20} />
             </div>
