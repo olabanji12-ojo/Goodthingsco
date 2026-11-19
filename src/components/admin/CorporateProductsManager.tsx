@@ -171,11 +171,13 @@ export const CorporateProductsManager: React.FC = () => {
 
       if (editingProduct) {
         const updated = await updateCorporateProduct(editingProduct.id, payload);
-        setProducts((prev) => prev.map((p) => (p.id === editingProduct.id ? updated : p)));
+        const refreshed = await getCorporateProducts(true);
+        setProducts(refreshed);
         setToast(`Updated "${updated.name}" successfully.`);
       } else {
         const created = await createCorporateProduct(payload);
-        setProducts((prev) => [created, ...prev]);
+        const refreshed = await getCorporateProducts(true);
+        setProducts(refreshed);
         setToast(`Created corporate package "${created.name}" successfully.`);
       }
 
@@ -365,16 +367,16 @@ export const CorporateProductsManager: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-wider text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80">
                     {prod.category}
                   </span>
-                  <span className="font-serif text-sm font-semibold text-slate-900">
+                  <span className="font-serif text-base sm:text-lg font-bold text-slate-900">
                     {prod.formattedPrice}
                   </span>
                 </div>
 
-                <h3 className="font-serif text-sm font-semibold text-slate-900 leading-snug mb-1.5">
+                <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 leading-snug mb-1.5 break-words">
                   {prod.name}
                 </h3>
 

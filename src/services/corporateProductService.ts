@@ -28,6 +28,41 @@ const LOCAL_STORAGE_KEY = 'gtc_local_corporate_products';
 // In-memory cache for fast page rendering
 let cachedProducts: CorporateGiftProduct[] | null = null;
 
+function normalizeString(val?: string): string {
+  return (val || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Deduplicate products ensuring that:
+ * 1. Product IDs are unique.
+ * 2. Products with identical normalized names or images are not displayed twice.
+ * 3. Authoritative server/Firestore products are preserved over temporary local drafts.
+ */
+export function deduplicateProducts(products: CorporateGiftProduct[]): CorporateGiftProduct[] {
+  const seenIds = new Set<string>();
+  const seenNames = new Set<string>();
+  const seenImages = new Set<string>();
+  const result: CorporateGiftProduct[] = [];
+
+  for (const prod of products) {
+    if (!prod || !prod.id) continue;
+    if (seenIds.has(prod.id)) continue;
+
+    const normName = normalizeString(prod.name);
+    const trimmedImg = (prod.image || '').trim();
+
+    if (normName && seenNames.has(normName)) continue;
+    if (trimmedImg.length > 20 && seenImages.has(trimmedImg)) continue;
+
+    seenIds.add(prod.id);
+    if (normName) seenNames.add(normName);
+    if (trimmedImg.length > 20) seenImages.add(trimmedImg);
+    result.push(prod);
+  }
+
+  return result;
+}
+
 function getLocalCorporateProducts(): CorporateGiftProduct[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -69,11 +104,9 @@ export async function getCorporateProducts(forceRefresh = false): Promise<Corpor
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.products)) {
-        const localList = getLocalCorporateProducts();
-        const mergedMap = new Map<string, CorporateGiftProduct>();
-        json.products.forEach((p: any) => {
+        const serverProducts: CorporateGiftProduct[] = json.products.map((p: any) => {
           const unitPrice = typeof p.unitPrice === 'number' ? p.unitPrice : 0;
-          mergedMap.set(p.id, {
+          return {
             id: p.id,
             name: p.name || 'Corporate Gift Set',
             category: p.category || 'Executive Suite',
@@ -88,12 +121,30 @@ export async function getCorporateProducts(forceRefresh = false): Promise<Corpor
             includedItems: Array.isArray(p.includedItems) ? p.includedItems : [],
             minQuantity: typeof p.minQuantity === 'number' ? p.minQuantity : 1,
             badge: p.badge || undefined,
-          });
+          };
         });
-        localList.forEach((lp) => mergedMap.set(lp.id, lp));
-        const list = Array.from(mergedMap.values());
-        cachedProducts = list;
-        return list;
+
+        // Prune any local drafts that are already present on the server
+        const localList = getLocalCorporateProducts();
+        const serverNames = new Set(serverProducts.map((p) => normalizeString(p.name)));
+        const serverImages = new Set(
+          serverProducts.map((p) => (p.image || '').trim()).filter((img) => img.length > 20)
+        );
+
+        const genuineLocals = localList.filter((lp) => {
+          if (serverProducts.some((sp) => sp.id === lp.id)) return false;
+          if (serverNames.has(normalizeString(lp.name))) return false;
+          if (lp.image && serverImages.has(lp.image.trim())) return false;
+          return true;
+        });
+
+        if (genuineLocals.length !== localList.length) {
+          saveLocalCorporateProducts(genuineLocals);
+        }
+
+        const combined = deduplicateProducts([...serverProducts, ...genuineLocals]);
+        cachedProducts = combined;
+        return combined;
       }
     }
   } catch {
@@ -105,14 +156,12 @@ export async function getCorporateProducts(forceRefresh = false): Promise<Corpor
     const colRef = collection(db, CORPORATE_PRODUCTS_COLLECTION);
     const snap = await getDocs(colRef);
 
-    const localList = getLocalCorporateProducts();
-    const mergedMap = new Map<string, CorporateGiftProduct>();
-
+    const firestoreProducts: CorporateGiftProduct[] = [];
     if (!snap.empty) {
       snap.docs.forEach((d) => {
         const data = d.data();
         const unitPrice = typeof data.unitPrice === 'number' ? data.unitPrice : 0;
-        mergedMap.set(d.id, {
+        firestoreProducts.push({
           id: d.id,
           name: data.name || 'Corporate Gift Set',
           category: data.category || 'Executive Suite',
@@ -131,16 +180,34 @@ export async function getCorporateProducts(forceRefresh = false): Promise<Corpor
       });
     }
 
-    localList.forEach((lp) => mergedMap.set(lp.id, lp));
-    const list = Array.from(mergedMap.values());
-    cachedProducts = list;
-    return list;
+    // Prune local drafts that already match Firestore products
+    const localList = getLocalCorporateProducts();
+    const firestoreNames = new Set(firestoreProducts.map((p) => normalizeString(p.name)));
+    const firestoreImages = new Set(
+      firestoreProducts.map((p) => (p.image || '').trim()).filter((img) => img.length > 20)
+    );
+
+    const genuineLocals = localList.filter((lp) => {
+      if (firestoreProducts.some((sp) => sp.id === lp.id)) return false;
+      if (firestoreNames.has(normalizeString(lp.name))) return false;
+      if (lp.image && firestoreImages.has(lp.image.trim())) return false;
+      return true;
+    });
+
+    if (genuineLocals.length !== localList.length) {
+      saveLocalCorporateProducts(genuineLocals);
+    }
+
+    const combined = deduplicateProducts([...firestoreProducts, ...genuineLocals]);
+    cachedProducts = combined;
+    return combined;
   } catch (error) {
     console.warn('[CorporateProductService] Firestore read failed, checking local storage:', error);
     const localList = getLocalCorporateProducts();
     if (localList.length > 0) {
-      cachedProducts = localList;
-      return localList;
+      const deduped = deduplicateProducts(localList);
+      cachedProducts = deduped;
+      return deduped;
     }
     return CORPORATE_PRODUCTS;
   }
@@ -174,9 +241,13 @@ export async function createCorporateProduct(
           ...payload,
           id: json.product.id,
         };
-        if (cachedProducts) cachedProducts.unshift(created);
-        const locals = getLocalCorporateProducts().filter((p) => p.id !== created.id);
-        locals.unshift(created);
+        if (cachedProducts) {
+          cachedProducts = deduplicateProducts([created, ...cachedProducts]);
+        }
+        // Prune any local drafts that had this name or image
+        const locals = getLocalCorporateProducts().filter(
+          (p) => normalizeString(p.name) !== normalizeString(created.name) && p.id !== created.id
+        );
         saveLocalCorporateProducts(locals);
         return created;
       }
@@ -199,9 +270,13 @@ export async function createCorporateProduct(
       id: docRef.id,
     };
 
-    if (cachedProducts) cachedProducts.unshift(newProduct);
-    const locals = getLocalCorporateProducts().filter((p) => p.id !== newProduct.id);
-    locals.unshift(newProduct);
+    if (cachedProducts) {
+      cachedProducts = deduplicateProducts([newProduct, ...cachedProducts]);
+    }
+    // Prune any local drafts that had this name or image
+    const locals = getLocalCorporateProducts().filter(
+      (p) => normalizeString(p.name) !== normalizeString(newProduct.name) && p.id !== newProduct.id
+    );
     saveLocalCorporateProducts(locals);
     return newProduct;
   } catch (err: any) {
@@ -210,8 +285,12 @@ export async function createCorporateProduct(
       ...payload,
       id: `local-corp-${Date.now()}`,
     };
-    if (cachedProducts) cachedProducts.unshift(localProduct);
-    const locals = getLocalCorporateProducts().filter((p) => p.id !== localProduct.id);
+    if (cachedProducts) {
+      cachedProducts = deduplicateProducts([localProduct, ...cachedProducts]);
+    }
+    const locals = getLocalCorporateProducts().filter(
+      (p) => p.id !== localProduct.id && normalizeString(p.name) !== normalizeString(localProduct.name)
+    );
     locals.unshift(localProduct);
     saveLocalCorporateProducts(locals);
     return localProduct;

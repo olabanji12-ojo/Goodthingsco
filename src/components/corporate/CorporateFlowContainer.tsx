@@ -191,36 +191,24 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
   const brandingFee = 25000; // Flat setup fee for corporate foil stamp
   const grandTotal = baseItemsTotal - discountAmount + packagingTotal + monogramTotal + brandingFee;
 
-  // ── Automatic Progression Click Handlers (No "Next" buttons!) ──
+  // ── Automatic Progression Click Handlers (Natural, non-hijacked mobile scrolling) ──
   const handleSelectPurpose = (purposeId: CorporatePurpose) => {
     setSelectedPurpose(purposeId);
     if (activeStage < 2) setActiveStage(2);
-    setTimeout(() => {
-      industryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 120);
   };
 
   const handleSelectIndustry = (indId: CorporateIndustry) => {
     setSelectedIndustry(indId);
     if (activeStage < 3) setActiveStage(3);
-    setTimeout(() => {
-      budgetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 120);
   };
 
   const handleSelectBudget = (tierId: CorporateBudgetTier) => {
     setSelectedBudget(tierId);
     if (activeStage < 4) setActiveStage(4);
-    setTimeout(() => {
-      quantityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 120);
   };
 
   const handleSelectQuantity = (qty: number) => {
     setQuantity(qty);
-    setTimeout(() => {
-      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 120);
   };
 
   // Recipient addition
@@ -631,48 +619,69 @@ export const CorporateFlowContainer: React.FC<CorporateFlowContainerProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {displayProducts.map((prod) => {
                 const isSelected = selectedProduct?.id === prod.id;
+                const hasUniqueDesc =
+                  prod.description &&
+                  prod.description.trim().toLowerCase() !== prod.name.trim().toLowerCase();
+
                 return (
                   <div
                     key={prod.id}
                     onClick={() => setSelectedProduct(prod)}
                     className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
                       isSelected
-                        ? 'border-brand-dark bg-[#FAF8F5] ring-2 ring-brand-dark shadow-sm'
-                        : 'border-brand-dark/10 hover:border-brand-dark/30 bg-white'
+                        ? 'border-brand-dark bg-[#FAF8F5] ring-2 ring-brand-dark shadow-md'
+                        : 'border-slate-200/90 hover:border-brand-dark/40 bg-white hover:shadow-xs'
                     }`}
                   >
-                    <div className="w-full h-52 sm:h-56 rounded-xl bg-[#FAF8F5] p-3 mb-3 flex items-center justify-center overflow-hidden border border-brand-dark/5">
-                      <img
-                        src={prod.image}
-                        alt={prod.name}
-                        className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=600&q=80';
-                        }}
-                      />
-                    </div>
                     <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-medium">
+                      {/* Studio Framed Image */}
+                      <div className="w-full h-52 sm:h-56 rounded-xl bg-[#FAF8F5] p-3 mb-3.5 flex items-center justify-center overflow-hidden border border-brand-dark/5">
+                        <img
+                          src={prod.image}
+                          alt={prod.name}
+                          className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=600&q=80';
+                          }}
+                        />
+                      </div>
+
+                      {/* Category Badge & Price Header */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-wider text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80">
                           {prod.category}
                         </span>
-                        <strong className="font-serif text-sm text-brand-dark">
+                        <strong className="font-serif text-base sm:text-lg font-bold text-slate-900">
                           {prod.formattedPrice}
                         </strong>
                       </div>
-                      <h4 className="font-serif text-sm font-semibold text-brand-dark leading-snug mb-1">
+
+                      {/* Product Name — High-contrast, bold, clear on all screens */}
+                      <h4 className="font-serif text-base sm:text-lg font-bold text-slate-900 leading-snug mb-1.5 break-words">
                         {prod.name}
                       </h4>
-                      <p className="font-sans text-[11px] text-brand-medium/80 line-clamp-2">
-                        {prod.description}
-                      </p>
+
+                      {/* Description if distinct */}
+                      {hasUniqueDesc && (
+                        <p className="font-sans text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                          {prod.description}
+                        </p>
+                      )}
                     </div>
-                    <div className="mt-3 pt-3 border-t border-brand-dark/10 flex items-center justify-between">
-                      <span className="text-[11px] font-sans text-gold-700 font-semibold">
-                        {isSelected ? '✓ Selected' : 'Select'}
+
+                    {/* Footer Action */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+                          isSelected
+                            ? 'bg-brand-dark text-white shadow-xs'
+                            : 'bg-amber-50 text-amber-900 border border-amber-200/80 hover:bg-amber-100'
+                        }`}
+                      >
+                        {isSelected ? '✓ Selected' : 'Tap to Select'}
                       </span>
-                      <span className="text-[10px] font-sans text-brand-medium">
+                      <span className="text-[11px] font-sans font-medium text-slate-500">
                         Min {prod.minQuantity} units
                       </span>
                     </div>
