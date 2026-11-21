@@ -30,13 +30,14 @@ import {
   Phone,
   Plus,
   Trash2,
+  Palette,
 } from 'lucide-react';
 import {
   getAdminStoreSettings,
   updateAdminStoreSettings,
 } from '../../services/settingsService';
 import type { StoreSettings, StoreSettingsUpdateInput, PackagingOptionItem, RibbonOptionItem, ShippingAreaRate, CustomStateDeliveryConfig } from '../../types/settings';
-import { DEFAULT_STORE_SETTINGS, DEFAULT_PACKAGING_OPTIONS, DEFAULT_RIBBON_OPTIONS, DEFAULT_LAGOS_SHIPPING_AREAS, DEFAULT_VEHICLE_SETTINGS } from '../../types/settings';
+import { DEFAULT_STORE_SETTINGS, DEFAULT_LAGOS_SHIPPING_AREAS, DEFAULT_VEHICLE_SETTINGS } from '../../types/settings';
 import { NIGERIAN_STATES } from '../../config/shipping';
 
 export default function AdminSettingsPage() {
@@ -67,48 +68,11 @@ export default function AdminSettingsPage() {
           linenBagFee: 0,
           woodenBoxFee: 0,
           pouchFee: 0,
-          options: DEFAULT_PACKAGING_OPTIONS,
+          options: [],
+          ribbons: [],
         };
-        const options = packaging.options && packaging.options.length > 0
-          ? packaging.options
-          : [
-            {
-              id: 'gift-box',
-              name: 'Signature Gift Box',
-              description: 'Sturdy debossed ivory box with golden interior lining',
-              price: packaging.giftBoxFee ?? 0,
-              badge: (packaging.giftBoxFee ?? 0) === 0 ? 'Complimentary' : undefined,
-              enabled: true,
-            },
-            {
-              id: 'gift-bag',
-              name: 'Textured Linen Bag',
-              description: 'Heavy natural cotton linen bag with hand-tied twill handles',
-              price: packaging.linenBagFee ?? 0,
-              badge: (packaging.linenBagFee ?? 0) === 0 ? 'Complimentary' : undefined,
-              enabled: true,
-            },
-            {
-              id: 'wooden-box',
-              name: 'Artisan Wooden Crate',
-              description: 'Handcrafted solid cedar keepsake box with sliding lid',
-              price: packaging.woodenBoxFee ?? 0,
-              badge: (packaging.woodenBoxFee ?? 0) === 0 ? 'Complimentary' : undefined,
-              enabled: true,
-            },
-            {
-              id: 'pouch',
-              name: 'Silk Keepsake Pouch',
-              description: 'Soft drawstring satin pouch for jewelry & daily objects',
-              price: packaging.pouchFee ?? 0,
-              badge: (packaging.pouchFee ?? 0) === 0 ? 'Complimentary' : undefined,
-              enabled: true,
-            },
-          ];
-
-        const ribbons = packaging.ribbons && packaging.ribbons.length > 0
-          ? packaging.ribbons
-          : DEFAULT_RIBBON_OPTIONS;
+        const options = Array.isArray(packaging.options) ? packaging.options : [];
+        const ribbons = Array.isArray(packaging.ribbons) ? packaging.ribbons : [];
 
         const lagosAreas =
           settings.shipping.lagos?.areas && settings.shipping.lagos.areas.length > 0
@@ -387,7 +351,7 @@ export default function AdminSettingsPage() {
             badge: opt.badge?.trim() || undefined,
             enabled: opt.enabled !== false,
           })),
-          ribbons: (formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS).map((r) => ({
+          ribbons: (formData.packaging?.ribbons || []).map((r) => ({
             id: r.id,
             name: r.name.trim(),
             hex: r.hex.trim() || '#C89D5C',
@@ -409,12 +373,12 @@ export default function AdminSettingsPage() {
       const saved = await updateAdminStoreSettings(payload);
       if (saved) {
         const packaging = saved.packaging || DEFAULT_STORE_SETTINGS.packaging;
-        const options = packaging?.options && packaging.options.length > 0
+        const options = Array.isArray(packaging?.options)
           ? packaging.options
-          : (payload.packaging?.options || DEFAULT_PACKAGING_OPTIONS);
-        const ribbons = packaging?.ribbons && packaging.ribbons.length > 0
+          : (payload.packaging?.options || []);
+        const ribbons = Array.isArray(packaging?.ribbons)
           ? packaging.ribbons
-          : (payload.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS);
+          : (payload.packaging?.ribbons || []);
 
         setFormData({
           ...saved,
@@ -1497,7 +1461,7 @@ export default function AdminSettingsPage() {
             <button
               type="button"
               onClick={() => {
-                const currentOptions = formData.packaging?.options || DEFAULT_PACKAGING_OPTIONS;
+                const currentOptions = formData.packaging?.options || [];
                 const newOpt: PackagingOptionItem = {
                   id: `pkg-${Date.now()}`,
                   name: 'New Packaging Option',
@@ -1520,44 +1484,30 @@ export default function AdminSettingsPage() {
           </div>
 
           <div className="p-5 sm:p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {(formData.packaging?.options || DEFAULT_PACKAGING_OPTIONS).map((opt, idx) => {
-                const isComplimentary = opt.price === 0;
-                return (
-                  <div
-                    key={opt.id || idx}
-                    className={`p-4 rounded-xl border transition-all ${opt.enabled !== false ? 'border-slate-200 bg-slate-50/50' : 'border-slate-200/50 bg-slate-100/40 opacity-70'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-200/80">
-                      <div className="flex items-center gap-2 flex-1">
-                        <input
-                          type="text"
-                          value={opt.name}
-                          onChange={(e) => {
-                            const updated = [...(formData.packaging?.options || DEFAULT_PACKAGING_OPTIONS)];
-                            updated[idx] = { ...updated[idx], name: e.target.value };
-                            setFormData({
-                              ...formData,
-                              packaging: {
-                                ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
-                                options: updated,
-                              },
-                            });
-                          }}
-                          placeholder="Packaging Name"
-                          className="font-semibold text-sm text-slate-900 px-2 py-1 rounded border border-transparent hover:border-slate-300 focus:border-slate-900 focus:bg-white bg-transparent w-full"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+            {(!formData.packaging?.options || formData.packaging.options.length === 0) ? (
+              <div className="p-8 text-center rounded-xl border border-dashed border-slate-300 bg-slate-50/50">
+                <Package size={32} className="mx-auto text-slate-400 mb-2" />
+                <p className="text-sm font-medium text-slate-700">No presentation packaging options yet.</p>
+                <p className="text-xs text-slate-500 mt-1">Click &quot;+ Add Packaging Option&quot; above to create and price your custom packaging styles.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {formData.packaging.options.map((opt, idx) => {
+                  const isComplimentary = opt.price === 0;
+                  return (
+                    <div
+                      key={opt.id || idx}
+                      className={`p-4 rounded-xl border transition-all ${opt.enabled !== false ? 'border-slate-200 bg-slate-50/50' : 'border-slate-200/50 bg-slate-100/40 opacity-70'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-200/80">
+                        <div className="flex items-center gap-2 flex-1">
                           <input
-                            type="checkbox"
-                            checked={opt.enabled !== false}
+                            type="text"
+                            value={opt.name}
                             onChange={(e) => {
-                              const updated = [...(formData.packaging?.options || DEFAULT_PACKAGING_OPTIONS)];
-                              updated[idx] = { ...updated[idx], enabled: e.target.checked };
+                              const updated = [...(formData.packaging?.options || [])];
+                              updated[idx] = { ...updated[idx], name: e.target.value };
                               setFormData({
                                 ...formData,
                                 packaging: {
@@ -1566,107 +1516,36 @@ export default function AdminSettingsPage() {
                                 },
                               });
                             }}
-                            className="w-3.5 h-3.5 rounded text-slate-900"
+                            placeholder="Packaging Name"
+                            className="font-semibold text-sm text-slate-900 px-2 py-1 rounded border border-transparent hover:border-slate-300 focus:border-slate-900 focus:bg-white bg-transparent w-full"
                           />
-                          <span className="text-[11px] font-medium">Active</span>
-                        </label>
+                        </div>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = (formData.packaging?.options || DEFAULT_PACKAGING_OPTIONS).filter((_, i) => i !== idx);
-                            setFormData({
-                              ...formData,
-                              packaging: {
-                                ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
-                                options: updated,
-                              },
-                            });
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
-                          title="Delete packaging option"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Description (Customer Note)
-                        </label>
-                        <input
-                          type="text"
-                          value={opt.description || ''}
-                          onChange={(e) => {
-                            const updated = [...(formData.packaging?.options || DEFAULT_PACKAGING_OPTIONS)];
-                            updated[idx] = { ...updated[idx], description: e.target.value };
-                            setFormData({
-                              ...formData,
-                              packaging: {
-                                ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
-                                options: updated,
-                              },
-                            });
-                          }}
-                          placeholder="e.g. Handcrafted cedar keepsake box with sliding lid"
-                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-slate-900 bg-white"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                            Upgrade Fee (₦)
-                          </label>
-                          <div className="relative">
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
                             <input
-                              type="number"
-                              min="0"
-                              step="100"
-                              value={opt.price}
+                              type="checkbox"
+                              checked={opt.enabled !== false}
                               onChange={(e) => {
-                                const newPrice = Math.max(0, Number(e.target.value) || 0);
-                                const updated = [...(formData.packaging?.options || DEFAULT_PACKAGING_OPTIONS)];
-                                updated[idx] = {
-                                  ...updated[idx],
-                                  price: newPrice,
-                                  badge: newPrice === 0 ? 'Complimentary' : updated[idx].badge === 'Complimentary' ? undefined : updated[idx].badge,
-                                };
-                                const legacyFees: any = {};
-                                if (updated[idx].id === 'gift-box') legacyFees.giftBoxFee = newPrice;
-                                if (updated[idx].id === 'gift-bag') legacyFees.linenBagFee = newPrice;
-                                if (updated[idx].id === 'wooden-box') legacyFees.woodenBoxFee = newPrice;
-                                if (updated[idx].id === 'pouch') legacyFees.pouchFee = newPrice;
-
+                                const updated = [...(formData.packaging?.options || [])];
+                                updated[idx] = { ...updated[idx], enabled: e.target.checked };
                                 setFormData({
                                   ...formData,
                                   packaging: {
                                     ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
-                                    ...legacyFees,
                                     options: updated,
                                   },
                                 });
                               }}
-                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-slate-900 bg-white"
+                              className="w-3.5 h-3.5 rounded text-slate-900"
                             />
-                          </div>
-                          <span className="text-[10px] text-slate-500 mt-0.5 block">
-                            {isComplimentary ? 'Shows as "Included"' : `Shows as "+₦${opt.price.toLocaleString()}"`}
-                          </span>
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                            Badge (Optional)
+                            <span className="text-[11px] font-medium">Active</span>
                           </label>
-                          <input
-                            type="text"
-                            value={opt.badge || ''}
-                            onChange={(e) => {
-                              const updated = [...(formData.packaging?.options || DEFAULT_PACKAGING_OPTIONS)];
-                              updated[idx] = { ...updated[idx], badge: e.target.value || undefined };
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (formData.packaging?.options || []).filter((_, i) => i !== idx);
                               setFormData({
                                 ...formData,
                                 packaging: {
@@ -1675,16 +1554,109 @@ export default function AdminSettingsPage() {
                                 },
                               });
                             }}
-                            placeholder="e.g. Complimentary, Holiday Pick"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                            title="Delete packaging option"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                            Description (Customer Note)
+                          </label>
+                          <input
+                            type="text"
+                            value={opt.description || ''}
+                            onChange={(e) => {
+                              const updated = [...(formData.packaging?.options || [])];
+                              updated[idx] = { ...updated[idx], description: e.target.value };
+                              setFormData({
+                                ...formData,
+                                packaging: {
+                                  ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                                  options: updated,
+                                },
+                              });
+                            }}
+                            placeholder="e.g. Handcrafted cedar keepsake box with sliding lid"
                             className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-slate-900 bg-white"
                           />
                         </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                              Upgrade Fee (₦)
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="0"
+                                step="100"
+                                value={opt.price}
+                                onChange={(e) => {
+                                  const newPrice = Math.max(0, Number(e.target.value) || 0);
+                                  const updated = [...(formData.packaging?.options || [])];
+                                  updated[idx] = {
+                                    ...updated[idx],
+                                    price: newPrice,
+                                    badge: newPrice === 0 ? 'Complimentary' : updated[idx].badge === 'Complimentary' ? undefined : updated[idx].badge,
+                                  };
+                                  const legacyFees: any = {};
+                                  if (updated[idx].id === 'gift-box') legacyFees.giftBoxFee = newPrice;
+                                  if (updated[idx].id === 'gift-bag') legacyFees.linenBagFee = newPrice;
+                                  if (updated[idx].id === 'wooden-box') legacyFees.woodenBoxFee = newPrice;
+                                  if (updated[idx].id === 'pouch') legacyFees.pouchFee = newPrice;
+
+                                  setFormData({
+                                    ...formData,
+                                    packaging: {
+                                      ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                                      ...legacyFees,
+                                      options: updated,
+                                    },
+                                  });
+                                }}
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-slate-900 bg-white"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-500 mt-0.5 block">
+                              {isComplimentary ? 'Shows as "Included"' : `Shows as "+₦${opt.price.toLocaleString()}"`}
+                            </span>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                              Badge (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={opt.badge || ''}
+                              onChange={(e) => {
+                                const updated = [...(formData.packaging?.options || [])];
+                                updated[idx] = { ...updated[idx], badge: e.target.value || undefined };
+                                setFormData({
+                                  ...formData,
+                                  packaging: {
+                                    ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                                    options: updated,
+                                  },
+                                });
+                              }}
+                              placeholder="e.g. Complimentary, Holiday Pick"
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-slate-900 bg-white"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* ── Ribbon Finishes Management ── */}
             <div className="pt-6 mt-8 border-t border-slate-200">
@@ -1698,7 +1670,7 @@ export default function AdminSettingsPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    const currentRibbons = formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS;
+                    const currentRibbons = formData.packaging?.ribbons || [];
                     const newRibbon: RibbonOptionItem = {
                       id: `ribbon-${Date.now()}`,
                       name: 'New Ribbon Colour',
@@ -1719,20 +1691,45 @@ export default function AdminSettingsPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                {(formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS).map((r, rIdx) => (
-                  <div
-                    key={r.id || rIdx}
-                    className="p-3 rounded-xl border border-slate-200 bg-white flex items-center gap-3 justify-between"
-                  >
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      <div className="relative shrink-0">
+              {(!formData.packaging?.ribbons || formData.packaging.ribbons.length === 0) ? (
+                <div className="p-8 text-center rounded-xl border border-dashed border-slate-300 bg-slate-50/50">
+                  <Palette size={32} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-sm font-medium text-slate-700">No ribbon finish colours yet.</p>
+                  <p className="text-xs text-slate-500 mt-1">Click &quot;+ Add Ribbon Colour&quot; above to create your custom satin ribbon colours.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {formData.packaging.ribbons.map((r, rIdx) => (
+                    <div
+                      key={r.id || rIdx}
+                      className="p-3 rounded-xl border border-slate-200 bg-white flex items-center gap-3 justify-between"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="relative shrink-0">
+                          <input
+                            type="color"
+                            value={r.hex || '#C89D5C'}
+                            onChange={(e) => {
+                              const updated = [...(formData.packaging?.ribbons || [])];
+                              updated[rIdx] = { ...updated[rIdx], hex: e.target.value };
+                              setFormData({
+                                ...formData,
+                                packaging: {
+                                  ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                                  ribbons: updated,
+                                },
+                              });
+                            }}
+                            className="w-7 h-7 rounded-full border border-slate-300 p-0 cursor-pointer overflow-hidden"
+                            title="Pick ribbon colour"
+                          />
+                        </div>
                         <input
-                          type="color"
-                          value={r.hex || '#C89D5C'}
+                          type="text"
+                          value={r.name}
                           onChange={(e) => {
-                            const updated = [...(formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS)];
-                            updated[rIdx] = { ...updated[rIdx], hex: e.target.value };
+                            const updated = [...(formData.packaging?.ribbons || [])];
+                            updated[rIdx] = { ...updated[rIdx], name: e.target.value };
                             setFormData({
                               ...formData,
                               packaging: {
@@ -1741,37 +1738,36 @@ export default function AdminSettingsPage() {
                               },
                             });
                           }}
-                          className="w-7 h-7 rounded-full border border-slate-300 p-0 cursor-pointer overflow-hidden"
-                          title="Pick ribbon colour"
+                          placeholder="Ribbon Name"
+                          className="font-medium text-xs text-slate-900 px-2 py-1 rounded border border-transparent hover:border-slate-300 focus:border-slate-900 focus:bg-white bg-transparent w-full"
                         />
                       </div>
-                      <input
-                        type="text"
-                        value={r.name}
-                        onChange={(e) => {
-                          const updated = [...(formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS)];
-                          updated[rIdx] = { ...updated[rIdx], name: e.target.value };
-                          setFormData({
-                            ...formData,
-                            packaging: {
-                              ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
-                              ribbons: updated,
-                            },
-                          });
-                        }}
-                        placeholder="Ribbon Name"
-                        className="font-medium text-xs text-slate-900 px-2 py-1 rounded border border-transparent hover:border-slate-300 focus:border-slate-900 focus:bg-white bg-transparent w-full"
-                      />
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={r.enabled !== false}
-                          onChange={(e) => {
-                            const updated = [...(formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS)];
-                            updated[rIdx] = { ...updated[rIdx], enabled: e.target.checked };
+                      <div className="flex items-center gap-2 shrink-0">
+                        <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={r.enabled !== false}
+                            onChange={(e) => {
+                              const updated = [...(formData.packaging?.ribbons || [])];
+                              updated[rIdx] = { ...updated[rIdx], enabled: e.target.checked };
+                              setFormData({
+                                ...formData,
+                                packaging: {
+                                  ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
+                                  ribbons: updated,
+                                },
+                              });
+                            }}
+                            className="w-3.5 h-3.5 rounded text-slate-900"
+                          />
+                          <span>Active</span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = (formData.packaging?.ribbons || []).filter((_, i) => i !== rIdx);
                             setFormData({
                               ...formData,
                               packaging: {
@@ -1780,32 +1776,16 @@ export default function AdminSettingsPage() {
                               },
                             });
                           }}
-                          className="w-3.5 h-3.5 rounded text-slate-900"
-                        />
-                        <span>Active</span>
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = (formData.packaging?.ribbons || DEFAULT_RIBBON_OPTIONS).filter((_, i) => i !== rIdx);
-                          setFormData({
-                            ...formData,
-                            packaging: {
-                              ...(formData.packaging || { giftBoxFee: 0, linenBagFee: 0, woodenBoxFee: 0, pouchFee: 0 }),
-                              ribbons: updated,
-                            },
-                          });
-                        }}
-                        className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
-                        title="Delete ribbon colour"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                          className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                          title="Delete ribbon colour"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>

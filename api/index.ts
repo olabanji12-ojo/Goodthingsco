@@ -16,14 +16,7 @@ import { handleContentHttp } from '../server/content/http.js';
 import { createPendingOrderServer, confirmPaidOrderServer } from '../server/orderService.js';
 import { verifyWebhookSignature } from '../server/paystackService.js';
 import { verifyFlutterwaveWebhookSignature } from '../server/flutterwaveService.js';
-import {
-  getNombaCredentials,
-  verifyNombaWebhookSignature,
-  acquireNombaWebhookLock,
-  releaseNombaWebhookLock,
-  handleNombaPaymentFailed,
-  handleNombaPaymentReversal,
-} from '../server/nombaService.js';
+import { processNombaWebhook } from '../server/nombaService.js';
 
 async function parseBody(req: IncomingMessage & { body?: any }): Promise<any> {
   if (req.body !== undefined) {
@@ -198,83 +191,8 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
         });
       }
 
-      const { webhookSecret } = getNombaCredentials();
-      if (!webhookSecret) {
-        console.error('[NombaWebhook] NOMBA_WEBHOOK_SECRET is not configured on server');
-        return sendJson(res, 500, { error: 'Webhook configuration missing on server' });
-      }
-
-      let payload: any = {};
-      try {
-        payload = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(rawBody);
-      } catch {
-        return sendJson(res, 400, { error: 'Invalid JSON payload' });
-      }
-
-      const verification = verifyNombaWebhookSignature(payload, req.headers as any, webhookSecret);
-      if (!verification.valid) {
-        console.warn('[NombaWebhook] Invalid signature received:', verification.reason);
-        return sendJson(res, 401, { error: 'Invalid webhook signature', reason: verification.reason });
-      }
-
-      const requestId = payload.requestId || '';
-      const eventType = payload.event_type || '';
-      const orderReference =
-        payload.data?.order?.orderReference ||
-        payload.data?.transaction?.merchantTxRef ||
-        payload.orderReference;
-
-      if (!requestId) {
-        return sendJson(res, 400, { error: 'Missing requestId in payload' });
-      }
-
-      // Event-level idempotency lock
-      const lock = await acquireNombaWebhookLock(requestId, orderReference);
-      if (lock.alreadyProcessed) {
-        return sendJson(res, 200, { status: 'received', message: 'Event already processed' });
-      }
-      if (!lock.acquired) {
-        return sendJson(res, 200, { status: 'processing', message: 'Event is currently processing' });
-      }
-
-      try {
-        if (eventType === 'payment_success' || eventType === 'checkout_order_successful') {
-          if (orderReference) {
-            const confirmed = await confirmPaidOrderServer(orderReference);
-            if (!confirmed.success && confirmed.retryable) {
-              await releaseNombaWebhookLock(requestId, 'failed', confirmed.message);
-              return sendJson(res, 503, { status: 'retry', message: confirmed.message });
-            }
-          }
-          await releaseNombaWebhookLock(requestId, 'processed');
-          return sendJson(res, 200, { status: 'received' });
-        }
-
-        if (eventType === 'payment_failed' || eventType === 'checkout_order_failed') {
-          if (orderReference) {
-            await handleNombaPaymentFailed(orderReference, payload);
-          }
-          await releaseNombaWebhookLock(requestId, 'processed');
-          return sendJson(res, 200, { status: 'received' });
-        }
-
-        if (eventType === 'payment_reversal' || eventType === 'transaction_reversed') {
-          if (orderReference) {
-            await handleNombaPaymentReversal(orderReference, payload);
-          }
-          await releaseNombaWebhookLock(requestId, 'processed');
-          return sendJson(res, 200, { status: 'received' });
-        }
-
-        // Unknown or unhandled event (acknowledged safely)
-        console.log(`[NombaWebhook] Acknowledged unhandled event_type: ${eventType}`);
-        await releaseNombaWebhookLock(requestId, 'processed');
-        return sendJson(res, 200, { status: 'ignored', message: `Unhandled event type: ${eventType}` });
-      } catch (err: any) {
-        console.error('[NombaWebhook] Processing exception:', err);
-        await releaseNombaWebhookLock(requestId, 'failed', err.message);
-        return sendJson(res, 500, { error: 'Internal processing error', message: err.message });
-      }
+      const result = await processNombaWebhook(rawBody, req.headers as any, confirmPaidOrderServer);
+      return sendJson(res, result.statusCode, result.data);
     }
 
     // 7. Unknown route fallback

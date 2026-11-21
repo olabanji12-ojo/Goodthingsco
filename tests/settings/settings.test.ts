@@ -6,6 +6,7 @@ import {
   calculateEffectiveDeliveryFee,
   SettingsHttpError,
 } from '../../server/settings/domain';
+import { DEFAULT_STORE_SETTINGS } from '../../src/types/settings';
 import { getDeliveryFeeCalculation } from '../../src/config/shipping';
 import { createAbandonedCheckoutService } from '../../server/checkout/service';
 import { createCorporateManagement } from '../../server/corporate/service';
@@ -27,7 +28,12 @@ describe('Admin Settings & Delivery Rate Management Phase Test Suite', () => {
   let service: ReturnType<typeof createSettingsManagement>;
 
   beforeEach(() => {
-    repo = createMemorySettingsRepository();
+    const initial = structuredClone(DEFAULT_STORE_SETTINGS);
+    initial.shipping.lagos.fee = 3500;
+    initial.shipping.otherNigeria.fee = 7500;
+    initial.shipping.otherNigeria.estimatedMinDays = 3;
+    initial.shipping.otherNigeria.estimatedMaxDays = 4;
+    repo = createMemorySettingsRepository(initial);
     service = createSettingsManagement({
       repository: repo,
       verify: mockVerify,
@@ -217,7 +223,7 @@ describe('Admin Settings & Delivery Rate Management Phase Test Suite', () => {
   // 18–24: Checkout & Shipping Calculation
   it('18. Checkout calculation uses configured Lagos delivery fee', async () => {
     await service.updateStoreSettings(adminToken, {
-      shipping: { lagos: { fee: 5000 } },
+      shipping: { lagos: { fee: 5000, areas: [] } },
     });
     const liveShipping = await service.getEffectiveShipping();
     const calc = getDeliveryFeeCalculation('lagos', liveShipping);
@@ -233,7 +239,7 @@ describe('Admin Settings & Delivery Rate Management Phase Test Suite', () => {
     const liveShipping = await service.getEffectiveShipping();
     const calc = getDeliveryFeeCalculation('other-nigeria', liveShipping);
     assert.equal(calc.fee, 9000);
-    assert.equal(calc.estimatedDeliveryTime, '3–4 business days');
+    assert.equal(calc.estimatedDeliveryTime, '5 – 14 Working Days');
   });
 
   it('20. International quote-required returns requiresQuote=true and zero fee', async () => {
@@ -461,5 +467,51 @@ describe('Admin Settings & Delivery Rate Management Phase Test Suite', () => {
 
     // The previously saved validity date must be preserved!
     assert.equal(updatedDraft.quote.validUntil, '2026-10-10');
+  });
+
+  // 32–33: Packaging & Ribbons Persistence & Fresh Defaults
+  it('32. Packaging options and ribbon colours persist across updates and reflect in public settings', async () => {
+    const updated = await service.updateStoreSettings(adminToken, {
+      packaging: {
+        options: [
+          {
+            id: 'pkg-custom-box',
+            name: 'Artisan Keepsake Box',
+            description: 'Handcrafted solid box with golden trim',
+            price: 5000,
+            enabled: true,
+          },
+        ],
+        ribbons: [
+          {
+            id: 'ribbon-sage',
+            name: 'Sage Satin',
+            hex: '#8A9A86',
+            enabled: true,
+          },
+        ],
+      },
+    });
+
+    assert.equal(updated.packaging?.options?.length, 1);
+    assert.equal(updated.packaging?.options?.[0].name, 'Artisan Keepsake Box');
+    assert.equal(updated.packaging?.ribbons?.length, 1);
+    assert.equal(updated.packaging?.ribbons?.[0].name, 'Sage Satin');
+
+    const publicSettings = await service.getPublicStoreSettings();
+    assert.equal(publicSettings.packaging?.options?.length, 1);
+    assert.equal(publicSettings.packaging?.options?.[0].name, 'Artisan Keepsake Box');
+    assert.equal(publicSettings.packaging?.ribbons?.length, 1);
+    assert.equal(publicSettings.packaging?.ribbons?.[0].name, 'Sage Satin');
+  });
+
+  it('33. Settings start fresh with no pre-packaged options by default', async () => {
+    const settings = await service.getStoreSettings();
+    assert.deepEqual(settings.packaging?.options, []);
+    assert.deepEqual(settings.packaging?.ribbons, []);
+
+    const pub = await service.getPublicStoreSettings();
+    assert.deepEqual(pub.packaging?.options, []);
+    assert.deepEqual(pub.packaging?.ribbons, []);
   });
 });

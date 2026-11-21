@@ -24,6 +24,7 @@ import {
   nairaToKoboSafe,
   getNombaCredentials,
   resetNombaTokenCache,
+  processNombaWebhook,
 } from '../../server/nombaService';
 import {
   generateNombaReference,
@@ -272,6 +273,99 @@ describe('Nomba Payment & Webhook Integration Test Suite', () => {
       const messyOrderNumber = 'GTC #2026/11/19:X!';
       const nombaRef = generateNombaReference(messyOrderNumber);
       assert.match(nombaRef, /^nomba_GTC__2026_11_19_X__/);
+    });
+  });
+
+  describe('7. Reusable Webhook Dispatcher (processNombaWebhook)', () => {
+    it('returns 500 when NOMBA_WEBHOOK_SECRET is not configured', async () => {
+      delete process.env.NOMBA_WEBHOOK_SECRET;
+      const res = await processNombaWebhook('{}', {}, async () => ({ success: true }));
+      assert.equal(res.statusCode, 500);
+      assert.match(res.data.error || '', /missing|not configured/i);
+    });
+
+    it('returns 400 on malformed JSON body', async () => {
+      process.env.NOMBA_WEBHOOK_SECRET = mockSecretKey;
+      const res = await processNombaWebhook('{invalid-json', {}, async () => ({ success: true }));
+      assert.equal(res.statusCode, 400);
+      assert.match(res.data.error || '', /invalid json/i);
+    });
+
+    it('returns 401 when signature verification fails', async () => {
+      process.env.NOMBA_WEBHOOK_SECRET = mockSecretKey;
+      const payloadStr = JSON.stringify(mockWebhookPayload);
+      const res = await processNombaWebhook(
+        payloadStr,
+        {
+          'nomba-signature': 'bad_signature_value',
+          'nomba-timestamp': validTimestamp,
+        },
+        async () => ({ success: true })
+      );
+      assert.equal(res.statusCode, 401);
+      assert.match(res.data.error || '', /invalid webhook signature/i);
+    });
+
+    it('returns 400 when payload is validly signed but lacks requestId', async () => {
+      process.env.NOMBA_WEBHOOK_SECRET = mockSecretKey;
+      const noRequestIdPayload = { ...mockWebhookPayload, requestId: '' };
+      const signingStr = buildNombaSigningString(noRequestIdPayload, validTimestamp);
+      const validSig = crypto.createHmac('sha256', mockSecretKey).update(signingStr).digest('base64');
+
+      const res = await processNombaWebhook(
+        JSON.stringify(noRequestIdPayload),
+        {
+          'nomba-signature': validSig,
+          'nomba-timestamp': validTimestamp,
+        },
+        async () => ({ success: true })
+      );
+
+      assert.equal(res.statusCode, 400);
+      assert.match(res.data.error || '', /missing requestId/i);
+    });
+
+    it('dispatches valid payment_success event and returns 200', async () => {
+      process.env.NOMBA_WEBHOOK_SECRET = mockSecretKey;
+      let orderConfirmedCalled = false;
+      let confirmedRef = '';
+
+      const signingStr = buildNombaSigningString(mockWebhookPayload, validTimestamp);
+      const validSig = crypto.createHmac('sha256', mockSecretKey).update(signingStr).digest('base64');
+
+      const res = await processNombaWebhook(
+        JSON.stringify(mockWebhookPayload),
+        {
+          'nomba-signature': validSig,
+          'nomba-timestamp': validTimestamp,
+        },
+        async (ref: string) => {
+          orderConfirmedCalled = true;
+          confirmedRef = ref;
+          return { success: true };
+        }
+      );
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.data.status, 'received');
+      assert.equal(orderConfirmedCalled, true);
+      assert.equal(confirmedRef, mockWebhookPayload.data.order.orderReference);
+    });
+  });
+
+  describe('8. Sandbox Environment & Email Safety Safeguards', () => {
+    it('detects sandbox URL when NOMBA_BASE_URL is set to sandbox', () => {
+      process.env.NOMBA_BASE_URL = 'https://sandbox.nomba.com';
+      const creds = getNombaCredentials();
+      assert.equal(creds.baseUrl, 'https://sandbox.nomba.com');
+      assert.equal(creds.baseUrl.includes('sandbox'), true);
+    });
+
+    it('defaults to live production URL when NOMBA_BASE_URL is omitted', () => {
+      delete process.env.NOMBA_BASE_URL;
+      const creds = getNombaCredentials();
+      assert.equal(creds.baseUrl, 'https://api.nomba.com');
+      assert.equal(creds.baseUrl.includes('sandbox'), false);
     });
   });
 });

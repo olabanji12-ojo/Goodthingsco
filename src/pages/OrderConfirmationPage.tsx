@@ -42,7 +42,10 @@ export const OrderConfirmationPage: React.FC = () => {
     searchParams.get('trxref') ||
     searchParams.get('tx_ref') ||
     searchParams.get('transaction_id');
-  const transactionId = searchParams.get('transaction_id') || undefined;
+  const transactionId =
+    searchParams.get('transaction_id') ||
+    searchParams.get('orderId') ||
+    undefined;
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(true);

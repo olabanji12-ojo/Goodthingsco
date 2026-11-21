@@ -10,8 +10,8 @@ import { getPublicStoreSettings } from '../../services/settingsService';
 
 export interface PersonalisationDetails {
   gift: GiftItem;
-  packaging: PackagingOption;
-  ribbon: RibbonColorOption;
+  packaging?: PackagingOption;
+  ribbon?: RibbonColorOption;
   message: string;
   hasMonogram: boolean;
   monogramText: string;
@@ -34,11 +34,12 @@ export const PersonaliseModalStage2: React.FC<PersonaliseModalStage2Props> = ({
   if (!isOpen || !gift) return null;
 
   const [packagingList, setPackagingList] = useState<PackagingOption[]>(() => getPackagingOptions());
-  const [selectedPackaging, setSelectedPackaging] = useState<PackagingOption>(
-    () => getPackagingOptions()[0]
+  const [selectedPackaging, setSelectedPackaging] = useState<PackagingOption | null>(
+    () => getPackagingOptions()[0] || null
   );
-  const [selectedRibbon, setSelectedRibbon] = useState<RibbonColorOption>(
-    RIBBON_COLORS[0]
+  const [ribbonList, setRibbonList] = useState<RibbonColorOption[]>(() => RIBBON_COLORS);
+  const [selectedRibbon, setSelectedRibbon] = useState<RibbonColorOption | null>(
+    RIBBON_COLORS[0] || null
   );
   const [message, setMessage] = useState<string>('Wishing you moments of quiet joy, celebration, and inspired living.');
   const [hasMonogram, setHasMonogram] = useState<boolean>(false);
@@ -51,7 +52,19 @@ export const PersonaliseModalStage2: React.FC<PersonaliseModalStage2Props> = ({
         if (!isMounted) return;
         const opts = getPackagingOptions(settings?.packaging);
         setPackagingList(opts);
-        setSelectedPackaging((prev) => opts.find((o) => o.id === prev.id) || opts[0]);
+        setSelectedPackaging((prev) => (prev ? opts.find((o) => o.id === prev.id) || opts[0] || null : opts[0] || null));
+
+        if (settings?.packaging?.ribbons && Array.isArray(settings.packaging.ribbons)) {
+          const activeRibbons = settings.packaging.ribbons
+            .filter((r) => r.enabled !== false)
+            .map((r) => ({
+              id: r.id,
+              name: r.name,
+              hex: r.hex || '#C89D5C',
+            }));
+          setRibbonList(activeRibbons);
+          setSelectedRibbon((prev) => (prev ? activeRibbons.find((r) => r.id === prev.id) || activeRibbons[0] || null : activeRibbons[0] || null));
+        }
       })
       .catch((err) => {
         console.warn('[PersonaliseModalStage2] Failed to load store settings:', err);
@@ -63,15 +76,16 @@ export const PersonaliseModalStage2: React.FC<PersonaliseModalStage2Props> = ({
 
   // Calculate live total
   const monogramCost = hasMonogram ? 3000 : 0;
-  const totalPrice = gift.price + selectedPackaging.price + monogramCost;
+  const packagingPrice = selectedPackaging?.price || 0;
+  const totalPrice = gift.price + packagingPrice + monogramCost;
   const formattedTotal = `₦${totalPrice.toLocaleString()}`;
 
   const handleProceed = (e: React.FormEvent) => {
     e.preventDefault();
     onProceedToCheckout({
       gift,
-      packaging: selectedPackaging,
-      ribbon: selectedRibbon,
+      packaging: selectedPackaging || undefined,
+      ribbon: selectedRibbon || undefined,
       message,
       hasMonogram,
       monogramText: hasMonogram ? monogramText : '',
@@ -140,77 +154,83 @@ export const PersonaliseModalStage2: React.FC<PersonaliseModalStage2Props> = ({
             </div>
 
             {/* ── 1. Packaging Type ── */}
-            <div>
-              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-brand-dark block mb-3">
-                1. Select Packaging Finish
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {packagingList.map((pkg) => {
-                  const isSelected = selectedPackaging.id === pkg.id;
-                  return (
-                    <div
-                      key={pkg.id}
-                      onClick={() => setSelectedPackaging(pkg)}
-                      className={`p-4 rounded-xl cursor-pointer transition-all border ${
-                        isSelected
-                          ? 'bg-white border-gold-600 ring-1 ring-gold-600/40 shadow-xs'
-                          : 'bg-white/70 hover:bg-white border-brand-dark/10 hover:border-brand-dark/30'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-sans text-xs font-bold text-brand-dark">
-                          {pkg.name}
-                        </span>
-                        <span className="font-sans text-xs text-gold-700 font-semibold">
-                          {pkg.price === 0 ? 'Included' : `+₦${pkg.price.toLocaleString()}`}
-                        </span>
+            {packagingList.length > 0 && (
+              <div>
+                <label className="font-sans text-xs font-semibold uppercase tracking-wider text-brand-dark block mb-3">
+                  1. Select Packaging Finish
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {packagingList.map((pkg) => {
+                    const isSelected = selectedPackaging?.id === pkg.id;
+                    return (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setSelectedPackaging(pkg)}
+                        className={`p-4 rounded-xl cursor-pointer transition-all border ${
+                          isSelected
+                            ? 'bg-white border-gold-600 ring-1 ring-gold-600/40 shadow-xs'
+                            : 'bg-white/70 hover:bg-white border-brand-dark/10 hover:border-brand-dark/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-sans text-xs font-bold text-brand-dark">
+                            {pkg.name}
+                          </span>
+                          <span className="font-sans text-xs text-gold-700 font-semibold">
+                            {pkg.price === 0 ? 'Included' : `+₦${pkg.price.toLocaleString()}`}
+                          </span>
+                        </div>
+                        <p className="font-sans text-[11px] text-brand-medium/80 leading-snug">
+                          {pkg.description}
+                        </p>
                       </div>
-                      <p className="font-sans text-[11px] text-brand-medium/80 leading-snug">
-                        {pkg.description}
-                      </p>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ── 2. Ribbon Colour Swatches ── */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <label className="font-sans text-xs font-semibold uppercase tracking-wider text-brand-dark">
-                  2. Select Silk Ribbon Colour
-                </label>
-                <span className="text-xs font-sans text-gold-600 font-medium">
-                  {selectedRibbon.name}
-                </span>
-              </div>
+            {ribbonList.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="font-sans text-xs font-semibold uppercase tracking-wider text-brand-dark">
+                    2. Select Silk Ribbon Colour
+                  </label>
+                  {selectedRibbon && (
+                    <span className="text-xs font-sans text-gold-600 font-medium">
+                      {selectedRibbon.name}
+                    </span>
+                  )}
+                </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {RIBBON_COLORS.map((ribbon) => {
-                  const isSelected = selectedRibbon.id === ribbon.id;
-                  return (
-                    <button
-                      key={ribbon.id}
-                      type="button"
-                      onClick={() => setSelectedRibbon(ribbon)}
-                      className={`group flex items-center gap-2 px-3 py-2 rounded-full border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-white border-brand-dark shadow-2xs ring-1 ring-brand-dark'
-                          : 'bg-white/80 border-brand-dark/10 hover:border-brand-dark/30'
-                      }`}
-                    >
-                      <span
-                        className="w-4 h-4 rounded-full border border-black/10 shrink-0"
-                        style={{ backgroundColor: ribbon.hex }}
-                      />
-                      <span className="text-xs font-sans text-brand-dark font-medium">
-                        {ribbon.name}
-                      </span>
-                    </button>
-                  );
-                })}
+                <div className="flex flex-wrap items-center gap-3">
+                  {ribbonList.map((ribbon) => {
+                    const isSelected = selectedRibbon?.id === ribbon.id;
+                    return (
+                      <button
+                        key={ribbon.id}
+                        type="button"
+                        onClick={() => setSelectedRibbon(ribbon)}
+                        className={`group flex items-center gap-2 px-3 py-2 rounded-full border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-white border-brand-dark shadow-2xs ring-1 ring-brand-dark'
+                            : 'bg-white/80 border-brand-dark/10 hover:border-brand-dark/30'
+                        }`}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                          style={{ backgroundColor: ribbon.hex }}
+                        />
+                        <span className="text-xs font-sans text-brand-dark font-medium">
+                          {ribbon.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ── 3. Handwritten Gift Card Message ── */}
             <div>

@@ -69,6 +69,8 @@ export const firestoreSettingsRepository: StoreSettingsRepository = {
           linenBagFee: data.packaging?.linenBagFee ?? DEFAULT_STORE_SETTINGS.packaging?.linenBagFee ?? 0,
           woodenBoxFee: data.packaging?.woodenBoxFee ?? DEFAULT_STORE_SETTINGS.packaging?.woodenBoxFee ?? 0,
           pouchFee: data.packaging?.pouchFee ?? DEFAULT_STORE_SETTINGS.packaging?.pouchFee ?? 0,
+          options: Array.isArray(data.packaging?.options) ? data.packaging.options : (DEFAULT_STORE_SETTINGS.packaging?.options ?? []),
+          ribbons: Array.isArray(data.packaging?.ribbons) ? data.packaging.ribbons : (DEFAULT_STORE_SETTINGS.packaging?.ribbons ?? []),
         },
         abandonedCheckout: {
           ...DEFAULT_STORE_SETTINGS.abandonedCheckout,

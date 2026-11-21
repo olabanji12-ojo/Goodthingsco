@@ -280,7 +280,12 @@ export async function createPendingOrderServer(
     await notificationService.orderCreated({ id: orderId, ...orderDocData });
 
     // G. Initialize Payment with Selected Gateway
-    const callbackUrl = `${callbackOrigin.replace(/\/$/, '')}/order-confirmation/${orderNumber}`;
+    const effectiveOrigin = (
+      process.env.APP_URL ||
+      process.env.VITE_APP_URL ||
+      callbackOrigin
+    ).replace(/\/$/, '');
+    const callbackUrl = `${effectiveOrigin}/order-confirmation/${orderNumber}`;
 
     let gatewayResult: {
       success: boolean;
@@ -410,7 +415,7 @@ export async function confirmPaidOrderServer(
     const isNomba = provider === 'nomba' || reference.startsWith('nomba_');
     const isPaystack = provider === 'paystack';
     const verifyResult = isNomba
-      ? await verifyNombaTransaction(reference)
+      ? await verifyNombaTransaction(reference, transactionId)
       : isPaystack
       ? await verifyPaystackTransaction(reference)
       : await verifyFlutterwaveTransaction(reference, transactionId);

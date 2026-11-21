@@ -18,6 +18,7 @@ import {
 } from './orderService';
 import { verifyWebhookSignature } from './paystackService';
 import { verifyFlutterwaveWebhookSignature } from './flutterwaveService';
+import { processNombaWebhook } from './nombaService';
 import { handleOrderHttp } from './orders/http';
 import { handleCheckoutHttp } from './checkout/http';
 import { handleCorporateHttp } from './corporate/http';
@@ -63,18 +64,30 @@ export function devApiPlugin(): Plugin {
         const url = req.url || '';
         const method = (req.method || 'GET').toUpperCase();
 
-        // 1. POST /api/paystack/initialize, /api/flutterwave/initialize, /api/payment/initialize
-        if ((url === '/api/paystack/initialize' || url === '/api/flutterwave/initialize' || url === '/api/payment/initialize') && method === 'POST') {
+        // 1. POST /api/paystack/initialize, /api/flutterwave/initialize, /api/payment/initialize, /api/nomba/initialize
+        if (
+          (url === '/api/paystack/initialize' ||
+            url === '/api/flutterwave/initialize' ||
+            url === '/api/payment/initialize' ||
+            url === '/api/nomba/initialize') &&
+          method === 'POST'
+        ) {
           try {
             const body = await parseBody(req);
             const protocol = req.headers['x-forwarded-proto'] || 'http';
             const host = req.headers.host || 'localhost:5174';
             const origin = `${protocol}://${host}`;
 
-            const payload = { ...body.payload };
-            if (url === '/api/flutterwave/initialize') {
-              payload.paymentProvider = 'flutterwave';
-            }
+            const selectedProvider =
+              url === '/api/nomba/initialize'
+                ? 'nomba'
+                : url === '/api/flutterwave/initialize'
+                ? 'flutterwave'
+                : body.payload?.paymentProvider === 'nomba'
+                ? 'nomba'
+                : 'flutterwave';
+
+            const payload = { ...body.payload, paymentProvider: selectedProvider };
 
             const checkoutToken = (req.headers.authorization as string | undefined)?.replace(/^Bearer /, '');
             const result = await createPendingOrderServer(payload, origin, checkoutToken);
@@ -88,11 +101,17 @@ export function devApiPlugin(): Plugin {
           }
         }
 
-        // 2. POST /api/paystack/verify, /api/flutterwave/verify, /api/payment/verify
-        if ((url === '/api/paystack/verify' || url === '/api/flutterwave/verify' || url === '/api/payment/verify') && method === 'POST') {
+        // 2. POST /api/paystack/verify, /api/flutterwave/verify, /api/payment/verify, /api/nomba/verify
+        if (
+          (url === '/api/paystack/verify' ||
+            url === '/api/flutterwave/verify' ||
+            url === '/api/payment/verify' ||
+            url === '/api/nomba/verify') &&
+          method === 'POST'
+        ) {
           try {
             const body = await parseBody(req);
-            const reference = body.reference || body.tx_ref;
+            const reference = body.reference || body.tx_ref || body.orderReference;
             const transactionId = body.transactionId || body.transaction_id;
 
             if (!reference) {
@@ -101,7 +120,7 @@ export function devApiPlugin(): Plugin {
 
             const result = await confirmPaidOrderServer(reference, transactionId);
             if (!result.success) {
-              return sendJson(res, 400, result);
+              return sendJson(res, result.retryable ? 503 : 400, result);
             }
             return sendJson(res, 200, result);
           } catch (err: any) {
@@ -170,6 +189,25 @@ export function devApiPlugin(): Plugin {
           } catch (err: any) {
             console.error('[API /api/flutterwave/webhook] Error:', err);
             return sendJson(res, 500, { message: 'Webhook processing error' });
+          }
+        }
+
+        // 5. POST /api/nomba/webhook
+        if (url === '/api/nomba/webhook' && method === 'POST') {
+          try {
+            let rawBody = '';
+            await new Promise<void>((resolve) => {
+              req.on('data', (chunk) => {
+                rawBody += chunk.toString();
+              });
+              req.on('end', () => resolve());
+            });
+
+            const result = await processNombaWebhook(rawBody, req.headers as any, confirmPaidOrderServer);
+            return sendJson(res, result.statusCode, result.data);
+          } catch (err: any) {
+            console.error('[API /api/nomba/webhook] Error:', err);
+            return sendJson(res, 500, { error: 'Webhook processing error', message: err?.message });
           }
         }
 

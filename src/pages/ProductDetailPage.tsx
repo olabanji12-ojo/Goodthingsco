@@ -175,10 +175,10 @@ export const ProductDetailPage: React.FC = () => {
     const firstImage = product.images?.[0];
     const imagePayload = firstImage
       ? {
-          url: typeof firstImage === 'string' ? firstImage : firstImage.url,
-          publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
-          alt: typeof firstImage === 'object' ? firstImage.alt : product.name,
-        }
+        url: typeof firstImage === 'string' ? firstImage : firstImage.url,
+        publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
+        alt: typeof firstImage === 'object' ? firstImage.alt : product.name,
+      }
       : undefined;
 
     const packagingExtra = packagingUpgradeFee;
@@ -315,11 +315,10 @@ export const ProductDetailPage: React.FC = () => {
                         key={idx}
                         type="button"
                         onClick={() => setSelectedImageIndex(idx)}
-                        className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
-                          selectedImageIndex === idx
+                        className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${selectedImageIndex === idx
                             ? 'border-brand-dark scale-102 shadow-sm'
                             : 'border-transparent opacity-60 hover:opacity-100'
-                        }`}
+                          }`}
                       >
                         <img
                           src={getProductImageUrl(img)}
@@ -398,11 +397,10 @@ export const ProductDetailPage: React.FC = () => {
                                 onClick={() =>
                                   setSelectedVariantOptions({ ...selectedVariantOptions, [v.name]: opt })
                                 }
-                                className={`px-4 py-2 rounded-xl border text-xs font-sans transition-all cursor-pointer ${
-                                  isSelected
+                                className={`px-4 py-2 rounded-xl border text-xs font-sans transition-all cursor-pointer ${isSelected
                                     ? 'bg-brand-dark text-white border-brand-dark font-semibold shadow-xs'
                                     : 'bg-white text-brand-dark border-brand-dark/15 hover:border-brand-dark/40'
-                                }`}
+                                  }`}
                               >
                                 {opt}
                               </button>
@@ -434,11 +432,10 @@ export const ProductDetailPage: React.FC = () => {
                             key={pkg}
                             type="button"
                             onClick={() => setSelectedPackaging(pkg)}
-                            className={`p-3 rounded-xl border text-left text-xs font-sans transition-all cursor-pointer flex items-center justify-between ${
-                              isSelected
+                            className={`p-3 rounded-xl border text-left text-xs font-sans transition-all cursor-pointer flex items-center justify-between ${isSelected
                                 ? 'bg-brand-dark text-white border-brand-dark font-medium shadow-xs'
                                 : 'bg-white text-brand-dark border-brand-dark/15 hover:border-brand-dark/40'
-                            }`}
+                              }`}
                           >
                             <div>
                               <div className="font-medium">{pkg}</div>
@@ -463,9 +460,29 @@ export const ProductDetailPage: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       {(product.ribbonColours && product.ribbonColours.length > 0
                         ? product.ribbonColours.map((r) => {
-                            const found = ribbonList.find((rl) => rl.name.toLowerCase() === r.toLowerCase());
-                            return { id: r, name: r, hex: found?.hex || '#C89D5C' };
-                          })
+                          const found = ribbonList.find(
+                            (rl) =>
+                              rl.name.toLowerCase() === r.toLowerCase() ||
+                              rl.id.toLowerCase() === r.toLowerCase() ||
+                              rl.name.toLowerCase().includes(r.toLowerCase()) ||
+                              r.toLowerCase().includes(rl.name.toLowerCase())
+                          );
+                          let hex = found?.hex;
+                          if (!hex) {
+                            const lower = r.toLowerCase();
+                            if (lower.includes('gold') || lower.includes('champagne')) hex = '#C89D5C';
+                            else if (lower.includes('ivory') || lower.includes('white') || lower.includes('cream')) hex = '#F5F0E8';
+                            else if (lower.includes('navy') || lower.includes('blue')) hex = '#1C2638';
+                            else if (lower.includes('olive') || lower.includes('green') || lower.includes('emerald') || lower.includes('sage')) hex = '#3F4634';
+                            else if (lower.includes('pink') || lower.includes('rose') || lower.includes('blush')) hex = '#E8A598';
+                            else if (lower.includes('burgundy') || lower.includes('red') || lower.includes('wine')) hex = '#722F37';
+                            else if (lower.includes('black')) hex = '#1A1A1A';
+                            else if (lower.includes('silver') || lower.includes('grey')) hex = '#C0C0C0';
+                            else if (lower.includes('terracotta') || lower.includes('orange')) hex = '#A85741';
+                            else hex = '#C89D5C';
+                          }
+                          return { id: r, name: r, hex };
+                        })
                         : ribbonList
                       ).map((rib) => {
                         const isSelected = selectedRibbon === rib.name;
@@ -474,11 +491,10 @@ export const ProductDetailPage: React.FC = () => {
                             key={rib.id || rib.name}
                             type="button"
                             onClick={() => setSelectedRibbon(rib.name)}
-                            className={`px-3 py-1.5 rounded-xl border text-xs font-sans transition-all cursor-pointer flex items-center gap-2 ${
-                              isSelected
+                            className={`px-3 py-1.5 rounded-xl border text-xs font-sans transition-all cursor-pointer flex items-center gap-2 ${isSelected
                                 ? 'bg-brand-dark text-white border-brand-dark font-semibold shadow-xs'
                                 : 'bg-white text-brand-dark border-brand-dark/15 hover:border-brand-dark/40'
-                            }`}
+                              }`}
                           >
                             <span
                               className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10"
@@ -587,11 +603,10 @@ export const ProductDetailPage: React.FC = () => {
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isOutOfStock}
-                    className={`w-full py-4 rounded-2xl font-sans text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] transition-all flex items-center justify-center gap-2.5 shadow-md ${
-                      !isOutOfStock
+                    className={`w-full py-4 rounded-2xl font-sans text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] transition-all flex items-center justify-center gap-2.5 shadow-md ${!isOutOfStock
                         ? 'bg-brand-dark text-white hover:bg-gold-600 active:scale-[0.99] cursor-pointer'
                         : 'bg-brand-light/50 text-brand-medium/60 cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     <ShoppingBag size={17} />
                     <span>{isOutOfStock ? 'Currently Out of Stock' : 'Add to Gifting Cart'}</span>

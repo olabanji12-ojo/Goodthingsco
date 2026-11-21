@@ -81,7 +81,7 @@ export function adaptProductToGiftItem(product: Product): GiftItem {
     included:
       product.packagingOptions && product.packagingOptions.length > 0
         ? product.packagingOptions
-        : ['Signature Gift Box', 'Handwritten Card', 'Artisanal Keepsake'],
+        : ['Handwritten Card', 'Artisanal Presentation'],
     badge: product.featured ? 'Featured' : undefined,
     slug: product.slug,
     rawProduct: product,

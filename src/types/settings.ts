@@ -221,54 +221,9 @@ export const DEFAULT_LAGOS_SHIPPING_AREAS: ShippingAreaRate[] = [
   },
 ];
 
-export const DEFAULT_PACKAGING_OPTIONS: PackagingOptionItem[] = [
-  {
-    id: 'gift-box',
-    name: 'Signature Gift Box',
-    description: 'Sturdy debossed ivory box with golden interior lining',
-    price: 0,
-    badge: 'Complimentary',
-    enabled: true,
-  },
-  {
-    id: 'gift-bag',
-    name: 'Textured Linen Bag',
-    description: 'Heavy natural cotton linen bag with hand-tied twill handles',
-    price: 0,
-    badge: 'Complimentary',
-    enabled: true,
-  },
-  {
-    id: 'wooden-box',
-    name: 'Artisan Wooden Crate',
-    description: 'Handcrafted solid cedar keepsake box with sliding lid',
-    price: 0,
-    enabled: true,
-  },
-  {
-    id: 'pouch',
-    name: 'Silk Keepsake Pouch',
-    description: 'Soft drawstring satin pouch for jewelry & daily objects',
-    price: 0,
-    enabled: true,
-  },
-  {
-    id: 'festive-box',
-    name: 'Festive Christmas Keepsake Box',
-    description: 'Holiday crimson & gold embossed keepsake box with seasonal botanical lining',
-    price: 0,
-    badge: 'Holiday Edition',
-    enabled: true,
-  },
-];
+export const DEFAULT_PACKAGING_OPTIONS: PackagingOptionItem[] = [];
 
-export const DEFAULT_RIBBON_OPTIONS: RibbonOptionItem[] = [
-  { id: 'gold', name: 'Champagne Gold', hex: '#C89D5C', enabled: true },
-  { id: 'ivory', name: 'Warm Ivory', hex: '#F5F0E8', enabled: true },
-  { id: 'olive', name: 'Forest Olive', hex: '#3F4634', enabled: true },
-  { id: 'navy', name: 'Midnight Navy', hex: '#1C2638', enabled: true },
-  { id: 'terracotta', name: 'Earthy Terracotta', hex: '#A85741', enabled: true },
-];
+export const DEFAULT_RIBBON_OPTIONS: RibbonOptionItem[] = [];
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   business: {
@@ -310,8 +265,8 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
     linenBagFee: 0,
     woodenBoxFee: 0,
     pouchFee: 0,
-    options: DEFAULT_PACKAGING_OPTIONS,
-    ribbons: DEFAULT_RIBBON_OPTIONS,
+    options: [],
+    ribbons: [],
   },
   abandonedCheckout: {
     abandonedAfterMinutes: 60,

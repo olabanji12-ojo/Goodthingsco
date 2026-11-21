@@ -14,13 +14,17 @@ export function createNotificationService(email = emailService) {
     }
   }
   return {
-    orderCreated: (order: Order) => isolate(() => {
+    orderCreated: (order: Order, options?: { skipReason?: string }) => isolate(() => {
+      const isSandbox = order.payment?.provider === 'nomba' && Boolean(process.env.NOMBA_BASE_URL?.includes('sandbox'));
+      const effectiveOptions = options || (isSandbox ? { skipReason: 'Nomba Sandbox testing: customer email suppressed' } : undefined);
       const data = toOrderEmailData(order);
-      return Promise.all([email.sendOrderPlacedEmail(data), email.sendAdminNewOrderEmail(data)]);
+      return Promise.all([email.sendOrderPlacedEmail(data, effectiveOptions), email.sendAdminNewOrderEmail(data, effectiveOptions)]);
     }),
     paymentConfirmed: (order: Order, verification: { isSimulated: boolean }) => isolate(() => {
+      const isSandbox = order.payment?.provider === 'nomba' && Boolean(process.env.NOMBA_BASE_URL?.includes('sandbox'));
+      const isSim = Boolean(verification.isSimulated || isSandbox);
       const data = toOrderEmailData(order);
-      const options = verification.isSimulated ? { skipReason: 'Simulated payment; no verified payment email sent' } : undefined;
+      const options = isSim ? { skipReason: 'Simulated/Sandbox payment; customer payment email suppressed' } : undefined;
       const tasks = [email.sendPaymentConfirmedEmail(data, options), email.sendAdminPaymentEmail(data, options)];
       if (order.orderStatus === 'confirmed-review-required') {
         tasks.push(email.sendAdminExceptionEmail(data,

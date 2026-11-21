@@ -72,6 +72,7 @@ interface CachedToken {
 let cachedToken: CachedToken | null = null;
 
 function readEnvDirect(key: string): string {
+  if (process.env.NODE_ENV === 'test') return '';
   if (process.env[key]) return process.env[key]!.trim();
   try {
     const envPath = resolve(process.cwd(), '.env');
@@ -91,29 +92,40 @@ function readEnvDirect(key: string): string {
  * Consistent naming: NOMBA_CLIENT_ID, NOMBA_PRIVATE_KEY, NOMBA_ACCOUNT_ID, NOMBA_WEBHOOK_SECRET.
  */
 export function getNombaCredentials(): NombaCredentials {
-  const clientId =
-    process.env.NOMBA_CLIENT_ID ||
-    readEnvDirect('NOMBA_CLIENT_ID');
-
-  const privateKey =
-    process.env.NOMBA_PRIVATE_KEY ||
-    process.env.NOMBA_CLIENT_SECRET ||
-    readEnvDirect('NOMBA_PRIVATE_KEY') ||
-    readEnvDirect('NOMBA_CLIENT_SECRET');
-
-  const accountId =
-    process.env.NOMBA_ACCOUNT_ID ||
-    readEnvDirect('NOMBA_ACCOUNT_ID');
-
-  const webhookSecret =
-    process.env.NOMBA_WEBHOOK_SECRET ||
-    readEnvDirect('NOMBA_WEBHOOK_SECRET');
-
   const baseUrl = (
     process.env.NOMBA_BASE_URL ||
     readEnvDirect('NOMBA_BASE_URL') ||
     'https://api.nomba.com'
   ).replace(/\/$/, '');
+
+  const isSandbox = baseUrl.includes('sandbox');
+
+  const clientId =
+    (isSandbox ? (process.env.SANDBOX_CLIENT_ID || readEnvDirect('SANDBOX_CLIENT_ID')) : '') ||
+    process.env.NOMBA_CLIENT_ID ||
+    process.env.CLIENT_ID ||
+    readEnvDirect('NOMBA_CLIENT_ID') ||
+    readEnvDirect('CLIENT_ID');
+
+  const privateKey =
+    (isSandbox ? (process.env.SANDBOX_PRIVATE_KEY || readEnvDirect('SANDBOX_PRIVATE_KEY')) : '') ||
+    process.env.NOMBA_PRIVATE_KEY ||
+    process.env.NOMBA_CLIENT_SECRET ||
+    process.env.PRIVATE_KEY ||
+    readEnvDirect('NOMBA_PRIVATE_KEY') ||
+    readEnvDirect('NOMBA_CLIENT_SECRET') ||
+    readEnvDirect('PRIVATE_KEY');
+
+  const accountId =
+    (isSandbox ? (process.env.SANDBOX_ACCOUNT_ID || readEnvDirect('SANDBOX_ACCOUNT_ID')) : '') ||
+    process.env.NOMBA_ACCOUNT_ID ||
+    process.env.ACCOUNT_ID ||
+    readEnvDirect('NOMBA_ACCOUNT_ID') ||
+    readEnvDirect('ACCOUNT_ID');
+
+  const webhookSecret =
+    process.env.NOMBA_WEBHOOK_SECRET ||
+    readEnvDirect('NOMBA_WEBHOOK_SECRET');
 
   return {
     clientId: (clientId || '').trim(),
@@ -443,16 +455,17 @@ export async function initializeNombaTransaction(
  * Verifies a transaction authoritatively via Nomba API (GET /v1/transactions/accounts/single).
  */
 export async function verifyNombaTransaction(
-  reference: string
+  reference: string,
+  transactionId?: string
 ): Promise<NombaVerifyResult> {
   const cleanRef = reference.trim();
   const { accountId, baseUrl } = getNombaCredentials();
 
   try {
     const token = await getNombaAccessToken();
-    const url = `${baseUrl}/v1/transactions/accounts/single?orderReference=${encodeURIComponent(cleanRef)}`;
+    let url = `${baseUrl}/v1/transactions/accounts/single?orderReference=${encodeURIComponent(cleanRef)}`;
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -461,7 +474,25 @@ export async function verifyNombaTransaction(
       },
     });
 
-    const json = (await response.json()) as any;
+    let json = (await response.json()) as any;
+
+    // If query with merchant reference returns not found and transactionId (Nomba orderId) is provided, query with transactionId as fallback
+    if ((!response.ok || json.code !== '00' || !json.data) && transactionId && transactionId.trim() !== cleanRef) {
+      const fallbackUrl = `${baseUrl}/v1/transactions/accounts/single?orderReference=${encodeURIComponent(transactionId.trim())}`;
+      const fallbackResponse = await fetch(fallbackUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accountId,
+          'Content-Type': 'application/json',
+        },
+      });
+      const fallbackJson = (await fallbackResponse.json()) as any;
+      if (fallbackResponse.ok && fallbackJson.code === '00' && fallbackJson.data) {
+        response = fallbackResponse;
+        json = fallbackJson;
+      }
+    }
 
     if (!response.ok || json.code !== '00' || !json.data) {
       return {
@@ -613,5 +644,102 @@ export async function handleNombaPaymentReversal(
   } catch (err: any) {
     console.error('[NombaService.handleNombaPaymentReversal] Exception:', err);
     return { success: false, message: err.message };
+  }
+}
+
+export interface NombaWebhookDispatchResult {
+  statusCode: number;
+  data: {
+    status?: string;
+    message?: string;
+    error?: string;
+    reason?: string;
+  };
+}
+
+/**
+ * Reusable, authoritative dispatcher for Nomba webhook events.
+ * Shared directly between production (api/index.ts) and local development (server/viteApiPlugin.ts).
+ */
+export async function processNombaWebhook(
+  rawBody: string,
+  headers: Record<string, string | string[] | undefined>,
+  confirmPaidOrder: (reference: string) => Promise<{ success: boolean; retryable?: boolean; message?: string }>
+): Promise<NombaWebhookDispatchResult> {
+  const { webhookSecret } = getNombaCredentials();
+  if (!webhookSecret) {
+    console.error('[NombaWebhook] NOMBA_WEBHOOK_SECRET is not configured on server');
+    return { statusCode: 500, data: { error: 'Webhook configuration missing on server' } };
+  }
+
+  let payload: any = {};
+  try {
+    payload = typeof rawBody === 'object' && rawBody !== null ? rawBody : JSON.parse(rawBody);
+  } catch {
+    return { statusCode: 400, data: { error: 'Invalid JSON payload' } };
+  }
+
+  const verification = verifyNombaWebhookSignature(payload, headers, webhookSecret);
+  if (!verification.valid) {
+    console.warn('[NombaWebhook] Invalid signature received:', verification.reason);
+    return { statusCode: 401, data: { error: 'Invalid webhook signature', reason: verification.reason } };
+  }
+
+  const requestId = payload.requestId || '';
+  const eventType = payload.event_type || '';
+  const orderReference =
+    payload.data?.order?.orderReference ||
+    payload.data?.transaction?.merchantTxRef ||
+    payload.orderReference;
+
+  if (!requestId) {
+    return { statusCode: 400, data: { error: 'Missing requestId in payload' } };
+  }
+
+  // Event-level idempotency lock
+  const lock = await acquireNombaWebhookLock(requestId, orderReference);
+  if (lock.alreadyProcessed) {
+    return { statusCode: 200, data: { status: 'received', message: 'Event already processed' } };
+  }
+  if (!lock.acquired) {
+    return { statusCode: 200, data: { status: 'processing', message: 'Event is currently processing' } };
+  }
+
+  try {
+    if (eventType === 'payment_success' || eventType === 'checkout_order_successful') {
+      if (orderReference) {
+        const confirmed = await confirmPaidOrder(orderReference);
+        if (!confirmed.success && confirmed.retryable) {
+          await releaseNombaWebhookLock(requestId, 'failed', confirmed.message);
+          return { statusCode: 503, data: { status: 'retry', message: confirmed.message } };
+        }
+      }
+      await releaseNombaWebhookLock(requestId, 'processed');
+      return { statusCode: 200, data: { status: 'received' } };
+    }
+
+    if (eventType === 'payment_failed' || eventType === 'checkout_order_failed') {
+      if (orderReference) {
+        await handleNombaPaymentFailed(orderReference, payload);
+      }
+      await releaseNombaWebhookLock(requestId, 'processed');
+      return { statusCode: 200, data: { status: 'received' } };
+    }
+
+    if (eventType === 'payment_reversal' || eventType === 'transaction_reversed') {
+      if (orderReference) {
+        await handleNombaPaymentReversal(orderReference, payload);
+      }
+      await releaseNombaWebhookLock(requestId, 'processed');
+      return { statusCode: 200, data: { status: 'received' } };
+    }
+
+    // Unhandled / informational event
+    await releaseNombaWebhookLock(requestId, 'processed');
+    return { statusCode: 200, data: { status: 'received', message: `Event ${eventType} recorded` } };
+  } catch (err: any) {
+    console.error('[NombaWebhook] Error processing event:', err);
+    await releaseNombaWebhookLock(requestId, 'failed', err?.message);
+    return { statusCode: 500, data: { error: 'Webhook processing exception', message: err?.message } };
   }
 }

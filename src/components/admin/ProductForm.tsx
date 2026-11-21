@@ -196,10 +196,20 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
     if (initialProduct?.packagingOptions && initialProduct.packagingOptions.length > 0) {
       return initialProduct.packagingOptions;
     }
-    return getPackagingOptions().map((o) => o.name);
+    return [];
   });
   const [customPackagingInput, setCustomPackagingInput] = useState<string>('');
   const [customPackagingPrice, setCustomPackagingPrice] = useState<string>('');
+
+  const [availableRibbons, setAvailableRibbons] = useState<string[]>(() => {
+    return initialProduct?.ribbonColours && initialProduct.ribbonColours.length > 0
+      ? initialProduct.ribbonColours
+      : [];
+  });
+  const [customRibbonInput, setCustomRibbonInput] = useState<string>('');
+  const [ribbonColours, setRibbonColours] = useState<string[]>(
+    initialProduct?.ribbonColours || []
+  );
 
   useEffect(() => {
     getPublicStoreSettings()
@@ -207,13 +217,16 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
         if (settings?.packaging) {
           const opts = getPackagingOptions(settings.packaging);
           setAvailablePackaging(opts);
+          if (Array.isArray(settings.packaging.ribbons)) {
+            const ribbonNames = settings.packaging.ribbons
+              .filter((r) => r.enabled !== false)
+              .map((r) => r.name);
+            setAvailableRibbons((prev) => Array.from(new Set([...prev, ...ribbonNames])));
+          }
         }
       })
       .catch(() => { });
   }, []);
-  const [ribbonColours, setRibbonColours] = useState<string[]>(
-    initialProduct?.ribbonColours || ['Gold', 'White']
-  );
 
   // Variants
   const [variants, setVariants] = useState<ProductVariant[]>(initialProduct?.variants || []);
@@ -1556,40 +1569,46 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
             Supported Packaging Options {packagingIncluded ? '(Available presentation styles — Fee will display as Included)' : '(Select which packaging is offered for this product)'}
           </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-            {availablePackaging.map((pkg) => {
-              const selected =
-                packagingOptions.includes(pkg.name) ||
-                packagingOptions.includes(pkg.id) ||
-                packagingOptions.some((p) => p.toLowerCase() === pkg.name.toLowerCase() || p.toLowerCase() === pkg.id.toLowerCase());
-              return (
-                <button
-                  key={pkg.id}
-                  type="button"
-                  onClick={() => togglePackaging(pkg.name, pkg.id)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    border: selected ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
-                    backgroundColor: selected ? '#0f172a' : '#ffffff',
-                    color: selected ? '#ffffff' : '#475569',
-                    fontSize: '12px',
-                    fontWeight: selected ? 600 : 400,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  {selected && <Check size={14} />}
-                  <span>{pkg.name}</span>
-                  <span style={{ fontSize: '10px', opacity: selected ? 0.85 : 0.65 }}>
-                    ({pkg.price === 0 ? 'Free' : `+₦${pkg.price.toLocaleString()}`})
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {availablePackaging.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', marginBottom: '10px' }}>
+              No packaging options added yet. Use &quot;+ Add Packaging&quot; below or configure presentation packaging in Settings & Delivery.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+              {availablePackaging.map((pkg) => {
+                const selected =
+                  packagingOptions.includes(pkg.name) ||
+                  packagingOptions.includes(pkg.id) ||
+                  packagingOptions.some((p) => p.toLowerCase() === pkg.name.toLowerCase() || p.toLowerCase() === pkg.id.toLowerCase());
+                return (
+                  <button
+                    key={pkg.id}
+                    type="button"
+                    onClick={() => togglePackaging(pkg.name, pkg.id)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      border: selected ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+                      backgroundColor: selected ? '#0f172a' : '#ffffff',
+                      color: selected ? '#ffffff' : '#475569',
+                      fontSize: '12px',
+                      fontWeight: selected ? 600 : 400,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    {selected && <Check size={14} />}
+                    <span>{pkg.name}</span>
+                    <span style={{ fontSize: '10px', opacity: selected ? 0.85 : 0.65 }}>
+                      ({pkg.price === 0 ? 'Free' : `+₦${pkg.price.toLocaleString()}`})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Add custom packaging on the fly */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxWidth: '520px', marginTop: '8px' }}>
@@ -1680,29 +1699,79 @@ export default function ProductForm({ initialProduct, onSubmit, isEdit = false }
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
             Supported Ribbon Colours
           </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {STANDARD_RIBBONS.map((rib) => {
-              const selected = ribbonColours.includes(rib);
-              return (
-                <button
-                  key={rib}
-                  type="button"
-                  onClick={() => toggleRibbon(rib)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: selected ? '1px solid #0f172a' : '1px solid #cbd5e1',
-                    backgroundColor: selected ? 'rgba(15, 23, 42, 0.08)' : '#ffffff',
-                    color: selected ? '#0f172a' : '#475569',
-                    fontSize: '12px',
-                    fontWeight: selected ? 600 : 400,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {rib}
-                </button>
-              );
-            })}
+          {availableRibbons.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', marginBottom: '8px' }}>
+              No ribbon colours configured yet. Add custom ribbon colours below or set them up in Settings & Delivery.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+              {availableRibbons.map((rib) => {
+                const selected = ribbonColours.includes(rib);
+                return (
+                  <button
+                    key={rib}
+                    type="button"
+                    onClick={() => toggleRibbon(rib)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: selected ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                      backgroundColor: selected ? 'rgba(15, 23, 42, 0.08)' : '#ffffff',
+                      color: selected ? '#0f172a' : '#475569',
+                      fontSize: '12px',
+                      fontWeight: selected ? 600 : 400,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {rib}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Add custom ribbon on the fly */}
+          <div style={{ display: 'flex', gap: '8px', maxWidth: '380px', marginTop: '8px' }}>
+            <input
+              type="text"
+              value={customRibbonInput}
+              onChange={(e) => setCustomRibbonInput(e.target.value)}
+              placeholder="Add ribbon colour (e.g. Sage Green Satin)"
+              style={{
+                flex: 1,
+                padding: '7px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '12px',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const trimmed = customRibbonInput.trim();
+                if (trimmed) {
+                  if (!availableRibbons.includes(trimmed)) {
+                    setAvailableRibbons((prev) => [...prev, trimmed]);
+                  }
+                  if (!ribbonColours.includes(trimmed)) {
+                    setRibbonColours((prev) => [...prev, trimmed]);
+                  }
+                  setCustomRibbonInput('');
+                }
+              }}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '6px',
+                backgroundColor: '#0f172a',
+                color: '#ffffff',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 600,
+              }}
+            >
+              + Add Ribbon
+            </button>
           </div>
         </div>
       </div>

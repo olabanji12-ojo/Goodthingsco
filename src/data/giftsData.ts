@@ -242,41 +242,7 @@ export const LIFESTYLE_OPTIONS: LifestyleOption[] = [
 ];
 
 // ── 4. Packaging Types ──
-export const PACKAGING_OPTIONS: PackagingOption[] = [
-  {
-    id: 'gift-box',
-    name: 'Signature Gift Box',
-    description: 'Sturdy debossed ivory box with golden interior lining',
-    price: 0,
-    badge: 'Complimentary',
-  },
-  {
-    id: 'gift-bag',
-    name: 'Textured Linen Bag',
-    description: 'Heavy natural cotton linen bag with hand-tied twill handles',
-    price: 0,
-    badge: 'Complimentary',
-  },
-  {
-    id: 'wooden-box',
-    name: 'Artisan Wooden Crate',
-    description: 'Handcrafted solid cedar keepsake box with sliding lid',
-    price: 0,
-  },
-  {
-    id: 'pouch',
-    name: 'Silk Keepsake Pouch',
-    description: 'Soft drawstring satin pouch for jewelry & daily objects',
-    price: 0,
-  },
-  {
-    id: 'festive-box',
-    name: 'Festive Christmas Keepsake Box',
-    description: 'Holiday crimson & gold embossed keepsake box with seasonal botanical lining',
-    price: 0,
-    badge: 'Holiday Edition',
-  },
-];
+export const PACKAGING_OPTIONS: PackagingOption[] = [];
 
 export function getPackagingOptions(packagingSettings?: {
   giftBoxFee?: number;
@@ -285,7 +251,7 @@ export function getPackagingOptions(packagingSettings?: {
   pouchFee?: number;
   options?: PackagingOption[];
 } | null): PackagingOption[] {
-  if (packagingSettings?.options && Array.isArray(packagingSettings.options) && packagingSettings.options.length > 0) {
+  if (packagingSettings?.options && Array.isArray(packagingSettings.options)) {
     return packagingSettings.options
       .filter((opt) => opt.enabled !== false)
       .map((opt) => ({
@@ -298,59 +264,11 @@ export function getPackagingOptions(packagingSettings?: {
       }));
   }
 
-  const fees = packagingSettings || {};
-  const giftBoxFee = typeof fees.giftBoxFee === 'number' ? fees.giftBoxFee : 0;
-  const linenBagFee = typeof fees.linenBagFee === 'number' ? fees.linenBagFee : 0;
-  const woodenBoxFee = typeof fees.woodenBoxFee === 'number' ? fees.woodenBoxFee : 0;
-  const pouchFee = typeof fees.pouchFee === 'number' ? fees.pouchFee : 0;
-
-  return [
-    {
-      id: 'gift-box',
-      name: 'Signature Gift Box',
-      description: 'Sturdy debossed ivory box with golden interior lining',
-      price: giftBoxFee,
-      badge: giftBoxFee === 0 ? 'Complimentary' : undefined,
-    },
-    {
-      id: 'gift-bag',
-      name: 'Textured Linen Bag',
-      description: 'Heavy natural cotton linen bag with hand-tied twill handles',
-      price: linenBagFee,
-      badge: linenBagFee === 0 ? 'Complimentary' : undefined,
-    },
-    {
-      id: 'wooden-box',
-      name: 'Artisan Wooden Crate',
-      description: 'Handcrafted solid cedar keepsake box with sliding lid',
-      price: woodenBoxFee,
-      badge: woodenBoxFee === 0 ? 'Complimentary' : undefined,
-    },
-    {
-      id: 'pouch',
-      name: 'Silk Keepsake Pouch',
-      description: 'Soft drawstring satin pouch for jewelry & daily objects',
-      price: pouchFee,
-      badge: pouchFee === 0 ? 'Complimentary' : undefined,
-    },
-    {
-      id: 'festive-box',
-      name: 'Festive Christmas Keepsake Box',
-      description: 'Holiday crimson & gold embossed keepsake box with seasonal botanical lining',
-      price: 0,
-      badge: 'Holiday Edition',
-    },
-  ];
+  return [];
 }
 
 // ── 5. Ribbon Colors ──
-export const RIBBON_COLORS: RibbonColorOption[] = [
-  { id: 'gold', name: 'Champagne Gold', hex: '#C89D5C' },
-  { id: 'ivory', name: 'Warm Ivory', hex: '#F5F0E8' },
-  { id: 'olive', name: 'Forest Olive', hex: '#3F4634' },
-  { id: 'navy', name: 'Midnight Navy', hex: '#1C2638' },
-  { id: 'terracotta', name: 'Earthy Terracotta', hex: '#B86548' },
-];
+export const RIBBON_COLORS: RibbonColorOption[] = [];
 
 // ── 6. Curated Gift Catalog ──
 export const GIFTS_CATALOG: GiftItem[] = [

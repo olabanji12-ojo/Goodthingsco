@@ -90,9 +90,9 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
   const [personalisingProduct, setPersonalisingProduct] = useState<GiftItem | null>(null);
   const [selectedModalImageIndex, setSelectedModalImageIndex] = useState<number>(0);
   const [packagingList, setPackagingList] = useState<PackagingOption[]>(() => getPackagingOptions());
-  const [selectedPackaging, setSelectedPackaging] = useState<PackagingOption>(() => getPackagingOptions()[0]);
+  const [selectedPackaging, setSelectedPackaging] = useState<PackagingOption | null>(() => getPackagingOptions()[0] || null);
   const [ribbonList, setRibbonList] = useState<any[]>(() => RIBBON_COLORS);
-  const [selectedRibbon, setSelectedRibbon] = useState(RIBBON_COLORS[0]);
+  const [selectedRibbon, setSelectedRibbon] = useState<any>(RIBBON_COLORS[0] || null);
   const [giftMessage, setGiftMessage] = useState<string>('');
 
   // Cart Success Toast / Modal State
@@ -138,13 +138,13 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
         if (!isMounted) return;
         const opts = getPackagingOptions(settings?.packaging);
         setPackagingList(opts);
-        setSelectedPackaging((prev) => opts.find((o) => o.id === prev.id) || opts[0]);
+        setSelectedPackaging((prev) => (prev ? opts.find((o) => o.id === prev.id) || opts[0] || null : opts[0] || null));
 
         if (settings?.packaging?.ribbons && settings.packaging.ribbons.length > 0) {
           const activeRibbons = settings.packaging.ribbons.filter((r: any) => r.enabled !== false);
           if (activeRibbons.length > 0) {
             setRibbonList(activeRibbons);
-            setSelectedRibbon((prev) => activeRibbons.find((r) => r.id === prev.id) || activeRibbons[0]);
+            setSelectedRibbon((prev: any) => (prev ? activeRibbons.find((r: any) => r.id === prev.id) || activeRibbons[0] || null : activeRibbons[0] || null));
           }
         }
       })
@@ -195,7 +195,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
 
     const raw = (item.rawProduct || item) as Product | undefined;
     const allowed = raw?.packagingOptions;
-    let initialPkg = packagingList[0] || getPackagingOptions()[0];
+    let initialPkg: PackagingOption | null = packagingList[0] || null;
     if (Array.isArray(allowed) && allowed.length > 0) {
       const matched = packagingList.find((pkg) =>
         allowed.some(
@@ -226,7 +226,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     }
 
     setSelectedPackaging(initialPkg);
-    setSelectedRibbon(ribbonList[0] || RIBBON_COLORS[0]);
+    setSelectedRibbon(ribbonList[0] || null);
     setGiftMessage('');
     setSelectedModalImageIndex(0);
   };
@@ -250,14 +250,14 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
     const firstImage = raw?.images?.[0];
     const imagePayload = firstImage
       ? {
-          url: typeof firstImage === 'string' ? firstImage : firstImage.url,
-          publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
-          alt: typeof firstImage === 'object' ? firstImage.alt : personalisingProduct.title,
-        }
+        url: typeof firstImage === 'string' ? firstImage : firstImage.url,
+        publicId: typeof firstImage === 'object' ? firstImage.publicId : undefined,
+        alt: typeof firstImage === 'object' ? firstImage.alt : personalisingProduct.title,
+      }
       : { url: personalisingProduct.image, alt: personalisingProduct.title };
 
     const isPackagingIncluded = Boolean((raw as any)?.packagingIncluded || (personalisingProduct as any)?.packagingIncluded);
-    const packagingExtra = isPackagingIncluded ? 0 : (selectedPackaging.price || 0);
+    const packagingExtra = isPackagingIncluded ? 0 : (selectedPackaging?.price || 0);
     const unitPrice = personalisingProduct.price + packagingExtra;
 
     const result = addItem({
@@ -268,9 +268,9 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
       quantity: 1,
       currentStock: stock,
       image: imagePayload,
-      packaging: isPackagingIncluded ? `${selectedPackaging.name} (Included)` : selectedPackaging.name,
+      packaging: selectedPackaging ? (isPackagingIncluded ? `${selectedPackaging.name} (Included)` : selectedPackaging.name) : undefined,
       packagingFee: packagingExtra,
-      ribbonColour: selectedRibbon.name,
+      ribbonColour: selectedRibbon?.name || undefined,
       giftMessage: giftMessage.trim() || undefined,
     });
 
@@ -424,11 +424,10 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   key={occ.id}
                   type="button"
                   onClick={() => handleToggleOccasion(occ.id)}
-                  className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isSelected
+                  className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${isSelected
                       ? 'bg-brand-dark text-brand-ivory font-semibold shadow-xs ring-1 ring-brand-dark'
                       : 'bg-[#FAF8F5] text-brand-dark hover:bg-brand-dark/5 border border-brand-dark/10'
-                  }`}
+                    }`}
                   aria-pressed={isSelected}
                 >
                   {isSelected && <Check size={13} className="text-gold-400" />}
@@ -464,11 +463,10 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   key={rec.id}
                   type="button"
                   onClick={() => handleToggleRecipient(rec.id)}
-                  className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isSelected
+                  className={`px-4 py-2 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${isSelected
                       ? 'bg-brand-dark text-brand-ivory font-semibold shadow-xs ring-1 ring-brand-dark'
                       : 'bg-[#FAF8F5] text-brand-dark hover:bg-brand-dark/5 border border-brand-dark/10'
-                  }`}
+                    }`}
                   aria-pressed={isSelected}
                 >
                   {isSelected && <Check size={13} className="text-gold-400" />}
@@ -504,11 +502,10 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   key={tier.id}
                   type="button"
                   onClick={() => handleToggleBudget(tier.id)}
-                  className={`px-5 py-2.5 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-2 ${
-                    isSelected
+                  className={`px-5 py-2.5 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-2 ${isSelected
                       ? 'bg-brand-dark text-brand-ivory font-semibold shadow-xs ring-1 ring-brand-dark'
                       : 'bg-[#FAF8F5] text-brand-dark hover:bg-brand-dark/5 border border-brand-dark/10'
-                  }`}
+                    }`}
                   aria-pressed={isSelected}
                 >
                   {isSelected && <Check size={13} className="text-gold-400" />}
@@ -544,11 +541,10 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                   key={ls.id}
                   type="button"
                   onClick={() => handleToggleLifestyle(ls.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isSelected
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 ${isSelected
                       ? 'bg-gold-600 text-white font-semibold shadow-xs'
                       : 'bg-[#FAF8F5] text-brand-dark/90 hover:bg-brand-dark/5 border border-brand-dark/10'
-                  }`}
+                    }`}
                   aria-pressed={isSelected}
                 >
                   {isSelected && <Check size={12} className="text-white" />}
@@ -878,11 +874,10 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                         key={idx}
                         type="button"
                         onClick={() => setSelectedModalImageIndex(idx)}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
-                          selectedModalImageIndex === idx
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${selectedModalImageIndex === idx
                             ? 'border-brand-dark ring-1 ring-brand-dark scale-105'
                             : 'border-brand-dark/15 opacity-60 hover:opacity-100'
-                        }`}
+                          }`}
                         title={`View angle ${idx + 1}`}
                       >
                         <img src={imgUrl} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
@@ -893,84 +888,86 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
               </div>
 
               {/* 1. Packaging Selection */}
-              <div>
-                {(() => {
-                  const isPackagingIncluded = Boolean((personalisingProduct?.rawProduct as any)?.packagingIncluded || (personalisingProduct as any)?.packagingIncluded);
-                  return (
-                    <>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block font-sans text-xs font-bold uppercase tracking-wider text-brand-dark">
-                          1. Presentation Packaging
-                        </label>
-                        {isPackagingIncluded && (
-                          <span className="text-[11px] font-sans font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                            ✓ Packaging Included in Price
-                          </span>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {activePackagingForProduct.map((pkg) => {
-                          const isSelected = selectedPackaging.id === pkg.id;
-                          return (
-                            <button
-                              key={pkg.id}
-                              type="button"
-                              onClick={() => setSelectedPackaging(pkg)}
-                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                                isSelected
-                                  ? 'border-brand-dark bg-[#FAF8F5] ring-1 ring-brand-dark shadow-2xs'
-                                  : 'border-brand-dark/15 hover:border-brand-dark/30'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-serif text-sm font-semibold text-brand-dark">
-                                  {pkg.name}
+              {activePackagingForProduct.length > 0 && (
+                <div>
+                  {(() => {
+                    const isPackagingIncluded = Boolean((personalisingProduct?.rawProduct as any)?.packagingIncluded || (personalisingProduct as any)?.packagingIncluded);
+                    return (
+                      <>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block font-sans text-xs font-bold uppercase tracking-wider text-brand-dark">
+                            1. Presentation Packaging
+                          </label>
+                          {isPackagingIncluded && (
+                            <span className="text-[11px] font-sans font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              ✓ Packaging Included in Price
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {activePackagingForProduct.map((pkg) => {
+                            const isSelected = selectedPackaging?.id === pkg.id;
+                            return (
+                              <button
+                                key={pkg.id}
+                                type="button"
+                                onClick={() => setSelectedPackaging(pkg)}
+                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${isSelected
+                                    ? 'border-brand-dark bg-[#FAF8F5] ring-1 ring-brand-dark shadow-2xs'
+                                    : 'border-brand-dark/15 hover:border-brand-dark/30'
+                                  }`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-serif text-sm font-semibold text-brand-dark">
+                                    {pkg.name}
+                                  </span>
+                                  <span className={`font-sans text-xs font-semibold ${isPackagingIncluded ? 'text-emerald-700' : 'text-gold-700'}`}>
+                                    {isPackagingIncluded ? 'Included' : (pkg.price === 0 ? 'Included' : `+₦${pkg.price.toLocaleString()}`)}
+                                  </span>
+                                </div>
+                                <span className="font-sans text-[11px] text-brand-medium">
+                                  {pkg.description}
                                 </span>
-                                <span className={`font-sans text-xs font-semibold ${isPackagingIncluded ? 'text-emerald-700' : 'text-gold-700'}`}>
-                                  {isPackagingIncluded ? 'Included' : (pkg.price === 0 ? 'Included' : `+₦${pkg.price.toLocaleString()}`)}
-                                </span>
-                              </div>
-                              <span className="font-sans text-[11px] text-brand-medium">
-                                {pkg.description}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* 2. Ribbon Selection */}
-              <div>
-                <label className="block font-sans text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                  2. Satin Ribbon Finish
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {ribbonList.map((ribbon) => {
-                    const isSelected = selectedRibbon.id === ribbon.id || selectedRibbon.name === ribbon.name;
-                    return (
-                      <button
-                        key={ribbon.id || ribbon.name}
-                        type="button"
-                        onClick={() => setSelectedRibbon(ribbon)}
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-sans transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-brand-dark bg-brand-dark text-white font-semibold'
-                            : 'border-brand-dark/15 bg-white text-brand-dark hover:border-brand-dark/30'
-                        }`}
-                      >
-                        <span
-                          className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
-                          style={{ backgroundColor: ribbon.hex }}
-                        />
-                        <span>{ribbon.name}</span>
-                      </button>
-                    );
-                  })}
+              {ribbonList.length > 0 && (
+                <div>
+                  <label className="block font-sans text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                    2. Satin Ribbon Finish
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {ribbonList.map((ribbon) => {
+                      const isSelected = selectedRibbon?.id === ribbon.id || selectedRibbon?.name === ribbon.name;
+                      return (
+                        <button
+                          key={ribbon.id || ribbon.name}
+                          type="button"
+                          onClick={() => setSelectedRibbon(ribbon)}
+                          className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-sans transition-all cursor-pointer ${isSelected
+                              ? 'border-brand-dark bg-brand-dark text-white font-semibold'
+                              : 'border-brand-dark/15 bg-white text-brand-dark hover:border-brand-dark/30'
+                            }`}
+                        >
+                          <span
+                            className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
+                            style={{ backgroundColor: ribbon.hex }}
+                          />
+                          <span>{ribbon.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 3. Complimentary Handwritten Message */}
               <div>
@@ -1002,7 +999,7 @@ export const ShopFlowContainer: React.FC<ShopFlowContainerProps> = ({
                     const isPackagingIncluded = Boolean((personalisingProduct?.rawProduct as any)?.packagingIncluded || (personalisingProduct as any)?.packagingIncluded);
                     return (
                       personalisingProduct.price +
-                      (isPackagingIncluded ? 0 : (selectedPackaging.price || 0))
+                      (isPackagingIncluded ? 0 : (selectedPackaging?.price || 0))
                     ).toLocaleString();
                   })()}
                 </span>

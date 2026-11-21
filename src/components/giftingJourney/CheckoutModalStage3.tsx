@@ -90,7 +90,8 @@ export const CheckoutModalStage3: React.FC<CheckoutModalStage3Props> = ({
                     {details.gift.title}
                   </span>
                   <span className="text-brand-medium/80">
-                    {details.packaging.name} · {details.ribbon.name} Ribbon
+                    {details.packaging ? details.packaging.name : 'Complimentary Packaging'}
+                    {details.ribbon ? ` · ${details.ribbon.name} Ribbon` : ''}
                   </span>
                 </div>
                 <span className="font-serif text-base text-brand-dark font-semibold">
