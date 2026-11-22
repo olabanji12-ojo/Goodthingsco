@@ -150,5 +150,7 @@ export function listSummary(order: Order): OrderListItem {
     preferredDeliveryDate: order.delivery.preferredDate,
     deliveryLocation: [order.delivery.address.city, order.delivery.address.state].filter(Boolean).join(', '),
     itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+    isTestOrder: Boolean(order.isTestOrder || order.environment === 'test'),
+    environment: order.environment || (order.isTestOrder ? 'test' : 'live'),
   };
 }

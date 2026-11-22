@@ -24,6 +24,7 @@ export interface DeliveryDetails {
 
 export interface OrderEmailData extends DeliveryDetails {
   orderNumber: string;
+  isTestOrder?: boolean;
   customerName: string;
   customerEmail: string;
   recipientName: string;
@@ -41,6 +42,7 @@ export interface OrderEmailData extends DeliveryDetails {
 export function toOrderEmailData(order: Order, delivery: DeliveryDetails = {}): OrderEmailData {
   return {
     orderNumber: order.orderNumber,
+    isTestOrder: Boolean(order.isTestOrder || order.environment === 'test'),
     customerName: order.customer.fullName,
     customerEmail: order.customer.email,
     recipientName: order.recipient.fullName,

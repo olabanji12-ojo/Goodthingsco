@@ -59,3 +59,17 @@ export async function initializePaystackTransaction() {
   return { success: state.initializationsSucceed, authorizationUrl: 'https://example.com/pay', accessCode: 'test', message: 'Initialization result' };
 }
 export async function verifyPaystackTransaction() { return { ...state.verification }; }
+
+export async function initializeFlutterwaveTransaction() {
+  return { success: state.initializationsSucceed, authorizationUrl: 'https://example.com/pay', reference: 'test-ref', message: 'Initialization result' };
+}
+export async function verifyFlutterwaveTransaction() { return { ...state.verification }; }
+
+export async function initializeNombaTransaction() {
+  return { success: state.initializationsSucceed, authorizationUrl: 'https://example.com/pay', reference: 'test-ref', message: 'Initialization result' };
+}
+export async function verifyNombaTransaction() { return { ...state.verification }; }
+
+export function nairaToKoboSafe(amount: number): number {
+  return Math.round(amount * 100);
+}

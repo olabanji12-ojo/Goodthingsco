@@ -69,15 +69,19 @@ export default function AdminOrdersPage() {
     }
   }
 
-  async function handleClearAll() {
-    const isInc = activeView === 'incomplete';
-    const label = isInc ? 'ALL incomplete/unpaid checkout attempts' : 'ALL orders currently in the system';
-    if (!window.confirm(`⚠️ WARNING: Are you sure you want to permanently delete ${label}?\n\nThis will remove all corresponding records permanently. This cannot be undone.`)) {
+  async function handleClear(scope: 'all' | 'incomplete' | 'test') {
+    const label =
+      scope === 'test'
+        ? 'ALL test / sandbox orders'
+        : scope === 'incomplete'
+        ? 'ALL incomplete/unpaid checkout attempts'
+        : 'ALL orders in the system';
+    if (!window.confirm(`⚠️ WARNING: Are you sure you want to permanently delete ${label}?\n\nThis will remove matching records permanently. This cannot be undone.`)) {
       return;
     }
     try {
       setActionBusy(true);
-      const res = await clearAdminOrders(isInc ? 'incomplete' : 'all');
+      const res = await clearAdminOrders(scope);
       alert(`Successfully deleted ${res.deletedCount} order(s).`);
       setReload((v) => v + 1);
     } catch (err) {
@@ -94,7 +98,25 @@ export default function AdminOrdersPage() {
     <section className="max-w-7xl mx-auto text-slate-800 space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Order management</p>
+          <div className="flex flex-wrap items-center gap-2.5 mb-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Order management</p>
+            {result?.isTestModeActive ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-300">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span>Test / Sandbox Mode Active</span>
+                {result.paymentGatewayModes && (
+                  <span className="hidden lg:inline text-amber-700 font-normal">
+                    (Nomba: {result.paymentGatewayModes.nomba} · FLW: {result.paymentGatewayModes.flutterwave})
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>Live Mode Active</span>
+              </span>
+            )}
+          </div>
           <h1 className="text-3xl font-semibold">Orders</h1>
           <p className="text-slate-500 mt-2">
             {isIncView
@@ -111,7 +133,14 @@ export default function AdminOrdersPage() {
             Refresh orders
           </button>
           <button
-            onClick={handleClearAll}
+            onClick={() => handleClear('test')}
+            disabled={actionBusy || (result?.total === 0)}
+            className="rounded-lg border border-amber-300 bg-amber-50 text-amber-800 px-4 py-2 text-sm font-medium hover:bg-amber-100 transition-colors disabled:opacity-40"
+          >
+            Clear Test Orders
+          </button>
+          <button
+            onClick={() => handleClear(isIncView ? 'incomplete' : 'all')}
             disabled={actionBusy || (result?.total === 0)}
             className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-medium hover:bg-red-100 transition-colors disabled:opacity-40"
           >
@@ -312,7 +341,16 @@ export default function AdminOrdersPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 my-4">
+                  <div className="flex flex-wrap items-center gap-2 my-4">
+                    {order.isTestOrder ? (
+                      <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        Test / Sandbox
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                        Live Order
+                      </span>
+                    )}
                     <OrderStatusBadge status={order.orderStatus} />
                     <span
                       className={`text-xs rounded-full px-3 py-1 capitalize font-medium ${

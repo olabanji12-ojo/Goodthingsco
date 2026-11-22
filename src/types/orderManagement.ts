@@ -22,6 +22,8 @@ export interface OrderListItem {
   preferredDeliveryDate: string;
   deliveryLocation: string;
   itemCount: number;
+  isTestOrder?: boolean;
+  environment?: 'test' | 'live';
 }
 export interface OrderListResult {
   orders: OrderListItem[];
@@ -30,6 +32,12 @@ export interface OrderListResult {
   pageSize: number;
   completedCount?: number;
   incompleteCount?: number;
+  isTestModeActive?: boolean;
+  paymentGatewayModes?: {
+    flutterwave: string;
+    nomba: string;
+    paystack: string;
+  };
 }
 export interface OrderUpdateResult {
   order: Order;

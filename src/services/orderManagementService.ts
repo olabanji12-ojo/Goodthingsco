@@ -21,7 +21,7 @@ export const listAdminOrders = (query: URLSearchParams, signal?: AbortSignal) =>
 export const getAdminOrder = async (id: string, signal?: AbortSignal) => (await request<{ order: Order }>(`/api/admin/orders/${encodeURIComponent(id)}`, { signal }, true)).order;
 export const updateAdminOrder = (id: string, update: OrderUpdateInput) => request<OrderUpdateResult>(`/api/admin/orders/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(update) }, true);
 export const deleteAdminOrder = (id: string) => request<{ success: boolean; id: string }>(`/api/admin/orders/${encodeURIComponent(id)}`, { method: 'DELETE' }, true);
-export const clearAdminOrders = (scope: 'all' | 'incomplete' = 'all') => request<{ success: boolean; deletedCount: number }>(`/api/admin/orders?scope=${scope}`, { method: 'DELETE' }, true);
+export const clearAdminOrders = (scope: 'all' | 'incomplete' | 'test' = 'all') => request<{ success: boolean; deletedCount: number }>(`/api/admin/orders?scope=${scope}`, { method: 'DELETE' }, true);
 export const trackOrder = async (orderNumber: string, verification: string) => (await request<{ order: TrackingOrder }>('/api/track-order', { method: 'POST', body: JSON.stringify({ orderNumber, verification }) })).order;
 export const resumeTracking = async () => (await request<{ order: TrackingOrder }>('/api/track-order')).order;
 export const forgetTracking = () => request('/api/track-order', { method: 'DELETE' });

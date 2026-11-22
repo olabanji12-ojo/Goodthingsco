@@ -17,7 +17,7 @@ export interface OrderRepository {
   get(id: string): Promise<Order | null>;
   find(number: string): Promise<Order[]>;
   delete(id: string): Promise<boolean>;
-  clear(scope?: 'all' | 'incomplete'): Promise<{ deletedCount: number }>;
+  clear(scope?: 'all' | 'incomplete' | 'test'): Promise<{ deletedCount: number }>;
   change<T>(id: string, eventId: string, work: (order: Order | null, receipt: ChangeReceipt | null) => {
     order?: Order; receipt?: ChangeReceipt; result: T;
   }): Promise<T>;
@@ -78,6 +78,11 @@ return [];
       toDelete = toDelete.filter(d => {
         const data = d.data();
         return data.payment?.status !== 'paid' && (data.payment?.status === 'pending' || data.payment?.status === 'abandoned' || data.payment?.status === 'failed' || data.orderStatus === 'pending-payment');
+      });
+    } else if (scope === 'test') {
+      toDelete = toDelete.filter(d => {
+        const data = d.data();
+        return data.isTestOrder === true || data.environment === 'test';
       });
     }
     if (toDelete.length === 0) return { deletedCount: 0 };

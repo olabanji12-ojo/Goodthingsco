@@ -32,10 +32,12 @@ import {
   generateOrderNumber,
   generateFlutterwaveReference,
   generateNombaReference,
+  generatePaystackReference,
   mapCartItemToOrderItem,
 } from '../src/utils/orderUtils.js';
 import { resolveDeliveryZone, getDeliveryFeeCalculation } from '../src/config/shipping.js';
 import {
+  initializePaystackTransaction,
   verifyPaystackTransaction,
 } from './paystackService.js';
 import {
@@ -211,10 +213,16 @@ export async function createPendingOrderServer(
     const amountKobo = nairaToKoboSafe(authoritativeTotal);
 
     // D. Payment Gateway & Unique Reference (Preserve Flutterwave as default)
-    const provider: PaymentProvider = payload.paymentProvider === 'nomba' ? 'nomba' : 'flutterwave';
+    const provider: PaymentProvider = payload.paymentProvider === 'nomba'
+      ? 'nomba'
+      : payload.paymentProvider === 'paystack'
+      ? 'paystack'
+      : 'flutterwave';
     const orderNumber = generateOrderNumber();
     const reference = provider === 'nomba'
       ? generateNombaReference(orderNumber)
+      : provider === 'paystack'
+      ? generatePaystackReference(orderNumber)
       : generateFlutterwaveReference(orderNumber);
 
     // E. Assemble Order Document
@@ -264,6 +272,36 @@ export async function createPendingOrderServer(
       },
       orderStatus: 'pending-payment',
       checkoutSessionId: validSessionId || undefined,
+      isTestOrder: Boolean(
+        (provider === 'nomba' && process.env.NOMBA_BASE_URL?.includes('sandbox')) ||
+        (provider === 'flutterwave' && (
+          process.env.FLUTTERWAVE_SECRET_KEY?.startsWith('FLWSECK_TEST-') ||
+          process.env.FLUTTERWAVE_MODE === 'simulation' ||
+          !process.env.FLUTTERWAVE_SECRET_KEY ||
+          process.env.FLUTTERWAVE_SECRET_KEY.includes('placeholder')
+        )) ||
+        (provider === 'paystack' && (
+          process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') ||
+          process.env.PAYSTACK_MODE === 'simulation' ||
+          !process.env.PAYSTACK_SECRET_KEY ||
+          process.env.PAYSTACK_SECRET_KEY.includes('placeholder')
+        ))
+      ),
+      environment: (
+        (provider === 'nomba' && process.env.NOMBA_BASE_URL?.includes('sandbox')) ||
+        (provider === 'flutterwave' && (
+          process.env.FLUTTERWAVE_SECRET_KEY?.startsWith('FLWSECK_TEST-') ||
+          process.env.FLUTTERWAVE_MODE === 'simulation' ||
+          !process.env.FLUTTERWAVE_SECRET_KEY ||
+          process.env.FLUTTERWAVE_SECRET_KEY.includes('placeholder')
+        )) ||
+        (provider === 'paystack' && (
+          process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') ||
+          process.env.PAYSTACK_MODE === 'simulation' ||
+          !process.env.PAYSTACK_SECRET_KEY ||
+          process.env.PAYSTACK_SECRET_KEY.includes('placeholder')
+        ))
+      ) ? 'test' : 'live',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -276,8 +314,8 @@ export async function createPendingOrderServer(
       orderId = docRef.id;
     }
 
-    // Pending checkout orders do not trigger placed emails.
-    // Full order and payment confirmation emails are emitted in confirmPaidOrderServer once payment succeeds.
+    // The order is already durable. Delivery failures are isolated by the notification layer.
+    await notificationService.orderCreated({ id: orderId, ...orderDocData });
 
     // G. Initialize Payment with Selected Gateway
     const effectiveOrigin = (
@@ -308,6 +346,18 @@ export async function createPendingOrderServer(
           customerName: orderDocData.customer.fullName,
         },
       });
+    } else if (provider === 'paystack') {
+      gatewayResult = await initializePaystackTransaction({
+        email: orderDocData.customer.email,
+        amountKobo,
+        reference,
+        callbackUrl,
+        metadata: {
+          orderNumber,
+          orderId,
+          customerName: orderDocData.customer.fullName,
+        },
+      });
     } else {
       gatewayResult = await initializeFlutterwaveTransaction({
         email: orderDocData.customer.email,
@@ -325,7 +375,7 @@ export async function createPendingOrderServer(
     }
 
     if (!gatewayResult.success) {
-      const gatewayLabel = provider === 'nomba' ? 'Nomba' : 'Flutterwave';
+      const gatewayLabel = provider === 'nomba' ? 'Nomba' : provider === 'paystack' ? 'Paystack' : 'Flutterwave';
       await notificationService.orderException({ id: orderId, ...orderDocData },
         `${gatewayLabel} payment initialization failed. The pending order is saved and may need assistance.`,
         `${orderNumber}:payment-initialization`);
@@ -417,8 +467,8 @@ export async function confirmPaidOrderServer(
     const verifyResult = isNomba
       ? await verifyNombaTransaction(reference, transactionId)
       : isPaystack
-      ? await verifyPaystackTransaction(reference)
-      : await verifyFlutterwaveTransaction(reference, transactionId);
+        ? await verifyPaystackTransaction(reference)
+        : await verifyFlutterwaveTransaction(reference, transactionId);
 
     if (!verifyResult.success || verifyResult.status !== 'success') {
       // Record payment failure on order record
@@ -556,13 +606,18 @@ export async function confirmPaidOrderServer(
       });
 
       if (confirmedByAnotherRequest) {
-        return { success: true, alreadyProcessed: true, orderNumber: existingOrder.orderNumber,
-          orderId, order: confirmedByAnotherRequest, message: 'Payment was already verified and confirmed.' };
+        return {
+          success: true, alreadyProcessed: true, orderNumber: existingOrder.orderNumber,
+          orderId, order: confirmedByAnotherRequest, message: 'Payment was already verified and confirmed.'
+        };
       }
     }
 
+    const isTest = Boolean(existingOrder.isTestOrder || verifyResult.isSimulated || (isNomba && process.env.NOMBA_BASE_URL?.includes('sandbox')));
     const updatedOrder: Order = {
       ...existingOrder,
+      isTestOrder: isTest,
+      environment: isTest ? 'test' : 'live',
       payment: {
         ...existingOrder.payment,
         status: 'paid',

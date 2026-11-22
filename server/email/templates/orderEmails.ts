@@ -44,10 +44,13 @@ export function orderEmail(event: OrderEmailEvent, data: OrderEmailData, message
     case 'ORDER_EXCEPTION_ADMIN':
       title = event === 'NEW_ORDER_ADMIN' ? 'New order received'
         : event === 'PAYMENT_CONFIRMED_ADMIN' ? 'Order payment confirmed' : 'Order needs attention';
-      subject = `${title} — ${data.orderNumber}`;
-      paragraphs = [event === 'ORDER_EXCEPTION_ADMIN'
-        ? (message?.trim().slice(0, 2000) || 'Please review this order before fulfillment.')
-        : 'The following order is ready for your review.'];
+      subject = data.isTestOrder ? `[TEST / SANDBOX] ${title} — ${data.orderNumber}` : `${title} — ${data.orderNumber}`;
+      paragraphs = [
+        ...(data.isTestOrder ? ['⚠️ NOTICE: This order was generated in Sandbox/Test Mode. No real funds were charged.'] : []),
+        event === 'ORDER_EXCEPTION_ADMIN'
+          ? (message?.trim().slice(0, 2000) || 'Please review this order before fulfillment.')
+          : 'The following order is ready for your review.',
+      ];
       details.push(['Customer', data.customerName], ['Customer email', data.customerEmail]);
       showItems = true;
       break;

@@ -71,6 +71,21 @@ export function createOrderManagement(dependencies: Partial<Dependencies> = {}) 
         pageSize: 30,
         completedCount,
         incompleteCount,
+        isTestModeActive: Boolean(
+          process.env.NOMBA_BASE_URL?.includes('sandbox') ||
+          process.env.FLUTTERWAVE_SECRET_KEY?.startsWith('FLWSECK_TEST-') ||
+          process.env.FLUTTERWAVE_MODE === 'simulation' ||
+          (process.env.PAYSTACK_MODE && process.env.PAYSTACK_MODE !== 'live')
+        ),
+        paymentGatewayModes: {
+          flutterwave: process.env.FLUTTERWAVE_SECRET_KEY?.startsWith('FLWSECK_TEST-')
+            ? 'Test'
+            : (process.env.FLUTTERWAVE_SECRET_KEY ? 'Live' : 'Simulation'),
+          nomba: process.env.NOMBA_BASE_URL?.includes('sandbox')
+            ? 'Sandbox'
+            : (process.env.NOMBA_CLIENT_ID ? 'Live' : 'Unconfigured'),
+          paystack: process.env.PAYSTACK_MODE === 'live' ? 'Live' : 'Test',
+        },
       };
     },
     async delete(authorization: string | undefined, id: string) {
@@ -79,7 +94,7 @@ export function createOrderManagement(dependencies: Partial<Dependencies> = {}) 
       if (!success) throw new OrderHttpError(404, 'Order not found.');
       return { success: true, id };
     },
-    async clear(authorization: string | undefined, scope: 'all' | 'incomplete' = 'all') {
+    async clear(authorization: string | undefined, scope: 'all' | 'incomplete' | 'test' = 'all') {
       await admin(authorization);
       const result = await repo.clear(scope);
       return { success: true, ...result };

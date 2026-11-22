@@ -24,7 +24,7 @@ export function createNotificationService(email = emailService) {
       const isSandbox = order.payment?.provider === 'nomba' && Boolean(process.env.NOMBA_BASE_URL?.includes('sandbox'));
       const isSim = Boolean(verification.isSimulated || isSandbox);
       const data = toOrderEmailData(order);
-      const options = isSim ? { skipReason: 'Simulated/Sandbox payment; customer payment email suppressed' } : undefined;
+      const options = isSim ? { skipReason: 'Simulated payment; sandbox or test payment email suppressed' } : undefined;
       const tasks = [email.sendPaymentConfirmedEmail(data, options), email.sendAdminPaymentEmail(data, options)];
       if (order.orderStatus === 'confirmed-review-required') {
         tasks.push(email.sendAdminExceptionEmail(data,

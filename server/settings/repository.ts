@@ -88,7 +88,8 @@ export const firestoreSettingsRepository: StoreSettingsRepository = {
       cacheExpiresAt = now + CACHE_TTL_MS;
       return structuredClone(merged);
     } catch (err) {
-      throw err;
+      console.warn('[StoreSettings] Could not load settings from Firestore, using default store settings:', err instanceof Error ? err.message : String(err));
+      return structuredClone(DEFAULT_STORE_SETTINGS);
     }
   },
 

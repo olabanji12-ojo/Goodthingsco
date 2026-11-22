@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, Trash2 } from 'lucide-react';
+import { ArrowLeft, Package, Trash2, AlertCircle } from 'lucide-react';
 import { getAdminOrder, updateAdminOrder, deleteAdminOrder } from '../../services/orderManagementService';
 import type { Order, OrderStatus } from '../../types/order';
 import type { OrderUpdateInput } from '../../types/orderManagement';
@@ -81,7 +81,36 @@ export default function AdminOrderDetailsPage() {
         <span>Delete Order</span>
       </button>
     </div>
-    <header className="flex flex-wrap justify-between items-start gap-4"><div><p className="text-xs uppercase tracking-[0.15em] text-slate-500 mb-2">Order details</p><h1 className="text-2xl sm:text-3xl font-semibold break-all">{order.orderNumber}</h1><p className="text-sm text-slate-500 mt-2">Created {new Date(order.createdAt).toLocaleString()}</p></div><OrderStatusBadge status={order.orderStatus} /></header>
+    <header className="flex flex-wrap justify-between items-start gap-4">
+      <div>
+        <p className="text-xs uppercase tracking-[0.15em] text-slate-500 mb-2">Order details</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold break-all">{order.orderNumber}</h1>
+        <p className="text-sm text-slate-500 mt-2">Created {new Date(order.createdAt).toLocaleString()}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {order.isTestOrder ? (
+          <span className="text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+            Test / Sandbox Order
+          </span>
+        ) : (
+          <span className="text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+            Live Order
+          </span>
+        )}
+        <OrderStatusBadge status={order.orderStatus} />
+      </div>
+    </header>
+    {order.isTestOrder && (
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 text-sm flex items-start gap-3 shadow-sm">
+        <AlertCircle size={20} className="shrink-0 text-amber-600 mt-0.5" />
+        <div>
+          <p className="font-semibold">Test / Sandbox Order Notice</p>
+          <p className="text-amber-800 text-xs sm:text-sm mt-0.5">
+            This order was created in Sandbox/Test Mode. No real money was debited from the customer's payment card. Do not dispatch physical inventory for this test order.
+          </p>
+        </div>
+      </div>
+    )}
     {error && <div role="alert" className="bg-red-50 text-red-800 p-4 rounded-lg">{error}<button type="button" onClick={() => { retry.current = undefined; setReload(value => value + 1); }} className="block underline mt-2">Reload latest order (discards unsaved changes)</button></div>}
     {notice && <p role="status" className="bg-emerald-50 text-emerald-800 p-4 rounded-lg">{notice}</p>}
     <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,380px)] gap-6 items-start">

@@ -29,6 +29,13 @@ export function memoryRepository(initial: Order[] = [managedOrder()]) {
       if (scope === 'all') {
         count = orders.size;
         orders.clear();
+      } else if (scope === 'test') {
+        for (const [id, order] of orders.entries()) {
+          if (order.isTestOrder || order.environment === 'test') {
+            orders.delete(id);
+            count++;
+          }
+        }
       } else {
         for (const [id, order] of orders.entries()) {
           if (order.payment?.status !== 'paid') {

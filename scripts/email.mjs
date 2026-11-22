@@ -24,6 +24,10 @@ try {
         ? { path: resolve(root, 'tests/email/orderMocks.ts') } : undefined);
       builder.onResolve({ filter: /^\.\/paystackService(?:\.js)?$/ }, args => args.importer.endsWith('orderService.ts')
         ? { path: resolve(root, 'tests/email/orderMocks.ts') } : undefined);
+      builder.onResolve({ filter: /^\.\/flutterwaveService(?:\.js)?$/ }, args => args.importer.endsWith('orderService.ts')
+        ? { path: resolve(root, 'tests/email/orderMocks.ts') } : undefined);
+      builder.onResolve({ filter: /^\.\/nombaService(?:\.js)?$/ }, args => args.importer.endsWith('orderService.ts')
+        ? { path: resolve(root, 'tests/email/orderMocks.ts') } : undefined);
     } }] : [],
   });
   await writeFile(output, result.outputFiles[0].contents);

@@ -114,6 +114,9 @@ export interface Order {
 
   checkoutSessionId?: string;
 
+  isTestOrder?: boolean;
+  environment?: 'test' | 'live';
+
   createdAt: string;
   updatedAt: string;
 }
