@@ -7,8 +7,6 @@ import { restoreApiUrl } from '../server/apiRouting.js';
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { timingSafeEqual, createHash } from 'node:crypto';
-import { getAdminFirestore } from '../server/firebase.js';
 import { handleOrderHttp } from '../server/orders/http.js';
 import { handleCheckoutHttp } from '../server/checkout/http.js';
 import { handleCorporateHttp } from '../server/corporate/http.js';
@@ -72,74 +70,6 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
 
     const url = (req.url || '').split('?')[0];
     const method = (req.method || 'GET').toUpperCase();
-
-    // Maintenance / Reset Test Data (Orders, Corporate Requests, Custom Requests)
-    if (url === '/api/admin/clean-test-data' && method === 'POST') {
-      const authHeader = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
-      const expectedSecret = (process.env.CRON_SECRET || '').trim();
-      const isAuthorized = Boolean(
-        expectedSecret &&
-        authHeader &&
-        timingSafeEqual(
-          createHash('sha256').update(authHeader).digest(),
-          createHash('sha256').update(expectedSecret).digest()
-        )
-      );
-
-      if (!isAuthorized) {
-        return sendJson(res, 401, { success: false, message: 'Unauthorized maintenance request' });
-      }
-
-      const db = getAdminFirestore();
-      let deletedOrders = 0;
-      let deletedCorporate = 0;
-      let deletedCustom = 0;
-
-      // 1. Delete all orders and subcollections
-      const ordersSnap = await db.collection('orders').get();
-      for (const orderDoc of ordersSnap.docs) {
-        const events = await orderDoc.ref.collection('managementEvents').get();
-        const batch = db.batch();
-        events.docs.forEach((e) => batch.delete(e.ref));
-        batch.delete(orderDoc.ref);
-        await batch.commit();
-        deletedOrders++;
-      }
-
-      // 2. Delete all corporate requests
-      const corpSnap = await db.collection('corporateRequests').get();
-      if (!corpSnap.empty) {
-        const batch = db.batch();
-        corpSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit();
-        deletedCorporate = corpSnap.size;
-      }
-
-      // 3. Delete all custom requests
-      const custSnap = await db.collection('customRequests').get();
-      if (!custSnap.empty) {
-        const batch = db.batch();
-        custSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit();
-        deletedCustom = custSnap.size;
-      }
-
-      // 4. Also clean up any tracking sessions
-      const sessionsSnap = await db.collection('orderTrackingSessions').get();
-      if (!sessionsSnap.empty) {
-        const batch = db.batch();
-        sessionsSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit();
-      }
-
-      return sendJson(res, 200, {
-        success: true,
-        message: 'Successfully cleared all test orders, corporate requests, and custom requests.',
-        deletedOrders,
-        deletedCorporate,
-        deletedCustom,
-      });
-    }
 
     // 2. Payment Initialization (Flutterwave / Nomba)
     if (
