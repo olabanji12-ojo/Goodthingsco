@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Package } from 'lucide-react';
-import { getAdminOrder, updateAdminOrder } from '../../services/orderManagementService';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Package, Trash2 } from 'lucide-react';
+import { getAdminOrder, updateAdminOrder, deleteAdminOrder } from '../../services/orderManagementService';
 import type { Order, OrderStatus } from '../../types/order';
 import type { OrderUpdateInput } from '../../types/orderManagement';
 import { ORDER_STATUS_LABELS, ORDER_TRANSITIONS, formatOrderMoney, safeTrackingUrl } from '../../utils/orderManagement';
@@ -16,6 +16,7 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
 const inputClass = 'w-full rounded-lg border border-slate-300 bg-white p-2.5 mt-1 text-sm';
 export default function AdminOrderDetailsPage() {
   const { orderId = '' } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(''); const [reload, setReload] = useState(0);
@@ -53,10 +54,33 @@ export default function AdminOrderDetailsPage() {
     } catch (error) { setError(error instanceof Error ? error.message : 'Could not save. You can retry safely.'); }
     finally { setBusy(false); }
   }
+  async function handleDelete() {
+    if (!order) return;
+    if (!window.confirm(`Are you sure you want to permanently delete order "${order.orderNumber}"? This cannot be undone.`)) return;
+    try {
+      setBusy(true);
+      await deleteAdminOrder(orderId);
+      navigate('/admin/orders');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete order.');
+      setBusy(false);
+    }
+  }
   if (loading) return <p role="status" className="p-8 text-center">Loading order…</p>;
   if (!order) return <div role="alert" className="text-red-700">{error || 'Order not found.'}<button className="block underline mt-3" onClick={() => setReload(value => value + 1)}>Try again</button></div>;
   return <div className="max-w-6xl mx-auto text-slate-800 space-y-6">
-    <Link to="/admin/orders" className="inline-flex items-center gap-2 text-sm text-slate-500"><ArrowLeft size={16} />All orders</Link>
+    <div className="flex items-center justify-between">
+      <Link to="/admin/orders" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800"><ArrowLeft size={16} />All orders</Link>
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition-colors"
+      >
+        <Trash2 size={14} />
+        <span>Delete Order</span>
+      </button>
+    </div>
     <header className="flex flex-wrap justify-between items-start gap-4"><div><p className="text-xs uppercase tracking-[0.15em] text-slate-500 mb-2">Order details</p><h1 className="text-2xl sm:text-3xl font-semibold break-all">{order.orderNumber}</h1><p className="text-sm text-slate-500 mt-2">Created {new Date(order.createdAt).toLocaleString()}</p></div><OrderStatusBadge status={order.orderStatus} /></header>
     {error && <div role="alert" className="bg-red-50 text-red-800 p-4 rounded-lg">{error}<button type="button" onClick={() => { retry.current = undefined; setReload(value => value + 1); }} className="block underline mt-2">Reload latest order (discards unsaved changes)</button></div>}
     {notice && <p role="status" className="bg-emerald-50 text-emerald-800 p-4 rounded-lg">{notice}</p>}

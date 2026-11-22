@@ -1,5 +1,6 @@
 import { authorizeAdmin } from '../auth/admin.js';
 import { createHash, randomBytes } from 'node:crypto';
+import type { Order } from '../../src/types/order.js';
 import type { OrderUpdateResult } from '../../src/types/orderManagement.js';
 import { getAdminAuth } from '../firebase.js';
 import { notificationService } from '../services/notificationService.js';
@@ -29,18 +30,59 @@ export function createOrderManagement(dependencies: Partial<Dependencies> = {}) 
       await admin(authorization);
       const search = (query.get('search') || '').trim().toLowerCase().slice(0, 254);
       const status = query.get('status'); const payment = query.get('payment'); const sort = query.get('sort');
+      const view = query.get('view');
       const page = Math.max(1, Math.min(100000, Number(query.get('page')) || 1));
       if (!Number.isSafeInteger(page)) throw new OrderHttpError(400, 'Invalid page.');
       const normalizedSearchPhone = normalizeTrackingPhone(search);
-      const orders = (await repo.list()).filter(order => (!status || order.orderStatus === status)
-        && (!payment || order.payment.status === payment)
-        && (!search || [order.orderNumber, order.customer.fullName, order.customer.email, order.customer.phone]
-          .some(value => value.toLowerCase().includes(search))
-          || Boolean(normalizedSearchPhone && normalizeTrackingPhone(order.customer.phone)?.includes(normalizedSearchPhone))));
+      const allOrders = await repo.list();
+
+      const isIncomplete = (order: Order) =>
+        order.payment.status !== 'paid' &&
+        (order.payment.status === 'pending' ||
+         order.payment.status === 'abandoned' ||
+         order.payment.status === 'failed' ||
+         order.orderStatus === 'pending-payment');
+      const isCompleted = (order: Order) => !isIncomplete(order);
+
+      const completedCount = allOrders.filter(isCompleted).length;
+      const incompleteCount = allOrders.filter(isIncomplete).length;
+
+      const orders = allOrders.filter(order => {
+        if (view === 'completed' && !isCompleted(order)) return false;
+        if (view === 'incomplete' && !isIncomplete(order)) return false;
+        if (status && order.orderStatus !== status) return false;
+        if (payment && order.payment.status !== payment) return false;
+        if (search) {
+          const match = [order.orderNumber, order.customer.fullName, order.customer.email, order.customer.phone]
+            .some(value => value.toLowerCase().includes(search))
+            || Boolean(normalizedSearchPhone && normalizeTrackingPhone(order.customer.phone)?.includes(normalizedSearchPhone));
+          if (!match) return false;
+        }
+        return true;
+      });
+
       orders.sort((a, b) => sort === 'oldest' ? a.createdAt.localeCompare(b.createdAt)
         : sort === 'delivery' ? (a.delivery.expectedDeliveryDate || a.delivery.preferredDate || '9999').localeCompare(b.delivery.expectedDeliveryDate || b.delivery.preferredDate || '9999')
         : b.createdAt.localeCompare(a.createdAt));
-      return { orders: orders.slice((page - 1) * 30, page * 30).map(listSummary), total: orders.length, page, pageSize: 30 };
+      return {
+        orders: orders.slice((page - 1) * 30, page * 30).map(listSummary),
+        total: orders.length,
+        page,
+        pageSize: 30,
+        completedCount,
+        incompleteCount,
+      };
+    },
+    async delete(authorization: string | undefined, id: string) {
+      await admin(authorization); validId(id);
+      const success = await repo.delete(id);
+      if (!success) throw new OrderHttpError(404, 'Order not found.');
+      return { success: true, id };
+    },
+    async clear(authorization: string | undefined, scope: 'all' | 'incomplete' = 'all') {
+      await admin(authorization);
+      const result = await repo.clear(scope);
+      return { success: true, ...result };
     },
     async detail(authorization: string | undefined, id: string) {
       await admin(authorization); validId(id);

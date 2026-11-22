@@ -50,8 +50,13 @@ export function createOrderHttp(service = orderManagement) {
         send(200, { success: true });
       } else if (path === '/api/admin/orders' && req.method === 'GET') {
         send(200, { success: true, ...await service.list(authorization, url.searchParams) });
+      } else if (path === '/api/admin/orders' && req.method === 'DELETE') {
+        const scope = url.searchParams.get('scope') === 'incomplete' ? 'incomplete' : 'all';
+        send(200, await service.clear(authorization, scope));
       } else if (match && req.method === 'GET') {
         send(200, { success: true, order: await service.detail(authorization, match[1]) });
+      } else if (match && req.method === 'DELETE') {
+        send(200, await service.delete(authorization, match[1]));
       } else if (match && req.method === 'PATCH') {
         send(200, { success: true, ...await service.update(authorization, match[1], await readJson(req)) });
       } else { send(405, { success: false, message: 'Method or route not supported.' }); }

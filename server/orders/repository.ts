@@ -16,6 +16,8 @@ export interface OrderRepository {
   list(): Promise<Order[]>;
   get(id: string): Promise<Order | null>;
   find(number: string): Promise<Order[]>;
+  delete(id: string): Promise<boolean>;
+  clear(scope?: 'all' | 'incomplete'): Promise<{ deletedCount: number }>;
   change<T>(id: string, eventId: string, work: (order: Order | null, receipt: ChangeReceipt | null) => {
     order?: Order; receipt?: ChangeReceipt; result: T;
   }): Promise<T>;
@@ -56,6 +58,42 @@ return null;
     
 return [];
 },
+  async delete(id) {
+    const db = getAdminFirestore();
+    const docRef = db.collection('orders').doc(id);
+    const snap = await docRef.get();
+    if (!snap.exists) return false;
+    const eventsSnap = await docRef.collection('managementEvents').get();
+    const batch = db.batch();
+    eventsSnap.docs.forEach(d => batch.delete(d.ref));
+    batch.delete(docRef);
+    await batch.commit();
+    return true;
+  },
+  async clear(scope = 'all') {
+    const db = getAdminFirestore();
+    const ordersSnap = await db.collection('orders').get();
+    let toDelete = ordersSnap.docs;
+    if (scope === 'incomplete') {
+      toDelete = toDelete.filter(d => {
+        const data = d.data();
+        return data.payment?.status !== 'paid' && (data.payment?.status === 'pending' || data.payment?.status === 'abandoned' || data.payment?.status === 'failed' || data.orderStatus === 'pending-payment');
+      });
+    }
+    if (toDelete.length === 0) return { deletedCount: 0 };
+    // Firestore batch limit is 500 operations
+    let deletedCount = 0;
+    while (toDelete.length > 0) {
+      const chunk = toDelete.splice(0, 450);
+      const batch = db.batch();
+      for (const d of chunk) {
+        batch.delete(d.ref);
+      }
+      await batch.commit();
+      deletedCount += chunk.length;
+    }
+    return { deletedCount };
+  },
   async change(id, eventId, work) {
       const db = getAdminFirestore();
       const orderRef = db.collection('orders').doc(id);

@@ -73,7 +73,7 @@ export interface OrderDelivery {
   deliveryFee: number;
   shippingMethodId?: string;
   shippingMethodName?: string;
-  vehicle?: string;
+  vehicle?: 'bike' | 'car' | 'van' | 'interstate' | 'air-freight';
 }
 
 export type PaymentProvider = 'flutterwave' | 'paystack' | 'nomba';

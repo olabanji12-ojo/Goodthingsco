@@ -276,8 +276,8 @@ export async function createPendingOrderServer(
       orderId = docRef.id;
     }
 
-    // The order is already durable. Delivery failures are isolated by the notification layer.
-    await notificationService.orderCreated({ id: orderId, ...orderDocData });
+    // Pending checkout orders do not trigger placed emails.
+    // Full order and payment confirmation emails are emitted in confirmPaidOrderServer once payment succeeds.
 
     // G. Initialize Payment with Selected Gateway
     const effectiveOrigin = (

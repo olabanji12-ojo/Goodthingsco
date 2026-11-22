@@ -13,7 +13,7 @@ export function sampleOrder(): Order {
     payment: { status: 'pending', provider: 'paystack', reference: 'private-payment-reference', amountKobo: 5350000, currency: 'NGN' },
     orderStatus: 'pending-payment',
     delivery: { address: { addressLine1: '12 Example Lane', city: 'Ikeja', state: 'Lagos', country: 'Nigeria' },
-      zone: 'lagos', preferredDate: '2026-10-08', deliveryFee: 3500 },
+      zone: 'lagos', preferredDate: '2026-10-08', deliveryFee: 3500, vehicle: 'bike' as const },
     createdAt: '2026-10-02T12:00:00.000Z', updatedAt: '2026-10-02T12:00:00.000Z',
   };
 }

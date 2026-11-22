@@ -23,6 +23,22 @@ export function memoryRepository(initial: Order[] = [managedOrder()]) {
     async list() { return structuredClone([...orders.values()]); },
     async get(id) { return structuredClone(orders.get(id) || null); },
     async find(number) { return structuredClone([...orders.values()].filter(order => order.orderNumber === number)); },
+    async delete(id) { return orders.delete(id); },
+    async clear(scope = 'all') {
+      let count = 0;
+      if (scope === 'all') {
+        count = orders.size;
+        orders.clear();
+      } else {
+        for (const [id, order] of orders.entries()) {
+          if (order.payment?.status !== 'paid') {
+            orders.delete(id);
+            count++;
+          }
+        }
+      }
+      return { deletedCount: count };
+    },
     async change(id, eventId, work) {
       const prior = queue; let release!: () => void;
       queue = new Promise<void>(resolve => { release = resolve; }); await prior;

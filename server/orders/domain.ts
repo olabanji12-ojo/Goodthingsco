@@ -137,8 +137,18 @@ export function trackingSummary(order: Order): TrackingOrder {
   };
 }
 export function listSummary(order: Order): OrderListItem {
-  return { id: order.id!, orderNumber: order.orderNumber, customerName: order.customer.fullName, createdAt: order.createdAt,
-    total: order.total, paymentStatus: order.payment.status, orderStatus: order.orderStatus,
-    preferredDeliveryDate: order.delivery.preferredDate, deliveryLocation: [order.delivery.address.city, order.delivery.address.state].join(', '),
-    itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0) };
+  return {
+    id: order.id!,
+    orderNumber: order.orderNumber,
+    customerName: order.customer.fullName,
+    customerEmail: order.customer.email,
+    customerPhone: order.customer.phone,
+    createdAt: order.createdAt,
+    total: order.total,
+    paymentStatus: order.payment.status,
+    orderStatus: order.orderStatus,
+    preferredDeliveryDate: order.delivery.preferredDate,
+    deliveryLocation: [order.delivery.address.city, order.delivery.address.state].filter(Boolean).join(', '),
+    itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+  };
 }

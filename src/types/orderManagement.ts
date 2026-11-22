@@ -13,6 +13,8 @@ export interface OrderListItem {
   id: string;
   orderNumber: string;
   customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
   createdAt: string;
   total: number;
   paymentStatus: PaymentStatus;
@@ -21,7 +23,14 @@ export interface OrderListItem {
   deliveryLocation: string;
   itemCount: number;
 }
-export interface OrderListResult { orders: OrderListItem[]; total: number; page: number; pageSize: number }
+export interface OrderListResult {
+  orders: OrderListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  completedCount?: number;
+  incompleteCount?: number;
+}
 export interface OrderUpdateResult {
   order: Order;
   replayed: boolean;
